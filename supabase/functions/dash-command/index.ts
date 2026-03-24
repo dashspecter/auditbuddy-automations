@@ -1,18 +1,21 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
-};
-
-const DEFAULT_TIMEZONE = "Europe/Bucharest";
-const MAX_TOOL_ROWS = 200;
-
-// ─── Shared Audit Completion Semantics ───
-// Aligns with src/lib/auditHelpers.ts COMPLETED_STATUSES
-const AUDIT_FINISHED_STATUSES = ["completed", "compliant", "non-compliant", "non_compliant"];
+// ─── Shared Capability Layer Imports ───
+import { AUDIT_FINISHED_STATUSES, DEFAULT_TIMEZONE, MAX_TOOL_ROWS, MODULE_CODES } from "./shared/constants.ts";
+import { resultToToolResponse } from "./shared/contracts.ts";
+import { type PermissionContext } from "./shared/permissions.ts";
+import {
+  getTimeOffBalance,
+  listTimeOffRequests,
+  listPendingApprovals,
+  checkTimeOffConflicts,
+  getTeamTimeOffCalendar,
+  createTimeOffRequest,
+  approveTimeOffRequest,
+  rejectTimeOffRequest,
+  cancelTimeOffRequest,
+} from "./capabilities/time-off.ts";
 
 // ─── Module Gating Map (canonical module codes matching company_modules.module_name) ───
 const TOOL_MODULE_MAP: Record<string, string> = {
@@ -32,6 +35,18 @@ const TOOL_MODULE_MAP: Record<string, string> = {
   execute_shift_creation: "workforce",
   transform_spreadsheet_to_schedule: "workforce",
   transform_sop_to_training: "workforce",
+  // Time-Off capability tools
+  get_time_off_balance: "workforce",
+  list_time_off_requests: "workforce",
+  list_pending_time_off_approvals: "workforce",
+  check_time_off_conflicts: "workforce",
+  get_team_time_off_calendar: "workforce",
+  create_time_off_request_draft: "workforce",
+  execute_time_off_request: "workforce",
+  approve_time_off_request_draft: "workforce",
+  execute_time_off_approval: "workforce",
+  reject_time_off_request_dash: "workforce",
+  cancel_time_off_request_dash: "workforce",
 };
 
 // ─── Action-name to execute-tool resolver (server-authoritative) ───
@@ -41,6 +56,8 @@ const ACTION_EXECUTE_MAP: Record<string, string> = {
   create_audit_template: "execute_audit_template_creation",
   reassign_corrective_action: "execute_ca_reassignment",
   reassign_ca: "execute_ca_reassignment",
+  create_time_off_request: "execute_time_off_request",
+  approve_time_off_request: "execute_time_off_approval",
 };
 
 /** Hydrate execution args from pending action's preview_json based on action_name */
@@ -87,6 +104,20 @@ function hydrateArgsFromDraft(actionName: string, previewJson: any): Record<stri
         new_assigned_name: previewJson.new_assigned_name,
         reason: previewJson.reason,
       };
+    case "create_time_off_request":
+      return {
+        employee_id: previewJson.employee_id,
+        employee_name: previewJson.employee_name,
+        start_date: previewJson.start_date,
+        end_date: previewJson.end_date,
+        request_type: previewJson.request_type,
+        reason: previewJson.reason,
+      };
+    case "approve_time_off_request":
+      return {
+        request_id: previewJson.request_id,
+        employee_name: previewJson.employee_name,
+      };
     default:
       return {};
   }
@@ -94,6 +125,7 @@ function hydrateArgsFromDraft(actionName: string, previewJson: any): Record<stri
 
 /** Resolve the canonical module code for logging purposes */
 function resolveCanonicalModule(toolName: string): string {
+  if (toolName.includes("time_off")) return "workforce";
   if (toolName.includes("audit")) return "location_audits";
   if (toolName.includes("employee") || toolName.includes("attendance") || toolName.includes("shift") || toolName.includes("training")) return "workforce";
   if (toolName.includes("corrective") || toolName.includes("ca_")) return "corrective_actions";
@@ -112,7 +144,20 @@ const ACTION_RISK: Record<string, "low" | "medium" | "high"> = {
   execute_shift_creation: "medium",
   reassign_corrective_action: "high",
   execute_ca_reassignment: "high",
+  create_time_off_request_draft: "medium",
+  execute_time_off_request: "medium",
+  approve_time_off_request_draft: "medium",
+  execute_time_off_approval: "medium",
+  reject_time_off_request_dash: "medium",
+  cancel_time_off_request_dash: "medium",
 };
+
+// ─── Permission Context Builder ─────────────────────────────
+function buildPermCtx(companyId: string, userId: string, role: string, activeModules: string[]): PermissionContext {
+  const platformRoles = role === "admin" ? ["admin"] : role === "manager" ? ["manager"] : [];
+  const companyRole = role === "admin" ? "company_owner" : role === "manager" ? "company_admin" : "company_member";
+  return { companyId, actorUserId: userId, platformRoles, companyRole, activeModules };
+}
 
 // ─── Helpers ────────────────────────────────────────────────
 function cap<T>(data: T[] | null, limit = MAX_TOOL_ROWS) {
@@ -747,6 +792,168 @@ const tools = [
           module_name: { type: "string", description: "Name for the training module" },
         },
         required: ["file_url", "file_name"],
+      },
+    },
+  },
+  // ─── TIME-OFF: Capability Layer Tools ───
+  {
+    type: "function",
+    function: {
+      name: "get_time_off_balance",
+      description: "Get vacation/leave balance for an employee: total days, used, remaining.",
+      parameters: {
+        type: "object",
+        properties: {
+          employee_name: { type: "string", description: "Employee name (partial match)" },
+          employee_id: { type: "string", description: "Employee UUID (if known)" },
+        },
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "list_time_off_requests",
+      description: "List time-off/vacation/sick leave requests with optional filters by employee, status, or date range.",
+      parameters: {
+        type: "object",
+        properties: {
+          employee_name: { type: "string", description: "Filter by employee name" },
+          status: { type: "string", enum: ["pending", "approved", "rejected"], description: "Filter by status" },
+          from: { type: "string", description: "Start date YYYY-MM-DD" },
+          to: { type: "string", description: "End date YYYY-MM-DD" },
+        },
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "list_pending_time_off_approvals",
+      description: "List all pending time-off requests awaiting approval across the company.",
+      parameters: { type: "object", properties: {} },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "check_time_off_conflicts",
+      description: "Check if a proposed time-off period would conflict with existing requests or team schedules.",
+      parameters: {
+        type: "object",
+        properties: {
+          employee_name: { type: "string", description: "Employee name" },
+          employee_id: { type: "string", description: "Employee UUID" },
+          start_date: { type: "string", description: "Start date YYYY-MM-DD" },
+          end_date: { type: "string", description: "End date YYYY-MM-DD" },
+        },
+        required: ["start_date", "end_date"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "get_team_time_off_calendar",
+      description: "Get who is off during a date range, optionally filtered by location. Useful for 'who is off next Friday?' questions.",
+      parameters: {
+        type: "object",
+        properties: {
+          location_name: { type: "string", description: "Filter by location name" },
+          from: { type: "string", description: "Start date YYYY-MM-DD" },
+          to: { type: "string", description: "End date YYYY-MM-DD" },
+        },
+        required: ["from", "to"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "create_time_off_request_draft",
+      description: "Create a time-off request draft for approval. Use for vacation, sick leave, personal days.",
+      parameters: {
+        type: "object",
+        properties: {
+          employee_name: { type: "string", description: "Employee name" },
+          employee_id: { type: "string", description: "Employee UUID" },
+          start_date: { type: "string", description: "Start date YYYY-MM-DD" },
+          end_date: { type: "string", description: "End date YYYY-MM-DD" },
+          request_type: { type: "string", enum: ["vacation", "sick", "personal", "unpaid", "other"], description: "Type of leave" },
+          reason: { type: "string", description: "Optional reason" },
+        },
+        required: ["start_date", "end_date", "request_type"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_time_off_request",
+      description: "Execute time-off request creation after user approval.",
+      parameters: {
+        type: "object",
+        properties: {
+          pending_action_id: { type: "string", description: "The pending action ID" },
+        },
+        required: ["pending_action_id"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "approve_time_off_request_draft",
+      description: "Create a draft to approve a pending time-off request. Shows impact preview.",
+      parameters: {
+        type: "object",
+        properties: {
+          request_id: { type: "string", description: "Time-off request UUID" },
+          employee_name: { type: "string", description: "Employee name (resolves most recent pending request)" },
+        },
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_time_off_approval",
+      description: "Execute time-off approval after user confirms.",
+      parameters: {
+        type: "object",
+        properties: {
+          pending_action_id: { type: "string", description: "The pending action ID" },
+        },
+        required: ["pending_action_id"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "reject_time_off_request_dash",
+      description: "Reject a pending time-off request with optional reason.",
+      parameters: {
+        type: "object",
+        properties: {
+          request_id: { type: "string", description: "Time-off request UUID" },
+          employee_name: { type: "string", description: "Employee name" },
+          rejection_reason: { type: "string", description: "Reason for rejection" },
+        },
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "cancel_time_off_request_dash",
+      description: "Cancel a time-off request (delete). Employee can cancel own, managers can cancel any.",
+      parameters: {
+        type: "object",
+        properties: {
+          request_id: { type: "string", description: "Time-off request UUID" },
+        },
+        required: ["request_id"],
       },
     },
   },
@@ -2014,8 +2221,286 @@ async function executeToolInner(
 
     // transform_compliance_doc_to_audit is now handled by parse_uploaded_file with intent="compliance_audit"
     case "transform_compliance_doc_to_audit": {
-      // Redirect to parse_uploaded_file logic
       return await executeToolInner(sb, sbService, "parse_uploaded_file", { ...args, intent: "compliance_audit" }, companyId, userId, role, activeModules, structuredEvents);
+    }
+
+    // ────────── TIME-OFF CAPABILITY TOOLS ──────────
+    case "get_time_off_balance": {
+      const ctx = buildPermCtx(companyId, userId, role, activeModules);
+      return resultToToolResponse(await getTimeOffBalance(sb, ctx, { employee_id: args.employee_id, employee_name: args.employee_name }));
+    }
+
+    case "list_time_off_requests": {
+      const ctx = buildPermCtx(companyId, userId, role, activeModules);
+      const result = await listTimeOffRequests(sb, ctx, { employee_name: args.employee_name, status: args.status, from: args.from, to: args.to });
+      if (result.ok && result.data.requests.length > 0) {
+        structuredEvents.push(makeStructuredEvent("data_table", {
+          title: "Time-Off Requests",
+          columns: ["Employee", "Type", "Start", "End", "Days", "Status"],
+          rows: result.data.requests.map((r: any) => [r.employee_name, r.request_type, r.start_date, r.end_date, r.days, r.status]),
+        }));
+      }
+      return resultToToolResponse(result);
+    }
+
+    case "list_pending_time_off_approvals": {
+      const ctx = buildPermCtx(companyId, userId, role, activeModules);
+      const result = await listPendingApprovals(sb, ctx);
+      if (result.ok && result.data.requests.length > 0) {
+        structuredEvents.push(makeStructuredEvent("data_table", {
+          title: "Pending Time-Off Approvals",
+          columns: ["Employee", "Type", "Start", "End", "Days", "Annual Days"],
+          rows: result.data.requests.map((r: any) => [r.employee_name, r.request_type, r.start_date, r.end_date, r.days, r.annual_vacation_days]),
+        }));
+      }
+      return resultToToolResponse(result);
+    }
+
+    case "check_time_off_conflicts": {
+      const ctx = buildPermCtx(companyId, userId, role, activeModules);
+      return resultToToolResponse(await checkTimeOffConflicts(sb, ctx, { employee_id: args.employee_id, employee_name: args.employee_name, start_date: args.start_date, end_date: args.end_date }));
+    }
+
+    case "get_team_time_off_calendar": {
+      const ctx = buildPermCtx(companyId, userId, role, activeModules);
+      const result = await getTeamTimeOffCalendar(sb, ctx, { location_name: args.location_name, from: args.from, to: args.to });
+      if (result.ok && result.data.entries.length > 0) {
+        structuredEvents.push(makeStructuredEvent("data_table", {
+          title: `Team Time-Off (${args.from} — ${args.to})`,
+          columns: ["Employee", "Location", "Type", "Start", "End", "Days"],
+          rows: result.data.entries.map((e: any) => [e.employee_name, e.location, e.request_type, e.start_date, e.end_date, e.days]),
+        }));
+      }
+      return resultToToolResponse(result);
+    }
+
+    case "create_time_off_request_draft": {
+      const ctx = buildPermCtx(companyId, userId, role, activeModules);
+      // Pre-validate via capability layer
+      const conflicts = await checkTimeOffConflicts(sb, ctx, { employee_name: args.employee_name, employee_id: args.employee_id, start_date: args.start_date, end_date: args.end_date });
+
+      const draft = {
+        employee_name: args.employee_name,
+        employee_id: args.employee_id,
+        start_date: args.start_date,
+        end_date: args.end_date,
+        request_type: args.request_type || "vacation",
+        reason: args.reason || null,
+      };
+
+      // Calculate days for display
+      const start = new Date(args.start_date);
+      const end = new Date(args.end_date);
+      const days = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+
+      // Store pending action
+      const { data: paData } = await sbService.from("dash_pending_actions").insert({
+        company_id: companyId,
+        user_id: userId,
+        action_name: "create_time_off_request",
+        action_type: "write",
+        risk_level: "medium",
+        preview_json: draft,
+        status: "pending",
+      }).select("id").single();
+
+      const conflictWarning = conflicts.ok && conflicts.data.has_conflicts
+        ? ` ⚠️ Conflicts detected: ${conflicts.data.employee_overlaps.length} personal overlap(s), ${conflicts.data.team_overlaps.length} team overlap(s).`
+        : "";
+
+      structuredEvents.push(makeStructuredEvent("action_preview", {
+        action: "Create Time-Off Request",
+        summary: `${args.request_type || "vacation"} for ${args.employee_name || "employee"} from ${args.start_date} to ${args.end_date} (${days} days).${conflictWarning}`,
+        risk: "medium",
+        affected: [args.employee_name, `${days} days`, args.request_type].filter(Boolean),
+        pending_action_id: paData?.id,
+        draft,
+        can_approve: true,
+      }));
+
+      return {
+        type: "time_off_draft",
+        draft,
+        days,
+        pending_action_id: paData?.id,
+        conflicts: conflicts.ok ? conflicts.data : null,
+        requires_approval: true,
+        risk_level: "medium",
+        message: `Time-off draft created for ${args.employee_name || "employee"} (${days} days).${conflictWarning} Please approve to proceed.`,
+      };
+    }
+
+    case "execute_time_off_request": {
+      if (!args.pending_action_id) return { error: "Missing pending_action_id." };
+      const { data: pa } = await sbService.from("dash_pending_actions")
+        .select("id, status, company_id, preview_json")
+        .eq("id", args.pending_action_id)
+        .maybeSingle();
+      if (!pa) return { error: "Pending action not found." };
+      if (pa.company_id !== companyId) return { error: "Cross-tenant action rejected." };
+      if (pa.status !== "pending") return { error: `Action already ${pa.status}.` };
+
+      const preview = pa.preview_json as any;
+      const ctx = buildPermCtx(companyId, userId, role, activeModules);
+      const result = await createTimeOffRequest(sb, sbService, ctx, {
+        employee_id: preview.employee_id,
+        employee_name: preview.employee_name,
+        start_date: preview.start_date,
+        end_date: preview.end_date,
+        request_type: preview.request_type,
+        reason: preview.reason,
+      });
+
+      if (result.ok) {
+        await sbService.from("dash_pending_actions").update({
+          status: "executed", approved_at: new Date().toISOString(), approved_by: userId,
+          execution_result: result.data, updated_at: new Date().toISOString(),
+        }).eq("id", pa.id);
+
+        structuredEvents.push(makeStructuredEvent("execution_result", {
+          status: "success",
+          title: "Time-Off Request Created",
+          summary: `${result.data.employee_name}: ${preview.request_type} from ${preview.start_date} to ${preview.end_date} (${result.data.days} days) — ${result.data.status}.`,
+          changes: [`Request created for ${result.data.employee_name}`, `Status: ${result.data.status}`, `${result.data.days} days`],
+        }));
+      } else {
+        await sbService.from("dash_pending_actions").update({
+          status: "failed", execution_result: result, updated_at: new Date().toISOString(),
+        }).eq("id", pa.id);
+
+        structuredEvents.push(makeStructuredEvent("execution_result", {
+          status: "error",
+          title: "Time-Off Request Failed",
+          summary: resultToToolResponse(result).error,
+          errors: [resultToToolResponse(result).error],
+        }));
+      }
+      return resultToToolResponse(result);
+    }
+
+    case "approve_time_off_request_draft": {
+      // Create a draft to approve — user must confirm
+      const ctx = buildPermCtx(companyId, userId, role, activeModules);
+      
+      // Resolve the request to show preview
+      let requestInfo: any = null;
+      if (args.request_id) {
+        const { data } = await sb.from("time_off_requests")
+          .select("id, employee_id, start_date, end_date, request_type, status, reason, employees:employee_id(full_name)")
+          .eq("id", args.request_id).eq("company_id", companyId).maybeSingle();
+        requestInfo = data;
+      } else if (args.employee_name) {
+        const { data: emps } = await sb.from("employees").select("id, full_name").eq("company_id", companyId).ilike("full_name", `%${args.employee_name}%`).limit(1);
+        if (emps?.[0]) {
+          const { data } = await sb.from("time_off_requests")
+            .select("id, employee_id, start_date, end_date, request_type, status, reason, employees:employee_id(full_name)")
+            .eq("employee_id", emps[0].id).eq("company_id", companyId).eq("status", "pending")
+            .order("created_at", { ascending: false }).limit(1);
+          requestInfo = data?.[0];
+        }
+      }
+
+      if (!requestInfo) return { error: "No pending time-off request found for this employee." };
+      if (requestInfo.status !== "pending") return { error: `Request is already "${requestInfo.status}".` };
+
+      const draft = {
+        request_id: requestInfo.id,
+        employee_name: requestInfo.employees?.full_name || args.employee_name,
+        start_date: requestInfo.start_date,
+        end_date: requestInfo.end_date,
+        request_type: requestInfo.request_type,
+      };
+
+      const { data: paData } = await sbService.from("dash_pending_actions").insert({
+        company_id: companyId,
+        user_id: userId,
+        action_name: "approve_time_off_request",
+        action_type: "write",
+        risk_level: "medium",
+        preview_json: draft,
+        status: "pending",
+      }).select("id").single();
+
+      const days = Math.ceil((new Date(requestInfo.end_date).getTime() - new Date(requestInfo.start_date).getTime()) / (1000 * 60 * 60 * 24)) + 1;
+
+      structuredEvents.push(makeStructuredEvent("action_preview", {
+        action: "Approve Time-Off Request",
+        summary: `Approve ${draft.employee_name}'s ${draft.request_type} request: ${draft.start_date} to ${draft.end_date} (${days} days).`,
+        risk: "medium",
+        affected: [draft.employee_name, `${days} days`, draft.request_type],
+        pending_action_id: paData?.id,
+        draft,
+        can_approve: true,
+      }));
+
+      return {
+        type: "time_off_approval_draft",
+        draft,
+        pending_action_id: paData?.id,
+        requires_approval: true,
+        message: `Ready to approve ${draft.employee_name}'s time-off. Please confirm.`,
+      };
+    }
+
+    case "execute_time_off_approval": {
+      if (!args.pending_action_id) return { error: "Missing pending_action_id." };
+      const { data: pa } = await sbService.from("dash_pending_actions")
+        .select("id, status, company_id, preview_json")
+        .eq("id", args.pending_action_id).maybeSingle();
+      if (!pa) return { error: "Pending action not found." };
+      if (pa.company_id !== companyId) return { error: "Cross-tenant action rejected." };
+      if (pa.status !== "pending") return { error: `Action already ${pa.status}.` };
+
+      const preview = pa.preview_json as any;
+      const ctx = buildPermCtx(companyId, userId, role, activeModules);
+      const result = await approveTimeOffRequest(sb, sbService, ctx, { request_id: preview.request_id, employee_name: preview.employee_name });
+
+      if (result.ok) {
+        await sbService.from("dash_pending_actions").update({
+          status: "executed", approved_at: new Date().toISOString(), approved_by: userId,
+          execution_result: result.data, updated_at: new Date().toISOString(),
+        }).eq("id", pa.id);
+
+        structuredEvents.push(makeStructuredEvent("execution_result", {
+          status: "success",
+          title: "Time-Off Approved",
+          summary: `${result.data.employee_name}'s time-off request has been approved.`,
+          changes: [`Approved for ${result.data.employee_name}`],
+        }));
+      } else {
+        await sbService.from("dash_pending_actions").update({
+          status: "failed", execution_result: result, updated_at: new Date().toISOString(),
+        }).eq("id", pa.id);
+      }
+      return resultToToolResponse(result);
+    }
+
+    case "reject_time_off_request_dash": {
+      const ctx = buildPermCtx(companyId, userId, role, activeModules);
+      const result = await rejectTimeOffRequest(sb, sbService, ctx, { request_id: args.request_id, employee_name: args.employee_name, rejection_reason: args.rejection_reason });
+      if (result.ok) {
+        structuredEvents.push(makeStructuredEvent("execution_result", {
+          status: "success",
+          title: "Time-Off Rejected",
+          summary: `${result.data.employee_name}'s time-off request has been rejected.${args.rejection_reason ? ` Reason: ${args.rejection_reason}` : ""}`,
+          changes: [`Rejected for ${result.data.employee_name}`],
+        }));
+      }
+      return resultToToolResponse(result);
+    }
+
+    case "cancel_time_off_request_dash": {
+      const ctx = buildPermCtx(companyId, userId, role, activeModules);
+      const result = await cancelTimeOffRequest(sb, sbService, ctx, { request_id: args.request_id });
+      if (result.ok) {
+        structuredEvents.push(makeStructuredEvent("execution_result", {
+          status: "success",
+          title: "Time-Off Cancelled",
+          summary: `${result.data.employee_name}'s time-off request has been cancelled.`,
+          changes: [`Cancelled for ${result.data.employee_name}`],
+        }));
+      }
+      return resultToToolResponse(result);
     }
 
     default:
@@ -2047,11 +2532,22 @@ function buildSystemPrompt(ctx: { role: string; companyName: string; modules: st
 - **Locations**: Search, overview, cross-module summaries
 - **Audits**: Results, scores, comparisons between locations
 - **Workforce**: Employee search, attendance exceptions
+- **Time-Off / Vacation**: Balance checks, request lists, pending approvals, team calendar, conflict detection
 - **Corrective Actions**: Open/overdue items by severity
 - **Tasks**: Completion summaries
 - **CMMS**: Work order status
 - **Documents**: Expiring documents
 - **Training**: Gaps and overdue assignments
+
+### Time-Off Management (NEW — via Shared Capability Layer)
+You can fully manage time-off/vacation/sick leave/personal days:
+- **Read**: \`get_time_off_balance\`, \`list_time_off_requests\`, \`list_pending_time_off_approvals\`, \`check_time_off_conflicts\`, \`get_team_time_off_calendar\`
+- **Create**: Use \`create_time_off_request_draft\` → wait for approval → \`execute_time_off_request\`
+- **Approve**: Use \`approve_time_off_request_draft\` → wait for approval → \`execute_time_off_approval\`
+- **Reject**: Use \`reject_time_off_request_dash\` (direct, no draft needed)
+- **Cancel**: Use \`cancel_time_off_request_dash\` (direct, no draft needed)
+- **IMPORTANT**: For vacation, time off, sick leave, personal day requests — use the time_off tools. Do NOT create shifts with role 'Vacation Day'.
+- Aliases: vacation, leave, day off, PTO, sick leave, personal day, concediu, zi liberă
 
 ### File Processing
 - **ID Scan**: Extract employee data from uploaded ID card photos → create employee draft
