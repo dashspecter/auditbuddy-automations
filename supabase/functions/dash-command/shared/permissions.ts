@@ -72,8 +72,14 @@ export function checkCapabilityPermission(params: {
       return success(true);
 
     case "create":
-      // Self-service: employee can create their own time-off request
-      // Manager/Admin/HR: can create for any employee
+      // Workforce (employees, shifts) and audits require manager-level authority
+      if (module === "workforce" && !isManagerLevel(ctx)) {
+        return permissionDenied("Only managers or admins can create employees and shifts.");
+      }
+      if (module === "location_audits" && !isManagerLevel(ctx)) {
+        return permissionDenied("Only managers or admins can create audit templates.");
+      }
+      // Time-off and other modules: self-service allowed
       return success(true);
 
     case "approve":

@@ -639,7 +639,7 @@ async function executeToolInner(
     }
 
     default:
-      return { error: `Unknown tool: ${name}` };
+      return resultToToolResponse(capabilityError(`Unknown tool: ${name}`));
   }
 }
 

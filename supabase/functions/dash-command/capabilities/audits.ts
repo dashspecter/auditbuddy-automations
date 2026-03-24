@@ -17,7 +17,7 @@ export async function getAuditResults(
 ): Promise<CapabilityResult<any>> {
   const limit = Math.min(args.limit || 20, 200);
   let q = sb.from("location_audits").select("id, overall_score, status, audit_date, location_id, locations(name), template_id, audit_templates(name)")
-    .in("status", AUDIT_FINISHED_STATUSES).gte("audit_date", args.from).lte("audit_date", args.to).order("audit_date", { ascending: false }).limit(limit);
+    .eq("company_id", companyId).in("status", AUDIT_FINISHED_STATUSES).gte("audit_date", args.from).lte("audit_date", args.to).order("audit_date", { ascending: false }).limit(limit);
   if (args.location_id) q = q.eq("location_id", args.location_id);
   if (args.template_id) q = q.eq("template_id", args.template_id);
   const { data, error } = await q;
