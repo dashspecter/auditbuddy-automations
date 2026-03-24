@@ -35,6 +35,18 @@ const TOOL_MODULE_MAP: Record<string, string> = {
   execute_shift_creation: "workforce",
   transform_spreadsheet_to_schedule: "workforce",
   transform_sop_to_training: "workforce",
+  // Time-Off capability tools
+  get_time_off_balance: "workforce",
+  list_time_off_requests: "workforce",
+  list_pending_time_off_approvals: "workforce",
+  check_time_off_conflicts: "workforce",
+  get_team_time_off_calendar: "workforce",
+  create_time_off_request_draft: "workforce",
+  execute_time_off_request: "workforce",
+  approve_time_off_request_draft: "workforce",
+  execute_time_off_approval: "workforce",
+  reject_time_off_request_dash: "workforce",
+  cancel_time_off_request_dash: "workforce",
 };
 
 // ─── Action-name to execute-tool resolver (server-authoritative) ───
@@ -44,6 +56,8 @@ const ACTION_EXECUTE_MAP: Record<string, string> = {
   create_audit_template: "execute_audit_template_creation",
   reassign_corrective_action: "execute_ca_reassignment",
   reassign_ca: "execute_ca_reassignment",
+  create_time_off_request: "execute_time_off_request",
+  approve_time_off_request: "execute_time_off_approval",
 };
 
 /** Hydrate execution args from pending action's preview_json based on action_name */
