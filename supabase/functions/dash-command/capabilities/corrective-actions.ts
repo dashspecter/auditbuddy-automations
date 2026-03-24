@@ -62,7 +62,7 @@ export async function reassignCorrectiveAction(
     preview_json: {
       ca_id: caData.id,
       ca_title: caData.title,
-      old_assigned_to: caData.assigned_to,
+      old_assigned_to: caData.owner_user_id,
       new_assigned_to: args.new_assigned_to,
       new_assigned_name: newAssigneeName,
       reason: args.reason,
