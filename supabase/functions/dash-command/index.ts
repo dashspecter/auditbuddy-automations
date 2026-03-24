@@ -818,7 +818,7 @@ serve(async (req) => {
       } catch (e) { console.error("[Dash] Failed to resolve pending action for direct approval:", e); }
 
       const allStructuredEvents: string[] = [];
-      const toolResult = await executeTool(sb, sbService, toolName, hydratedArgs, companyId, userId, displayRole, activeModules, allStructuredEvents);
+      const toolResult = await executeTool(sb, sbService, toolName, hydratedArgs, companyId, userId, platformRoles, companyRole, activeModules, allStructuredEvents);
       
       // Log action with canonical module
       const canonicalModule = resolveCanonicalModule(toolName);
@@ -983,7 +983,7 @@ serve(async (req) => {
           let args: any;
           try { args = JSON.parse(tc.function.arguments); } catch { args = {}; }
           toolsUsed.push(toolName);
-          const toolResult = await executeTool(sb, sbService, toolName, args, companyId, userId, displayRole, activeModules, allStructuredEvents);
+          const toolResult = await executeTool(sb, sbService, toolName, args, companyId, userId, platformRoles, companyRole, activeModules, allStructuredEvents);
           conversationMessages.push({ role: "tool", tool_call_id: tc.id, content: JSON.stringify(toolResult) });
           // Mark if a draft tool was called — block further execute tools in this batch
           if (toolName.endsWith("_draft") || toolName === "reassign_corrective_action") {
@@ -1018,7 +1018,7 @@ serve(async (req) => {
           const fileUrl = urlMatch[1];
           const fileName = nameMatch?.[1]?.split(",")[0]?.trim() || "uploaded_file";
           const intent = /compliance|regulation/i.test(lastUserMsg) ? "compliance_audit" : "audit_template";
-          const fallbackResult = await executeTool(sb, sbService, "parse_uploaded_file", { file_url: fileUrl, file_name: fileName, intent }, companyId, userId, displayRole, activeModules, allStructuredEvents);
+          const fallbackResult = await executeTool(sb, sbService, "parse_uploaded_file", { file_url: fileUrl, file_name: fileName, intent }, companyId, userId, platformRoles, companyRole, activeModules, allStructuredEvents);
           if (!fallbackResult.error) {
             conversationMessages.push(msg);
             conversationMessages.push({ role: "user", content: `[System: The file was successfully parsed. Here is the extracted data: ${JSON.stringify(fallbackResult).substring(0, 3000)}. Present this to the user as a structured audit template preview.]` });
