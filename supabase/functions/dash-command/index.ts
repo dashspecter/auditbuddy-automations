@@ -806,7 +806,7 @@ async function executeToolInner(
 
       const [empRes, auditRes, caRes, taskRes] = await Promise.all([
         sb.from("employees").select("id", { count: "exact", head: true }).eq("location_id", locationId).eq("status", "active"),
-        sb.from("location_audits").select("overall_score").eq("location_id", locationId).eq("status", "completed").order("completed_at", { ascending: false }).limit(1),
+        sb.from("location_audits").select("overall_score").eq("location_id", locationId).in("status", AUDIT_FINISHED_STATUSES).not("overall_score", "is", null).order("audit_date", { ascending: false }).limit(1),
         sb.from("corrective_actions").select("id", { count: "exact", head: true }).eq("location_id", locationId).in("status", ["open", "in_progress"]),
         sb.from("tasks").select("id", { count: "exact", head: true }).eq("location_id", locationId),
       ]);
