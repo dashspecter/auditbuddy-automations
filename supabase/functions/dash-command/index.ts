@@ -859,14 +859,14 @@ async function executeToolInner(
 
     case "get_audit_results": {
       const limit = Math.min(args.limit || 20, MAX_TOOL_ROWS);
-      let q = sb.from("location_audits").select("id, overall_score, status, created_at, completed_at, location_id, locations(name), template_id, audit_templates(name)")
-        .eq("status", "completed").gte("created_at", args.from).lte("created_at", args.to + "T23:59:59Z").order("completed_at", { ascending: false }).limit(limit);
+      let q = sb.from("location_audits").select("id, overall_score, status, audit_date, location_id, locations(name), template_id, audit_templates(name)")
+        .in("status", AUDIT_FINISHED_STATUSES).gte("audit_date", args.from).lte("audit_date", args.to).order("audit_date", { ascending: false }).limit(limit);
       if (args.location_id) q = q.eq("location_id", args.location_id);
       if (args.template_id) q = q.eq("template_id", args.template_id);
       const { data, error } = await q;
       if (error) return { error: error.message };
       const c = cap(data, limit);
-      return { ...c, audits: c.items.map((a: any) => ({ id: a.id, score: a.overall_score, location: a.locations?.name, template: a.audit_templates?.name, completed_at: a.completed_at })) };
+      return { ...c, audits: c.items.map((a: any) => ({ id: a.id, score: a.overall_score, status: a.status, audit_date: a.audit_date, location: a.locations?.name, template: a.audit_templates?.name })) };
     }
 
     case "compare_location_performance": {
