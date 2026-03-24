@@ -2,7 +2,7 @@
  * Workforce Capability Module
  * Migrated from index.ts — employees, shifts, attendance domain logic.
  */
-import { DEFAULT_TIMEZONE } from "../shared/constants.ts";
+import { DEFAULT_TIMEZONE, MAX_TOOL_ROWS } from "../shared/constants.ts";
 import { cap, makeStructuredEvent } from "../shared/utils.ts";
 
 
