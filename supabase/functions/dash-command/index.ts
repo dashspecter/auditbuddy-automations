@@ -80,6 +80,9 @@ const ACTION_EXECUTE_MAP: Record<string, string> = {
   reassign_ca: "execute_ca_reassignment",
   create_time_off_request: "execute_time_off_request",
   approve_time_off_request: "execute_time_off_approval",
+  update_shift: "execute_shift_update",
+  delete_shift: "execute_shift_deletion",
+  swap_shifts: "execute_shift_swap",
 };
 
 /** Hydrate execution args from pending action's preview_json based on action_name */
