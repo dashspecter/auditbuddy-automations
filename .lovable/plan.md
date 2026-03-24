@@ -1,33 +1,31 @@
 
 
-# Fix: Dash location lookup uses wrong column — returns zero locations
+# Fix: Dash comparison data renders as unreadable raw text
 
 ## Problem
 
-Screenshot shows: *"no active locations found for Fresh Brunch SRL"* — but 7+ active locations exist.
+The audit comparison data is correct but renders as a single line of pipe-delimited text (screenshot). Two root causes:
 
-**Root cause**: Line 876 in `dash-command/index.ts`:
-```typescript
-.eq("is_active", true)
-```
+1. **`remark-gfm` is not installed** — ReactMarkdown without this plugin cannot parse GFM tables (pipe syntax). Tables render as raw text.
+2. **No `data_table` structured event** — The backend comparison tool returns data as plain text to the LLM, which formats it as a markdown table. But even if remark-gfm worked, SSE streaming can collapse newlines, breaking table formatting.
 
-The `locations` table has **no `is_active` column**. It uses `status` (text) with value `'active'`. This query silently returns zero rows.
+## Fix — Two-pronged approach
 
-Additionally, the query has **no company scoping** — it should filter by `company_id`.
+### 1. Install `remark-gfm` and enable it in ReactMarkdown
+This makes ALL markdown tables from Dash render properly — not just comparisons.
 
-## Fix
+**File: `src/components/dash/DashMessageList.tsx`**
+- Import `remarkGfm` from `remark-gfm`
+- Add `remarkPlugins={[remarkGfm]}` to the `<ReactMarkdown>` component
+- Add table-specific prose styles for proper borders, padding, striping
 
-**File**: `supabase/functions/dash-command/index.ts` (line 876)
+### 2. Emit `data_table` structured events from comparison tools
+For the `compare_location_performance` tool, emit a `data_table` structured event with columns `["Location", "Avg Score", "Audits", "Min", "Max"]` and rows as arrays. This guarantees a clean rendered table via `DataTableCard` regardless of markdown parsing.
 
-Change:
-```typescript
-const { data: allLocs } = await sb.from("locations").select("id").eq("is_active", true).limit(100);
-```
+**File: `supabase/functions/dash-command/index.ts`**
+- In the compare tool's return path, emit a `data_table` SSE event before returning the text summary
+- Same for `get_audit_results` — emit tabular data as a structured event
+- Same for `get_cross_module_summary` when it has audit breakdown data
 
-To:
-```typescript
-const { data: allLocs } = await sb.from("locations").select("id").eq("status", "active").eq("company_id", companyId).limit(100);
-```
-
-This is a one-line fix. After deployment, "Compare audit scores between all locations this month" will correctly find all 7+ active locations and return real comparison data.
+This way: structured events render as clean `DataTableCard` components, and any other markdown tables the LLM writes also render correctly via remark-gfm.
 
