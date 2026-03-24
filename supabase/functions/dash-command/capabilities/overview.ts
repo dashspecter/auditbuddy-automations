@@ -48,7 +48,7 @@ export async function getCrossModuleSummary(
   const ur = await utcRange(sb, args.from, args.to);
   const locationFilter = args.location_id;
 
-  let auditQ = sb.from("location_audits").select("id, overall_score, status, location_id, locations(name)").gte("audit_date", args.from).lte("audit_date", args.to);
+  let auditQ = sb.from("location_audits").select("id, overall_score, status, location_id, locations(name)").eq("company_id", companyId).gte("audit_date", args.from).lte("audit_date", args.to);
   if (locationFilter) auditQ = auditQ.eq("location_id", locationFilter);
   const { data: audits } = await auditQ.limit(200);
 
@@ -56,7 +56,7 @@ export async function getCrossModuleSummary(
   const scoredAudits = finishedAudits.filter((a: any) => a.overall_score != null && a.overall_score > 0);
   const avgScore = scoredAudits.length > 0 ? Math.round(scoredAudits.reduce((s: number, a: any) => s + a.overall_score, 0) / scoredAudits.length) : null;
 
-  let caQ = sb.from("corrective_actions").select("id, severity, status, location_id").in("status", ["open", "in_progress"]);
+  let caQ = sb.from("corrective_actions").select("id, severity, status, location_id").eq("company_id", companyId).in("status", ["open", "in_progress"]);
   if (locationFilter) caQ = caQ.eq("location_id", locationFilter);
   const { data: cas } = await caQ.limit(200);
 
@@ -68,7 +68,7 @@ export async function getCrossModuleSummary(
   const lateCount = (attLogs ?? []).filter((l: any) => l.is_late).length;
   const noCheckout = (attLogs ?? []).filter((l: any) => !l.check_out_at && !l.auto_clocked_out).length;
 
-  let woQ = sb.from("cmms_work_orders").select("id, status, priority");
+  let woQ = sb.from("cmms_work_orders").select("id, status, priority").eq("company_id", companyId);
   if (locationFilter) woQ = woQ.eq("location_id", locationFilter);
   const { data: wos } = await woQ.in("status", ["open", "in_progress"]).limit(200);
 
