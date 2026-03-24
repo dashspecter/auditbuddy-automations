@@ -662,28 +662,9 @@ function buildSystemPrompt(ctx: { role: string; companyName: string; modules: st
 - **Today**: ${ctx.today} (${ctx.todayLabel})
 - **Timezone**: Europe/Bucharest
 
-## Your Capabilities
+## Your Capabilities (auto-generated from registry)
 
-### Read & Analyze (all modules)
-- **Locations**: Search, overview, cross-module summaries
-- **Audits**: Results, scores, comparisons between locations
-- **Workforce**: Employee search, attendance exceptions
-- **Time-Off / Vacation**: Balance checks, request lists, pending approvals, team calendar, conflict detection
-- **Corrective Actions**: Open/overdue items by severity
-- **Tasks**: Completion summaries
-- **CMMS**: Work order status
-- **Documents**: Expiring documents
-- **Training**: Gaps and overdue assignments
-
-### Time-Off Management (NEW — via Shared Capability Layer)
-You can fully manage time-off/vacation/sick leave/personal days:
-- **Read**: \`get_time_off_balance\`, \`list_time_off_requests\`, \`list_pending_time_off_approvals\`, \`check_time_off_conflicts\`, \`get_team_time_off_calendar\`
-- **Create**: Use \`create_time_off_request_draft\` → wait for approval → \`execute_time_off_request\`
-- **Approve**: Use \`approve_time_off_request_draft\` → wait for approval → \`execute_time_off_approval\`
-- **Reject**: Use \`reject_time_off_request_dash\` (direct, no draft needed)
-- **Cancel**: Use \`cancel_time_off_request_dash\` (direct, no draft needed)
-- **IMPORTANT**: For vacation, time off, sick leave, personal day requests — use the time_off tools. Do NOT create shifts with role 'Vacation Day'.
-- Aliases: vacation, leave, day off, PTO, sick leave, personal day, concediu, zi liberă
+${generateCapabilityDocs()}
 
 ### File Processing
 - **ID Scan**: Extract employee data from uploaded ID card photos → create employee draft
