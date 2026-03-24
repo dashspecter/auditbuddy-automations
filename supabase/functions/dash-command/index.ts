@@ -568,13 +568,13 @@ async function executeToolInner(
         can_approve: true,
       }));
 
-      return {
+      return resultToToolResponse(success({
         type: "time_off_approval_draft",
         draft,
         pending_action_id: paData?.id,
         requires_approval: true,
         message: `Ready to approve ${draft.employee_name}'s time-off. Please confirm.`,
-      };
+      }));
     }
 
     case "execute_time_off_approval": {
