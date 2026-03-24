@@ -19,7 +19,7 @@ export async function getLocationOverview(
   let locationId = args.location_id;
   let locationName = args.location_name;
   if (!locationId && locationName) {
-    const { data } = await sb.from("locations").select("id, name").ilike("name", `%${locationName}%`).limit(1);
+    const { data } = await sb.from("locations").select("id, name").eq("company_id", companyId).ilike("name", `%${locationName}%`).limit(1);
     if (data?.[0]) { locationId = data[0].id; locationName = data[0].name; }
     else return { error: `No location found matching "${locationName}"` };
   }

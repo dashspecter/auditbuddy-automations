@@ -43,7 +43,7 @@ export async function createEmployeeDraft(
 ): Promise<any> {
   let locationId = null;
   if (args.location_name) {
-    const { data: locData } = await sb.from("locations").select("id, name").ilike("name", `%${args.location_name}%`).limit(1);
+    const { data: locData } = await sb.from("locations").select("id, name").eq("company_id", companyId).ilike("name", `%${args.location_name}%`).limit(1);
     if (locData?.[0]) locationId = locData[0].id;
   }
 
