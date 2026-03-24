@@ -415,6 +415,110 @@ export const tools = [
       },
     },
   },
+  // --- DRAFT: Update shift ---
+  {
+    type: "function",
+    function: {
+      name: "update_shift_draft",
+      description: "Update an existing shift (change time, date, role, or reassign employee). Creates a draft for approval. Use when user says 'change shift', 'move shift', 'update schedule', 'reschedule'.",
+      parameters: {
+        type: "object",
+        properties: {
+          shift_id: { type: "string", description: "The shift UUID to update" },
+          employee_name: { type: "string", description: "Current employee name to find the shift (alternative to shift_id)" },
+          shift_date: { type: "string", description: "Current or new shift date YYYY-MM-DD" },
+          location_name: { type: "string", description: "Location name to find the shift" },
+          new_start_time: { type: "string", description: "New start time HH:MM (if changing)" },
+          new_end_time: { type: "string", description: "New end time HH:MM (if changing)" },
+          new_shift_date: { type: "string", description: "New date YYYY-MM-DD (if moving to different day)" },
+          new_role: { type: "string", description: "New role (if changing)" },
+          new_employee_name: { type: "string", description: "New employee to assign (if reassigning)" },
+          reason: { type: "string", description: "Reason for the change" },
+        },
+      },
+    },
+  },
+  // --- EXECUTE: Update shift after approval ---
+  {
+    type: "function",
+    function: {
+      name: "execute_shift_update",
+      description: "Execute shift update after user approves the draft. Only call after explicit user confirmation.",
+      parameters: {
+        type: "object",
+        properties: {
+          pending_action_id: { type: "string", description: "The pending action ID from the update draft" },
+        },
+        required: ["pending_action_id"],
+      },
+    },
+  },
+  // --- DRAFT: Delete/cancel shift ---
+  {
+    type: "function",
+    function: {
+      name: "delete_shift_draft",
+      description: "Delete or cancel a shift. Creates a draft for approval. Use when user says 'remove shift', 'cancel shift', 'delete from schedule'.",
+      parameters: {
+        type: "object",
+        properties: {
+          shift_id: { type: "string", description: "The shift UUID to delete" },
+          employee_name: { type: "string", description: "Employee name to find the shift" },
+          shift_date: { type: "string", description: "Shift date YYYY-MM-DD to find the shift" },
+          location_name: { type: "string", description: "Location name to find the shift" },
+          reason: { type: "string", description: "Reason for deletion" },
+        },
+      },
+    },
+  },
+  // --- EXECUTE: Delete shift after approval ---
+  {
+    type: "function",
+    function: {
+      name: "execute_shift_deletion",
+      description: "Execute shift deletion after user approves. Only call after explicit user confirmation.",
+      parameters: {
+        type: "object",
+        properties: {
+          pending_action_id: { type: "string", description: "The pending action ID from the deletion draft" },
+        },
+        required: ["pending_action_id"],
+      },
+    },
+  },
+  // --- DRAFT: Swap shifts between employees ---
+  {
+    type: "function",
+    function: {
+      name: "swap_shift_draft",
+      description: "Swap shifts between two employees. Creates a draft for approval. Use when user says 'swap shifts', 'switch schedule', 'trade shifts'.",
+      parameters: {
+        type: "object",
+        properties: {
+          employee_a_name: { type: "string", description: "First employee name" },
+          employee_b_name: { type: "string", description: "Second employee name" },
+          shift_date: { type: "string", description: "Date of shifts to swap YYYY-MM-DD" },
+          location_name: { type: "string", description: "Location name (if needed to narrow down)" },
+        },
+        required: ["employee_a_name", "employee_b_name", "shift_date"],
+      },
+    },
+  },
+  // --- EXECUTE: Swap shifts after approval ---
+  {
+    type: "function",
+    function: {
+      name: "execute_shift_swap",
+      description: "Execute shift swap after user approves. Only call after explicit user confirmation.",
+      parameters: {
+        type: "object",
+        properties: {
+          pending_action_id: { type: "string", description: "The pending action ID from the swap draft" },
+        },
+        required: ["pending_action_id"],
+      },
+    },
+  },
   // --- MEMORY: User preferences ---
   {
     type: "function",
