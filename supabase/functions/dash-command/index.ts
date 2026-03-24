@@ -318,7 +318,21 @@ async function executeToolInner(
       return resultToToolResponse(await reassignCorrectiveAction(sb, sbService, companyId, userId, args, structuredEvents, ctx));
     }
 
-    // ────────── EXECUTE TOOLS (with permission context) ──────────
+    case "update_shift_draft": {
+      const ctx = buildPermCtx(companyId, userId, platformRoles, companyRole, activeModules);
+      return resultToToolResponse(await updateShiftDraft(sb, sbService, companyId, userId, args, structuredEvents, ctx));
+    }
+
+    case "delete_shift_draft": {
+      const ctx = buildPermCtx(companyId, userId, platformRoles, companyRole, activeModules);
+      return resultToToolResponse(await deleteShiftDraft(sb, sbService, companyId, userId, args, structuredEvents, ctx));
+    }
+
+    case "swap_shift_draft": {
+      const ctx = buildPermCtx(companyId, userId, platformRoles, companyRole, activeModules);
+      return resultToToolResponse(await swapShiftDraft(sb, sbService, companyId, userId, args, structuredEvents, ctx));
+    }
+
     case "execute_employee_creation": {
       const ctx = buildPermCtx(companyId, userId, platformRoles, companyRole, activeModules);
       return resultToToolResponse(await executeEmployeeCreation(sbService, companyId, userId, args, structuredEvents, hydrateArgsFromDraft, ctx));
