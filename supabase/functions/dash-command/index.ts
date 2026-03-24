@@ -125,6 +125,7 @@ function hydrateArgsFromDraft(actionName: string, previewJson: any): Record<stri
 
 /** Resolve the canonical module code for logging purposes */
 function resolveCanonicalModule(toolName: string): string {
+  if (toolName.includes("time_off")) return "workforce";
   if (toolName.includes("audit")) return "location_audits";
   if (toolName.includes("employee") || toolName.includes("attendance") || toolName.includes("shift") || toolName.includes("training")) return "workforce";
   if (toolName.includes("corrective") || toolName.includes("ca_")) return "corrective_actions";
@@ -143,6 +144,12 @@ const ACTION_RISK: Record<string, "low" | "medium" | "high"> = {
   execute_shift_creation: "medium",
   reassign_corrective_action: "high",
   execute_ca_reassignment: "high",
+  create_time_off_request_draft: "medium",
+  execute_time_off_request: "medium",
+  approve_time_off_request_draft: "medium",
+  execute_time_off_approval: "medium",
+  reject_time_off_request_dash: "medium",
+  cancel_time_off_request_dash: "medium",
 };
 
 // ─── Helpers ────────────────────────────────────────────────
