@@ -47,10 +47,11 @@ export async function saveOrgMemory(
 }
 
 export async function getOrgMemory(
-  sb: any, args: any
+  sb: any, companyId: string, args: any
 ): Promise<CapabilityResult<any>> {
   let q = sb.from("dash_org_memory")
     .select("memory_type, memory_key, content_json, updated_at")
+    .eq("company_id", companyId)
     .order("updated_at", { ascending: false })
     .limit(50);
   if (args.memory_type) q = q.eq("memory_type", args.memory_type);

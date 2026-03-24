@@ -3,7 +3,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 // ─── Shared Capability Layer Imports ───
 import { DEFAULT_TIMEZONE } from "./shared/constants.ts";
-import { resultToToolResponse } from "./shared/contracts.ts";
+import { resultToToolResponse, success, capabilityError } from "./shared/contracts.ts";
 import { type PermissionContext } from "./shared/permissions.ts";
 import { makeStructuredEvent } from "./shared/utils.ts";
 import {
@@ -26,6 +26,11 @@ import { getTaskCompletionSummary, getWorkOrderStatus, getDocumentExpiries, getT
 import { searchLocations, getLocationOverview, getCrossModuleSummary } from "./capabilities/overview.ts";
 import { saveUserPreference, getUserPreferences, saveOrgMemory, getOrgMemory, saveWorkflow, listSavedWorkflows } from "./capabilities/memory.ts";
 import { downloadFileAsBase64 as dlFileBase64, transformSpreadsheetToSchedule, transformSopToTraining, parseUploadedFile } from "./capabilities/file-processing.ts";
+
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
+};
 
 // ─── Module Gating Map (canonical module codes matching company_modules.module_name) ───
 const TOOL_MODULE_MAP: Record<string, string> = {
@@ -329,7 +334,7 @@ async function executeToolInner(
       return resultToToolResponse(await saveOrgMemory(sbService, companyId, userId, args));
 
     case "get_org_memory":
-      return resultToToolResponse(await getOrgMemory(sb, args));
+      return resultToToolResponse(await getOrgMemory(sb, companyId, args));
 
     case "save_workflow":
       return resultToToolResponse(await saveWorkflow(sbService, companyId, userId, args));
@@ -448,7 +453,7 @@ async function executeToolInner(
         can_approve: true,
       }));
 
-      return {
+      return resultToToolResponse(success({
         type: "time_off_draft",
         draft,
         days,
@@ -457,18 +462,18 @@ async function executeToolInner(
         requires_approval: true,
         risk_level: "medium",
         message: `Time-off draft created for ${args.employee_name || "employee"} (${days} days).${conflictWarning} Please approve to proceed.`,
-      };
+      }));
     }
 
     case "execute_time_off_request": {
-      if (!args.pending_action_id) return { error: "Missing pending_action_id." };
+      if (!args.pending_action_id) return resultToToolResponse(capabilityError("Missing pending_action_id."));
       const { data: pa } = await sbService.from("dash_pending_actions")
         .select("id, status, company_id, preview_json")
         .eq("id", args.pending_action_id)
         .maybeSingle();
-      if (!pa) return { error: "Pending action not found." };
-      if (pa.company_id !== companyId) return { error: "Cross-tenant action rejected." };
-      if (pa.status !== "pending") return { error: `Action already ${pa.status}.` };
+      if (!pa) return resultToToolResponse(capabilityError("Pending action not found."));
+      if (pa.company_id !== companyId) return resultToToolResponse(capabilityError("Cross-tenant action rejected."));
+      if (pa.status !== "pending") return resultToToolResponse(capabilityError(`Action already ${pa.status}.`));
 
       const preview = pa.preview_json as any;
       const ctx = buildPermCtx(companyId, userId, platformRoles, companyRole, activeModules);
@@ -530,8 +535,8 @@ async function executeToolInner(
         }
       }
 
-      if (!requestInfo) return { error: "No pending time-off request found for this employee." };
-      if (requestInfo.status !== "pending") return { error: `Request is already "${requestInfo.status}".` };
+      if (!requestInfo) return resultToToolResponse(capabilityError("No pending time-off request found for this employee."));
+      if (requestInfo.status !== "pending") return resultToToolResponse(capabilityError(`Request is already "${requestInfo.status}".`));
 
       const draft = {
         request_id: requestInfo.id,
@@ -563,23 +568,23 @@ async function executeToolInner(
         can_approve: true,
       }));
 
-      return {
+      return resultToToolResponse(success({
         type: "time_off_approval_draft",
         draft,
         pending_action_id: paData?.id,
         requires_approval: true,
         message: `Ready to approve ${draft.employee_name}'s time-off. Please confirm.`,
-      };
+      }));
     }
 
     case "execute_time_off_approval": {
-      if (!args.pending_action_id) return { error: "Missing pending_action_id." };
+      if (!args.pending_action_id) return resultToToolResponse(capabilityError("Missing pending_action_id."));
       const { data: pa } = await sbService.from("dash_pending_actions")
         .select("id, status, company_id, preview_json")
         .eq("id", args.pending_action_id).maybeSingle();
-      if (!pa) return { error: "Pending action not found." };
-      if (pa.company_id !== companyId) return { error: "Cross-tenant action rejected." };
-      if (pa.status !== "pending") return { error: `Action already ${pa.status}.` };
+      if (!pa) return resultToToolResponse(capabilityError("Pending action not found."));
+      if (pa.company_id !== companyId) return resultToToolResponse(capabilityError("Cross-tenant action rejected."));
+      if (pa.status !== "pending") return resultToToolResponse(capabilityError(`Action already ${pa.status}.`));
 
       const preview = pa.preview_json as any;
       const ctx = buildPermCtx(companyId, userId, platformRoles, companyRole, activeModules);
@@ -634,7 +639,7 @@ async function executeToolInner(
     }
 
     default:
-      return { error: `Unknown tool: ${name}` };
+      return resultToToolResponse(capabilityError(`Unknown tool: ${name}`));
   }
 }
 
