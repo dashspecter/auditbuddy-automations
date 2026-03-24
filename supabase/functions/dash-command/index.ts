@@ -866,7 +866,15 @@ async function executeToolInner(
       const { data, error } = await q;
       if (error) return { error: error.message };
       const c = cap(data, limit);
-      return { ...c, audits: c.items.map((a: any) => ({ id: a.id, score: a.overall_score, status: a.status, audit_date: a.audit_date, location: a.locations?.name, template: a.audit_templates?.name })) };
+      const audits = c.items.map((a: any) => ({ id: a.id, score: a.overall_score, status: a.status, audit_date: a.audit_date, location: a.locations?.name, template: a.audit_templates?.name }));
+      if (audits.length > 0) {
+        structuredEvents.push(makeStructuredEvent("data_table", {
+          title: `Audit Results (${args.from} — ${args.to})`,
+          columns: ["Date", "Location", "Template", "Score", "Status"],
+          rows: audits.map((a: any) => [a.audit_date, a.location ?? "—", a.template ?? "—", a.score ?? "—", a.status]),
+        }));
+      }
+      return { ...c, audits };
     }
 
     case "compare_location_performance": {
