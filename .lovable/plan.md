@@ -1,115 +1,77 @@
 
 
-# Phase 6A: Migrate Audits, CAs, Workforce, Operations, and Overview into Capability Modules
+# Phase 7: Bug Fixes + Final Extraction — Pure Orchestration `index.ts`
 
-## Current State
-`index.ts` is ~2342 lines. The `executeToolInner` switch (lines 301–1822) contains ~1520 lines of inline domain logic. Time-Off is already migrated to `capabilities/time-off.ts`. The remaining inline tools need migration.
+## Critical Bugs Found
 
-## What Gets Migrated (5 new capability files)
+### Bug 1: `parse_uploaded_file` has no case in the switch
+The `case "parse_uploaded_file"` was **lost during Phase 6 migration**. When the LLM calls this tool, it hits `default` and returns `"Unknown tool: parse_uploaded_file"`. This breaks all file upload workflows — audit template from PDF, compliance doc parsing, ID card scanning. This is a **P0 regression**.
 
-### 1. `capabilities/audits.ts`
-Migrates from `index.ts`:
-- `get_audit_results` (lines 381–398) — read with data_table emission
-- `compare_location_performance` (lines 401–431) — auto-loads locations, data_table
-- `create_audit_template_draft` (lines 715–757) — draft creation
-- `execute_audit_template_creation` (lines 1011–1133) — full execution with sections/fields
-- `parse_uploaded_file` audit-related logic (lines 499–643) — file parsing + auto-draft
+### Bug 2: Duplicate `search_locations` case
+Lines 310-313 have the old inline `search_locations` (direct DB query without company scoping). Lines 317-318 have the new capability call. The first case shadows the second — meaning the company-scoped version never executes.
 
-### 2. `capabilities/corrective-actions.ts`
-Migrates:
-- `get_open_corrective_actions` (lines 433–443) — read
-- `reassign_corrective_action` (lines 1135–1196) — draft creation
-- `execute_ca_reassignment` (lines 1198–1270) — execution
+---
 
-### 3. `capabilities/workforce.ts`
-Migrates:
-- `search_employees` (lines 309–316) — read
-- `get_attendance_exceptions` (lines 453–464) — read
-- `create_employee_draft` (lines 646–713) — draft
-- `execute_employee_creation` (lines 911–1009) — execution
-- `create_shift_draft` (lines 760–908) — complex draft with date resolution, employee lookup
-- `execute_shift_creation` (lines 1272–1380) — execution with assignment
+## What This Phase Delivers
 
-### 4. `capabilities/operations.ts`
-Migrates (small, grouped):
-- `get_task_completion_summary` (lines 445–451)
-- `get_work_order_status` (lines 467–477)
-- `get_document_expiries` (lines 479–486)
-- `get_training_gaps` (lines 488–496)
+1. **Fix both bugs immediately**
+2. **Extract remaining inline tools** into capability modules — finishing the migration
+3. **Get `index.ts` to ~600 lines** of pure orchestration (auth, LLM loop, SSE, routing)
 
-### 5. `capabilities/overview.ts`
-Migrates:
-- `get_location_overview` (lines 318–341)
-- `get_cross_module_summary` (lines 343–378)
-- `search_locations` (lines 303–307)
+## Remaining Inline Code in `executeToolInner` (lines 382-818)
 
-## What Stays in `index.ts`
-- `executeTool` wrapper (module gating, error handling) — stays
-- `executeToolInner` becomes a thin routing switch — each case is 1-3 lines calling capability functions
-- `buildSystemPrompt` — stays
-- LLM loop, SSE streaming, session management — stays
-- Direct approval/rejection paths — stays
-- `hydrateArgsFromDraft` — stays (orchestration concern)
-- All maps (`TOOL_MODULE_MAP`, `ACTION_EXECUTE_MAP`, `ACTION_RISK`) — stay
-- `parse_uploaded_file` — stays for now (AI-driven, cross-cutting, not pure domain logic)
-- Memory/workflow tools (`save_user_preference`, `get_org_memory`, etc.) — stay (Dash-specific)
-- `transform_*` tools — stay (AI-driven transformations)
-- File download helper — stays (utility)
+| Block | Lines | Description | Action |
+|-------|-------|-------------|--------|
+| Memory tools | 382-452 | `save_user_preference`, `get_user_preferences`, `save_org_memory`, `get_org_memory`, `save_workflow`, `list_saved_workflows` | Extract → `capabilities/memory.ts` |
+| File transforms | 454-538 | `transform_spreadsheet_to_schedule`, `transform_sop_to_training`, `transform_compliance_doc_to_audit` | Extract → `capabilities/file-processing.ts` |
+| `parse_uploaded_file` | **MISSING** | Was inline before Phase 6, now gone | Restore into `capabilities/file-processing.ts` |
+| Time-off orchestration | 541-818 | Draft/execute wiring for time-off (wraps capability calls with pending action logic) | Extract → `capabilities/time-off-orchestration.ts` or keep inline (it's orchestration, not domain logic) |
 
-## Pattern for Each Capability Function
+## Implementation
 
-```typescript
-// In capabilities/audits.ts
-export async function getAuditResults(
-  sb: any, companyId: string, args: any, structuredEvents: string[]
-): Promise<any> {
-  // Domain logic moved from index.ts
-  // Emits data_table structured events
-  // Returns tool response directly
-}
-```
+### Step 1: Fix `parse_uploaded_file` (P0)
+Find the `parse_uploaded_file` logic from git history / previous implementation. It's an AI-driven file parser that:
+- Downloads file via `downloadFileAsBase64`
+- Sends to Gemini with intent-specific prompts (`audit_template`, `compliance_audit`, `id_card`)
+- Returns structured extraction
+- For audit intents: auto-creates a draft via `createAuditTemplateDraft`
 
-Each function receives `sb` (user client), `sbService` (service client where needed), `companyId`, `args`, and `structuredEvents`. Returns the same shape as before — no breaking changes.
+Add it to `capabilities/file-processing.ts` alongside the existing transform tools.
 
-## `executeToolInner` After Migration
+### Step 2: Fix duplicate `search_locations`
+Remove lines 310-313 (old inline case). The capability version at line 317-318 is correct.
 
-```typescript
-case "get_audit_results":
-  return getAuditResults(sb, companyId, args, structuredEvents);
-case "compare_location_performance":
-  return compareLocationPerformance(sb, companyId, args, structuredEvents);
-case "get_open_corrective_actions":
-  return getOpenCorrectiveActions(sb, companyId, args);
-// ... etc
-```
+### Step 3: Extract memory tools → `capabilities/memory.ts`
+Move `save_user_preference`, `get_user_preferences`, `save_org_memory`, `get_org_memory`, `save_workflow`, `list_saved_workflows` into a new file. These are simple CRUD — straightforward extraction.
 
-`index.ts` drops from ~2342 to ~1200 lines. All domain logic lives in capability modules.
+### Step 4: Extract file processing → `capabilities/file-processing.ts`
+Move `transform_spreadsheet_to_schedule`, `transform_sop_to_training`, `transform_compliance_doc_to_audit`, and the restored `parse_uploaded_file` into one module. Pass `downloadFileAsBase64` as a dependency or move it there too (it's only used by file processing).
 
-## Registry Updates
-Update `registry.ts` maturity flags:
-- `audits`: `"beta"` → `"stable"`
-- `corrective_actions`: `"beta"` → `"stable"`
-- `workforce`: `"beta"` → `"stable"`
-- Add `operations` and `overview` entries
+### Step 5: Simplify time-off orchestration
+The time-off cases (lines 541-818) are orchestration code — they wrap capability calls with pending action management and structured events. Two options:
+- **Option A**: Keep inline — it's orchestration, not domain logic
+- **Option B**: Extract the draft/execute pattern into a shared orchestration helper
 
-## Implementation Order
-1. Create `capabilities/audits.ts` — highest-risk domain (past bugs)
-2. Create `capabilities/corrective-actions.ts`
-3. Create `capabilities/workforce.ts` — largest (shifts, employees)
-4. Create `capabilities/operations.ts` — smallest, grouped
-5. Create `capabilities/overview.ts` — composes from other modules
-6. Rewrite `executeToolInner` in `index.ts` to route to capability modules
-7. Update `registry.ts` maturity flags
-8. Deploy
+I recommend **Option A** for now, with a note that Phase 8 could introduce a generic draft/execute orchestration helper that all domains share.
+
+### Step 6: Update registry
+Add `memory` and `file_processing` entries to `registry.ts`.
+
+## Result
+
+After this phase:
+- `executeToolInner` is ~30 one-liner routing cases + time-off orchestration (~280 lines)
+- `index.ts` total: ~700 lines (down from 2342 original, 1342 current)
+- **Zero inline domain logic** — everything in capability modules
+- All file upload workflows work again
+- `search_locations` correctly scoped to company
 
 ## Files Created/Modified
+
 | File | Action |
 |------|--------|
-| `capabilities/audits.ts` | **New** |
-| `capabilities/corrective-actions.ts` | **New** |
-| `capabilities/workforce.ts` | **New** |
-| `capabilities/operations.ts` | **New** |
-| `capabilities/overview.ts` | **New** |
-| `registry.ts` | **Updated** — maturity flags + new entries |
-| `index.ts` | **Modified** — inline logic replaced with imports + one-liner calls |
+| `capabilities/memory.ts` | **New** — 6 memory/workflow tools |
+| `capabilities/file-processing.ts` | **New** — 3 transform tools + `parse_uploaded_file` + `downloadFileAsBase64` |
+| `index.ts` | **Modified** — remove inline tools, fix duplicate case, add routing |
+| `registry.ts` | **Updated** — add memory + file_processing entries |
 
