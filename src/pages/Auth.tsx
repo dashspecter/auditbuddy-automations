@@ -61,7 +61,9 @@ const Auth = () => {
     // For non-staff, wait until company role is loaded
     if (companyLoading) return;
     const isOwnerOrAdmin = company?.userRole === 'company_owner' || company?.userRole === 'company_admin';
-    const target = (isMobile && isOwnerOrAdmin) ? "/command" : "/dashboard";
+    const target = isOwnerOrAdmin
+      ? (isMobile ? "/command" : "/dash")
+      : "/dashboard";
     navigate(target, { replace: true });
   }, [user, isStaff, staffCheckComplete, navigate, company?.userRole, companyLoading, isMobile]);
 
