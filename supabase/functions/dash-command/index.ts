@@ -578,13 +578,13 @@ async function executeToolInner(
     }
 
     case "execute_time_off_approval": {
-      if (!args.pending_action_id) return { error: "Missing pending_action_id." };
+      if (!args.pending_action_id) return resultToToolResponse(capabilityError("Missing pending_action_id."));
       const { data: pa } = await sbService.from("dash_pending_actions")
         .select("id, status, company_id, preview_json")
         .eq("id", args.pending_action_id).maybeSingle();
-      if (!pa) return { error: "Pending action not found." };
-      if (pa.company_id !== companyId) return { error: "Cross-tenant action rejected." };
-      if (pa.status !== "pending") return { error: `Action already ${pa.status}.` };
+      if (!pa) return resultToToolResponse(capabilityError("Pending action not found."));
+      if (pa.company_id !== companyId) return resultToToolResponse(capabilityError("Cross-tenant action rejected."));
+      if (pa.status !== "pending") return resultToToolResponse(capabilityError(`Action already ${pa.status}.`));
 
       const preview = pa.preview_json as any;
       const ctx = buildPermCtx(companyId, userId, platformRoles, companyRole, activeModules);
