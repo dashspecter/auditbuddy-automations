@@ -334,7 +334,7 @@ async function executeToolInner(
       return resultToToolResponse(await saveOrgMemory(sbService, companyId, userId, args));
 
     case "get_org_memory":
-      return resultToToolResponse(await getOrgMemory(sb, args));
+      return resultToToolResponse(await getOrgMemory(sb, companyId, args));
 
     case "save_workflow":
       return resultToToolResponse(await saveWorkflow(sbService, companyId, userId, args));
