@@ -788,6 +788,168 @@ const tools = [
       },
     },
   },
+  // ─── TIME-OFF: Capability Layer Tools ───
+  {
+    type: "function",
+    function: {
+      name: "get_time_off_balance",
+      description: "Get vacation/leave balance for an employee: total days, used, remaining.",
+      parameters: {
+        type: "object",
+        properties: {
+          employee_name: { type: "string", description: "Employee name (partial match)" },
+          employee_id: { type: "string", description: "Employee UUID (if known)" },
+        },
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "list_time_off_requests",
+      description: "List time-off/vacation/sick leave requests with optional filters by employee, status, or date range.",
+      parameters: {
+        type: "object",
+        properties: {
+          employee_name: { type: "string", description: "Filter by employee name" },
+          status: { type: "string", enum: ["pending", "approved", "rejected"], description: "Filter by status" },
+          from: { type: "string", description: "Start date YYYY-MM-DD" },
+          to: { type: "string", description: "End date YYYY-MM-DD" },
+        },
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "list_pending_time_off_approvals",
+      description: "List all pending time-off requests awaiting approval across the company.",
+      parameters: { type: "object", properties: {} },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "check_time_off_conflicts",
+      description: "Check if a proposed time-off period would conflict with existing requests or team schedules.",
+      parameters: {
+        type: "object",
+        properties: {
+          employee_name: { type: "string", description: "Employee name" },
+          employee_id: { type: "string", description: "Employee UUID" },
+          start_date: { type: "string", description: "Start date YYYY-MM-DD" },
+          end_date: { type: "string", description: "End date YYYY-MM-DD" },
+        },
+        required: ["start_date", "end_date"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "get_team_time_off_calendar",
+      description: "Get who is off during a date range, optionally filtered by location. Useful for 'who is off next Friday?' questions.",
+      parameters: {
+        type: "object",
+        properties: {
+          location_name: { type: "string", description: "Filter by location name" },
+          from: { type: "string", description: "Start date YYYY-MM-DD" },
+          to: { type: "string", description: "End date YYYY-MM-DD" },
+        },
+        required: ["from", "to"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "create_time_off_request_draft",
+      description: "Create a time-off request draft for approval. Use for vacation, sick leave, personal days.",
+      parameters: {
+        type: "object",
+        properties: {
+          employee_name: { type: "string", description: "Employee name" },
+          employee_id: { type: "string", description: "Employee UUID" },
+          start_date: { type: "string", description: "Start date YYYY-MM-DD" },
+          end_date: { type: "string", description: "End date YYYY-MM-DD" },
+          request_type: { type: "string", enum: ["vacation", "sick", "personal", "unpaid", "other"], description: "Type of leave" },
+          reason: { type: "string", description: "Optional reason" },
+        },
+        required: ["start_date", "end_date", "request_type"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_time_off_request",
+      description: "Execute time-off request creation after user approval.",
+      parameters: {
+        type: "object",
+        properties: {
+          pending_action_id: { type: "string", description: "The pending action ID" },
+        },
+        required: ["pending_action_id"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "approve_time_off_request_draft",
+      description: "Create a draft to approve a pending time-off request. Shows impact preview.",
+      parameters: {
+        type: "object",
+        properties: {
+          request_id: { type: "string", description: "Time-off request UUID" },
+          employee_name: { type: "string", description: "Employee name (resolves most recent pending request)" },
+        },
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_time_off_approval",
+      description: "Execute time-off approval after user confirms.",
+      parameters: {
+        type: "object",
+        properties: {
+          pending_action_id: { type: "string", description: "The pending action ID" },
+        },
+        required: ["pending_action_id"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "reject_time_off_request_dash",
+      description: "Reject a pending time-off request with optional reason.",
+      parameters: {
+        type: "object",
+        properties: {
+          request_id: { type: "string", description: "Time-off request UUID" },
+          employee_name: { type: "string", description: "Employee name" },
+          rejection_reason: { type: "string", description: "Reason for rejection" },
+        },
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "cancel_time_off_request_dash",
+      description: "Cancel a time-off request (delete). Employee can cancel own, managers can cancel any.",
+      parameters: {
+        type: "object",
+        properties: {
+          request_id: { type: "string", description: "Time-off request UUID" },
+        },
+        required: ["request_id"],
+      },
+    },
+  },
 ];
 
 // ─── Tool Execution ─────────────────────────────────────────
