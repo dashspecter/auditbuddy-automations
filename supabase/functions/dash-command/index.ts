@@ -345,12 +345,12 @@ async function executeToolInner(
 
     // ────────── TIME-OFF CAPABILITY TOOLS ──────────
     case "get_time_off_balance": {
-      const ctx = buildPermCtx(companyId, userId, role, activeModules);
+      const ctx = buildPermCtx(companyId, userId, platformRoles, companyRole, activeModules);
       return resultToToolResponse(await getTimeOffBalance(sb, ctx, { employee_id: args.employee_id, employee_name: args.employee_name }));
     }
 
     case "list_time_off_requests": {
-      const ctx = buildPermCtx(companyId, userId, role, activeModules);
+      const ctx = buildPermCtx(companyId, userId, platformRoles, companyRole, activeModules);
       const result = await listTimeOffRequests(sb, ctx, { employee_name: args.employee_name, status: args.status, from: args.from, to: args.to });
       if (result.ok && result.data.requests.length > 0) {
         structuredEvents.push(makeStructuredEvent("data_table", {
@@ -363,7 +363,7 @@ async function executeToolInner(
     }
 
     case "list_pending_time_off_approvals": {
-      const ctx = buildPermCtx(companyId, userId, role, activeModules);
+      const ctx = buildPermCtx(companyId, userId, platformRoles, companyRole, activeModules);
       const result = await listPendingApprovals(sb, ctx);
       if (result.ok && result.data.requests.length > 0) {
         structuredEvents.push(makeStructuredEvent("data_table", {
@@ -376,12 +376,12 @@ async function executeToolInner(
     }
 
     case "check_time_off_conflicts": {
-      const ctx = buildPermCtx(companyId, userId, role, activeModules);
+      const ctx = buildPermCtx(companyId, userId, platformRoles, companyRole, activeModules);
       return resultToToolResponse(await checkTimeOffConflicts(sb, ctx, { employee_id: args.employee_id, employee_name: args.employee_name, start_date: args.start_date, end_date: args.end_date }));
     }
 
     case "get_team_time_off_calendar": {
-      const ctx = buildPermCtx(companyId, userId, role, activeModules);
+      const ctx = buildPermCtx(companyId, userId, platformRoles, companyRole, activeModules);
       const result = await getTeamTimeOffCalendar(sb, ctx, { location_name: args.location_name, from: args.from, to: args.to });
       if (result.ok && result.data.entries.length > 0) {
         structuredEvents.push(makeStructuredEvent("data_table", {
@@ -394,7 +394,7 @@ async function executeToolInner(
     }
 
     case "create_time_off_request_draft": {
-      const ctx = buildPermCtx(companyId, userId, role, activeModules);
+      const ctx = buildPermCtx(companyId, userId, platformRoles, companyRole, activeModules);
       // Pre-validate via capability layer
       const conflicts = await checkTimeOffConflicts(sb, ctx, { employee_name: args.employee_name, employee_id: args.employee_id, start_date: args.start_date, end_date: args.end_date });
 
@@ -460,7 +460,7 @@ async function executeToolInner(
       if (pa.status !== "pending") return { error: `Action already ${pa.status}.` };
 
       const preview = pa.preview_json as any;
-      const ctx = buildPermCtx(companyId, userId, role, activeModules);
+      const ctx = buildPermCtx(companyId, userId, platformRoles, companyRole, activeModules);
       const result = await createTimeOffRequest(sb, sbService, ctx, {
         employee_id: preview.employee_id,
         employee_name: preview.employee_name,
@@ -499,7 +499,7 @@ async function executeToolInner(
 
     case "approve_time_off_request_draft": {
       // Create a draft to approve — user must confirm
-      const ctx = buildPermCtx(companyId, userId, role, activeModules);
+      const ctx = buildPermCtx(companyId, userId, platformRoles, companyRole, activeModules);
       
       // Resolve the request to show preview
       let requestInfo: any = null;
@@ -571,7 +571,7 @@ async function executeToolInner(
       if (pa.status !== "pending") return { error: `Action already ${pa.status}.` };
 
       const preview = pa.preview_json as any;
-      const ctx = buildPermCtx(companyId, userId, role, activeModules);
+      const ctx = buildPermCtx(companyId, userId, platformRoles, companyRole, activeModules);
       const result = await approveTimeOffRequest(sb, sbService, ctx, { request_id: preview.request_id, employee_name: preview.employee_name });
 
       if (result.ok) {
@@ -595,7 +595,7 @@ async function executeToolInner(
     }
 
     case "reject_time_off_request_dash": {
-      const ctx = buildPermCtx(companyId, userId, role, activeModules);
+      const ctx = buildPermCtx(companyId, userId, platformRoles, companyRole, activeModules);
       const result = await rejectTimeOffRequest(sb, sbService, ctx, { request_id: args.request_id, employee_name: args.employee_name, rejection_reason: args.rejection_reason });
       if (result.ok) {
         structuredEvents.push(makeStructuredEvent("execution_result", {
@@ -609,7 +609,7 @@ async function executeToolInner(
     }
 
     case "cancel_time_off_request_dash": {
-      const ctx = buildPermCtx(companyId, userId, role, activeModules);
+      const ctx = buildPermCtx(companyId, userId, platformRoles, companyRole, activeModules);
       const result = await cancelTimeOffRequest(sb, sbService, ctx, { request_id: args.request_id });
       if (result.ok) {
         structuredEvents.push(makeStructuredEvent("execution_result", {
