@@ -116,7 +116,7 @@ export async function executeCaReassignment(
   const preview = pa.preview_json as any;
 
   const { error: updateError } = await sbService.from("corrective_actions")
-    .update({ assigned_to: preview.new_assigned_to, updated_at: new Date().toISOString() })
+    .update({ owner_user_id: preview.new_assigned_to, updated_at: new Date().toISOString() })
     .eq("id", preview.ca_id)
     .eq("company_id", companyId);
 
