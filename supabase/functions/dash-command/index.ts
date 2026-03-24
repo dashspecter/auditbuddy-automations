@@ -10,6 +10,10 @@ const corsHeaders = {
 const DEFAULT_TIMEZONE = "Europe/Bucharest";
 const MAX_TOOL_ROWS = 200;
 
+// ─── Shared Audit Completion Semantics ───
+// Aligns with src/lib/auditHelpers.ts COMPLETED_STATUSES
+const AUDIT_FINISHED_STATUSES = ["completed", "compliant", "non-compliant", "non_compliant"];
+
 // ─── Module Gating Map (canonical module codes matching company_modules.module_name) ───
 const TOOL_MODULE_MAP: Record<string, string> = {
   get_audit_results: "location_audits",
