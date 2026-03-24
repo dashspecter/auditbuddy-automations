@@ -5,6 +5,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { AUDIT_FINISHED_STATUSES, DEFAULT_TIMEZONE, MAX_TOOL_ROWS, MODULE_CODES } from "./shared/constants.ts";
 import { resultToToolResponse } from "./shared/contracts.ts";
 import { type PermissionContext } from "./shared/permissions.ts";
+import { makeStructuredEvent } from "./shared/utils.ts";
 import {
   getTimeOffBalance,
   listTimeOffRequests,
