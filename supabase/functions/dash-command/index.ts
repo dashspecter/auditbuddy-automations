@@ -162,9 +162,7 @@ const ACTION_RISK: Record<string, "low" | "medium" | "high"> = {
 };
 
 // ─── Permission Context Builder ─────────────────────────────
-function buildPermCtx(companyId: string, userId: string, role: string, activeModules: string[]): PermissionContext {
-  const platformRoles = role === "admin" ? ["admin"] : role === "manager" ? ["manager"] : [];
-  const companyRole = role === "admin" ? "company_owner" : role === "manager" ? "company_admin" : "company_member";
+function buildPermCtx(companyId: string, userId: string, platformRoles: string[], companyRole: string, activeModules: string[]): PermissionContext {
   return { companyId, actorUserId: userId, platformRoles, companyRole, activeModules };
 }
 
