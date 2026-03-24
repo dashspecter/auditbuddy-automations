@@ -56,7 +56,7 @@ export async function getCrossModuleSummary(
   const scoredAudits = finishedAudits.filter((a: any) => a.overall_score != null && a.overall_score > 0);
   const avgScore = scoredAudits.length > 0 ? Math.round(scoredAudits.reduce((s: number, a: any) => s + a.overall_score, 0) / scoredAudits.length) : null;
 
-  let caQ = sb.from("corrective_actions").select("id, severity, status, location_id").in("status", ["open", "in_progress"]);
+  let caQ = sb.from("corrective_actions").select("id, severity, status, location_id").eq("company_id", companyId).in("status", ["open", "in_progress"]);
   if (locationFilter) caQ = caQ.eq("location_id", locationFilter);
   const { data: cas } = await caQ.limit(200);
 
