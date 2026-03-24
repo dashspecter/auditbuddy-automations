@@ -204,10 +204,7 @@ function sanitizeInput(text: string): string {
     .replace(/<\|user\|>/gi, "");
 }
 
-// ─── Structured Event Helpers ───────────────────────────────
-function makeStructuredEvent(type: string, data: any): string {
-  return JSON.stringify({ type: "structured_event", event_type: type, data });
-}
+
 
 // ─── Tool Definitions (extracted to tools.ts) ───────────────
 import { tools } from "./tools.ts";
