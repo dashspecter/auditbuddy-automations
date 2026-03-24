@@ -37,7 +37,7 @@ export async function reassignCorrectiveAction(
   if (!permCheck.ok) return permCheck;
 
   const { data: caData, error: caError } = await sb.from("corrective_actions")
-    .select("id, title, assigned_to, location_id, locations(name), company_id")
+    .select("id, title, owner_user_id, location_id, locations(name), company_id")
     .eq("id", args.corrective_action_id)
     .maybeSingle();
 
