@@ -1,27 +1,52 @@
 
 
-# Fix 5 Remaining P2 Defense-in-Depth Issues
+# Fix P2 + Dynamic System Prompt from Registry
 
-All fixes follow the same pattern: add `.eq("company_id", companyId)` to read queries that already receive `companyId` but don't use it.
+## Fix 1 — P2: Add `company_id` to `getCrossModuleSummary` (overview.ts)
+
+Three one-liner additions in `getCrossModuleSummary`:
+
+- **Line 51** (`location_audits`): Add `.eq("company_id", companyId)` after `.select(...)`
+- **Line 59** (`corrective_actions`): Add `.eq("company_id", companyId)` after `.select(...)`  
+- **Line 71** (`cmms_work_orders`): Add `.eq("company_id", companyId)` after `.select(...)`
+
+`attendance_logs` (line 63) does not have a `company_id` column — it's scoped through `location_id` filter + RLS. No change needed there.
 
 ---
 
-## Fix 1 — `operations.ts:getTaskCompletionSummary` (line 13)
-`task_completions` likely lacks a direct `company_id` column (it joins through `tasks`). Since we can't filter nested relations with `.eq()` on the parent, we add a post-query note. However, `tasks` table does have `company_id` — but the query selects from `task_completions` not `tasks`. The safest approach: if `task_completions` has no `company_id`, we cannot add the filter at this level (RLS handles it). **Skip or verify schema first.**
+## Fix 2 — Feature: Dynamic System Prompt from Registry
 
-Actually — let me check: all these tables likely have `company_id`. The pattern across the codebase (documents, corrective_actions, cmms_work_orders) suggests they do. The fix is straightforward for tables that have the column.
+Replace the hardcoded "Your Capabilities" section in `buildSystemPrompt()` (lines 664-738) with a function that generates it from `CAPABILITY_REGISTRY`.
 
-## Fix 2 — `operations.ts:getWorkOrderStatus` (line 24)
-Add `.eq("company_id", companyId)` to the `cmms_work_orders` query.
+### New helper: `generateCapabilityDocs()`
 
-## Fix 3 — `operations.ts:getTrainingGaps` (line 51)
-Add `.eq("company_id", companyId)` if `training_assignments` has the column, otherwise filter via employee join.
+```typescript
+function generateCapabilityDocs(): string {
+  const sections: string[] = [];
+  for (const [domain, cap] of Object.entries(CAPABILITY_REGISTRY)) {
+    if (cap.maturity === "planned") continue;
+    const label = domain.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase());
+    const tools = [...cap.reads, ...cap.actions].map(t => `\`${t}\``).join(", ");
+    const aliases = cap.aliases.slice(0, 5).join(", ");
+    sections.push(`- **${label}** (${cap.maturity}): ${tools}\n  Aliases: ${aliases}`);
+  }
+  return sections.join("\n");
+}
+```
 
-## Fix 4 — `corrective-actions.ts:getOpenCorrectiveActions` (line 17)
-Add `.eq("company_id", companyId)` to the `corrective_actions` query.
+### Changes to `buildSystemPrompt()`
 
-## Fix 5 — `memory.ts:listSavedWorkflows` (line 78-85)
-Add `companyId` parameter, add `.eq("company_id", companyId)` before `.or()`. Update call site in `index.ts:343` to pass `companyId`.
+Replace the hardcoded reads list (lines 666-675) and the per-domain sections with:
+
+```
+## Your Capabilities (auto-generated from registry)
+
+${generateCapabilityDocs()}
+```
+
+Keep the **behavioral instructions** that aren't capability declarations (Draft & Execute rules, Approval Rules, Response Guidelines, File Processing rules, Memory instructions). These are orchestration concerns, not capability metadata — they stay hardcoded.
+
+The result: when a new domain is added to `registry.ts`, Dash's prompt automatically includes its tools and aliases without touching `buildSystemPrompt()`.
 
 ---
 
@@ -29,8 +54,11 @@ Add `companyId` parameter, add `.eq("company_id", companyId)` before `.or()`. Up
 
 | File | Change |
 |------|--------|
-| `capabilities/operations.ts` | Add `.eq("company_id", companyId)` to `getWorkOrderStatus` and `getTrainingGaps`; for `getTaskCompletionSummary` add if column exists |
-| `capabilities/corrective-actions.ts` | Add `.eq("company_id", companyId)` to `getOpenCorrectiveActions` read query |
-| `capabilities/memory.ts` | Add `companyId` param to `listSavedWorkflows`, add `.eq("company_id", companyId)` |
-| `index.ts` | Update `listSavedWorkflows` call to pass `companyId` |
+| `capabilities/overview.ts` | Add `.eq("company_id", companyId)` to 3 sub-queries |
+| `index.ts` | Import `CAPABILITY_REGISTRY`, add `generateCapabilityDocs()`, replace hardcoded capability list with dynamic generation |
+| `registry.ts` | No changes needed (already complete) |
+
+## Deploy
+
+Redeploy `dash-command` edge function after both changes.
 
