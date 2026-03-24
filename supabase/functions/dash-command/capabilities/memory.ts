@@ -76,10 +76,11 @@ export async function saveWorkflow(
 }
 
 export async function listSavedWorkflows(
-  sb: any, userId: string
+  sb: any, companyId: string, userId: string
 ): Promise<CapabilityResult<any>> {
   const { data, error } = await sb.from("dash_saved_workflows")
     .select("id, name, description, workflow_json, is_shared, created_at")
+    .eq("company_id", companyId)
     .or(`user_id.eq.${userId},is_shared.eq.true`)
     .order("created_at", { ascending: false })
     .limit(20);

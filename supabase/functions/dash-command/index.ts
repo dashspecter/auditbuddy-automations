@@ -340,7 +340,7 @@ async function executeToolInner(
       return resultToToolResponse(await saveWorkflow(sbService, companyId, userId, args));
 
     case "list_saved_workflows":
-      return resultToToolResponse(await listSavedWorkflows(sb, userId));
+      return resultToToolResponse(await listSavedWorkflows(sb, companyId, userId));
 
     // ────────── FILE PROCESSING TOOLS ──────────
     case "transform_spreadsheet_to_schedule":
