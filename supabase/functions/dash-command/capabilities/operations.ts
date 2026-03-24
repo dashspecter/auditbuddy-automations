@@ -3,13 +3,8 @@
  * Grouped smaller domains: Tasks, CMMS, Documents, Training.
  * Migrated from index.ts.
  */
-import { MAX_TOOL_ROWS } from "../shared/constants.ts";
+import { cap } from "../shared/utils.ts";
 
-function cap<T>(data: T[] | null, limit = MAX_TOOL_ROWS) {
-  const items = data ?? [];
-  const total = items.length;
-  return { items: items.slice(0, limit), total, returned: Math.min(total, limit), truncated: total > limit };
-}
 
 export async function getTaskCompletionSummary(
   sb: any, companyId: string, args: any
