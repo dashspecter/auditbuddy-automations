@@ -313,6 +313,7 @@ async function executeToolInner(
     case "search_locations":
       return searchLocations(sb, companyId, args);
 
+
     case "search_employees":
       return searchEmployees(sb, companyId, args);
 
