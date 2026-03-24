@@ -3,7 +3,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 // ─── Shared Capability Layer Imports ───
 import { DEFAULT_TIMEZONE } from "./shared/constants.ts";
-import { resultToToolResponse } from "./shared/contracts.ts";
+import { resultToToolResponse, success, capabilityError } from "./shared/contracts.ts";
 import { type PermissionContext } from "./shared/permissions.ts";
 import { makeStructuredEvent } from "./shared/utils.ts";
 import {
