@@ -220,7 +220,7 @@ import { tools } from "./tools.ts";
 // ─── Tool Execution ─────────────────────────────────────────
 async function executeTool(
   sb: any, sbService: any, name: string, args: any, 
-  companyId: string, userId: string, role: string, activeModules: string[],
+  companyId: string, userId: string, platformRoles: string[], companyRole: string, activeModules: string[],
   structuredEvents: string[]
 ): Promise<any> {
   // Module gating check
@@ -230,7 +230,7 @@ async function executeTool(
   }
 
   try {
-    return await executeToolInner(sb, sbService, name, args, companyId, userId, role, activeModules, structuredEvents);
+    return await executeToolInner(sb, sbService, name, args, companyId, userId, platformRoles, companyRole, activeModules, structuredEvents);
   } catch (err: any) {
     console.error(`[Dash] Tool "${name}" error:`, err);
     return { error: `Tool "${name}" failed: ${err.message || "Unknown error"}. You may retry this request.`, recoverable: true };
@@ -239,7 +239,7 @@ async function executeTool(
 
 async function executeToolInner(
   sb: any, sbService: any, name: string, args: any,
-  companyId: string, userId: string, role: string, activeModules: string[],
+  companyId: string, userId: string, platformRoles: string[], companyRole: string, activeModules: string[],
   structuredEvents: string[]
 ): Promise<any> {
   switch (name) {
