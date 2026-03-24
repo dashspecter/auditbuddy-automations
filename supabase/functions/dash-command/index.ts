@@ -297,15 +297,15 @@ const tools = [
     type: "function",
     function: {
       name: "compare_location_performance",
-      description: "Compare audit performance across locations for a date range.",
+      description: "Compare audit performance across locations for a date range. If location_ids is omitted, compares ALL active company locations.",
       parameters: {
         type: "object",
         properties: {
-          location_ids: { type: "array", items: { type: "string" }, description: "Location UUIDs to compare" },
+          location_ids: { type: "array", items: { type: "string" }, description: "Location UUIDs to compare. If omitted, all active company locations are compared." },
           from: { type: "string", description: "Start date YYYY-MM-DD" },
           to: { type: "string", description: "End date YYYY-MM-DD" },
         },
-        required: ["location_ids", "from", "to"],
+        required: ["from", "to"],
       },
     },
   },
