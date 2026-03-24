@@ -873,7 +873,7 @@ async function executeToolInner(
       // Auto-load all active company locations if location_ids not provided
       let locationIds: string[] = args.location_ids ?? [];
       if (locationIds.length === 0) {
-        const { data: allLocs } = await sb.from("locations").select("id").eq("is_active", true).limit(100);
+        const { data: allLocs } = await sb.from("locations").select("id").eq("status", "active").eq("company_id", companyId).limit(100);
         locationIds = (allLocs ?? []).map((l: any) => l.id);
       }
       if (locationIds.length === 0) return { error: "No active locations found for your company." };
