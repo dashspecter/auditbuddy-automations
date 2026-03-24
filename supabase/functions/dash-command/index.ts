@@ -90,6 +90,20 @@ function hydrateArgsFromDraft(actionName: string, previewJson: any): Record<stri
         new_assigned_name: previewJson.new_assigned_name,
         reason: previewJson.reason,
       };
+    case "create_time_off_request":
+      return {
+        employee_id: previewJson.employee_id,
+        employee_name: previewJson.employee_name,
+        start_date: previewJson.start_date,
+        end_date: previewJson.end_date,
+        request_type: previewJson.request_type,
+        reason: previewJson.reason,
+      };
+    case "approve_time_off_request":
+      return {
+        request_id: previewJson.request_id,
+        employee_name: previewJson.employee_name,
+      };
     default:
       return {};
   }
