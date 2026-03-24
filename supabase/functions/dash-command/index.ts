@@ -870,13 +870,28 @@ async function executeToolInner(
     }
 
     case "compare_location_performance": {
-      const results: any[] = [];
-      for (const locId of args.location_ids ?? []) {
-        const { data } = await sb.from("location_audits").select("overall_score, locations(name)").eq("location_id", locId).eq("status", "completed").gte("created_at", args.from).lte("created_at", args.to + "T23:59:59Z");
-        const scores = (data ?? []).map((a: any) => a.overall_score).filter((s: any) => s != null);
-        results.push({ location_id: locId, location_name: data?.[0]?.locations?.name ?? locId, audit_count: scores.length, avg_score: scores.length > 0 ? Math.round(scores.reduce((a: number, b: number) => a + b, 0) / scores.length) : null, min_score: scores.length > 0 ? Math.min(...scores) : null, max_score: scores.length > 0 ? Math.max(...scores) : null });
+      // Auto-load all active company locations if location_ids not provided
+      let locationIds: string[] = args.location_ids ?? [];
+      if (locationIds.length === 0) {
+        const { data: allLocs } = await sb.from("locations").select("id").eq("is_active", true).limit(100);
+        locationIds = (allLocs ?? []).map((l: any) => l.id);
       }
-      return { date_range: { from: args.from, to: args.to }, comparisons: results };
+      if (locationIds.length === 0) return { error: "No active locations found for your company." };
+
+      const results: any[] = [];
+      const noDataLocations: string[] = [];
+      for (const locId of locationIds) {
+        const { data } = await sb.from("location_audits").select("overall_score, locations(name)").eq("location_id", locId).in("status", AUDIT_FINISHED_STATUSES).gte("audit_date", args.from).lte("audit_date", args.to);
+        const scores = (data ?? []).map((a: any) => a.overall_score).filter((s: any) => s != null && s > 0);
+        const locName = data?.[0]?.locations?.name ?? locId;
+        if (scores.length === 0) {
+          noDataLocations.push(locName);
+        } else {
+          results.push({ location_id: locId, location_name: locName, audit_count: scores.length, avg_score: Math.round(scores.reduce((a: number, b: number) => a + b, 0) / scores.length), min_score: Math.min(...scores), max_score: Math.max(...scores) });
+        }
+      }
+      results.sort((a, b) => (b.avg_score ?? 0) - (a.avg_score ?? 0));
+      return { date_range: { from: args.from, to: args.to }, comparisons: results, locations_with_no_scored_audits: noDataLocations };
     }
 
     case "get_open_corrective_actions": {
