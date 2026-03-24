@@ -21,7 +21,7 @@ import {
 // ─── Domain Capability Imports ───
 import { getAuditResults, compareLocationPerformance, createAuditTemplateDraft, executeAuditTemplateCreation } from "./capabilities/audits.ts";
 import { getOpenCorrectiveActions, reassignCorrectiveAction, executeCaReassignment } from "./capabilities/corrective-actions.ts";
-import { searchEmployees, getAttendanceExceptions, createEmployeeDraft, createShiftDraft, executeEmployeeCreation, executeShiftCreation } from "./capabilities/workforce.ts";
+import { searchEmployees, getAttendanceExceptions, createEmployeeDraft, createShiftDraft, executeEmployeeCreation, executeShiftCreation, updateShiftDraft, executeShiftUpdate, deleteShiftDraft, executeShiftDeletion, swapShiftDraft, executeShiftSwap } from "./capabilities/workforce.ts";
 import { getTaskCompletionSummary, getWorkOrderStatus, getDocumentExpiries, getTrainingGaps } from "./capabilities/operations.ts";
 import { searchLocations, getLocationOverview, getCrossModuleSummary } from "./capabilities/overview.ts";
 import { saveUserPreference, getUserPreferences, saveOrgMemory, getOrgMemory, saveWorkflow, listSavedWorkflows } from "./capabilities/memory.ts";
@@ -49,6 +49,12 @@ const TOOL_MODULE_MAP: Record<string, string> = {
   execute_ca_reassignment: "corrective_actions",
   create_shift_draft: "workforce",
   execute_shift_creation: "workforce",
+  update_shift_draft: "workforce",
+  execute_shift_update: "workforce",
+  delete_shift_draft: "workforce",
+  execute_shift_deletion: "workforce",
+  swap_shift_draft: "workforce",
+  execute_shift_swap: "workforce",
   transform_spreadsheet_to_schedule: "workforce",
   transform_sop_to_training: "workforce",
   // Time-Off capability tools
@@ -74,6 +80,9 @@ const ACTION_EXECUTE_MAP: Record<string, string> = {
   reassign_ca: "execute_ca_reassignment",
   create_time_off_request: "execute_time_off_request",
   approve_time_off_request: "execute_time_off_approval",
+  update_shift: "execute_shift_update",
+  delete_shift: "execute_shift_deletion",
+  swap_shifts: "execute_shift_swap",
 };
 
 /** Hydrate execution args from pending action's preview_json based on action_name */
@@ -120,6 +129,12 @@ function hydrateArgsFromDraft(actionName: string, previewJson: any): Record<stri
         new_assigned_name: previewJson.new_assigned_name,
         reason: previewJson.reason,
       };
+    case "update_shift":
+      return { pending_action_id: previewJson.pending_action_id };
+    case "delete_shift":
+      return { pending_action_id: previewJson.pending_action_id };
+    case "swap_shifts":
+      return { pending_action_id: previewJson.pending_action_id };
     case "create_time_off_request":
       return {
         employee_id: previewJson.employee_id,
@@ -303,7 +318,21 @@ async function executeToolInner(
       return resultToToolResponse(await reassignCorrectiveAction(sb, sbService, companyId, userId, args, structuredEvents, ctx));
     }
 
-    // ────────── EXECUTE TOOLS (with permission context) ──────────
+    case "update_shift_draft": {
+      const ctx = buildPermCtx(companyId, userId, platformRoles, companyRole, activeModules);
+      return resultToToolResponse(await updateShiftDraft(sb, sbService, companyId, userId, args, structuredEvents, ctx));
+    }
+
+    case "delete_shift_draft": {
+      const ctx = buildPermCtx(companyId, userId, platformRoles, companyRole, activeModules);
+      return resultToToolResponse(await deleteShiftDraft(sb, sbService, companyId, userId, args, structuredEvents, ctx));
+    }
+
+    case "swap_shift_draft": {
+      const ctx = buildPermCtx(companyId, userId, platformRoles, companyRole, activeModules);
+      return resultToToolResponse(await swapShiftDraft(sb, sbService, companyId, userId, args, structuredEvents, ctx));
+    }
+
     case "execute_employee_creation": {
       const ctx = buildPermCtx(companyId, userId, platformRoles, companyRole, activeModules);
       return resultToToolResponse(await executeEmployeeCreation(sbService, companyId, userId, args, structuredEvents, hydrateArgsFromDraft, ctx));
@@ -324,7 +353,21 @@ async function executeToolInner(
       return resultToToolResponse(await executeCaReassignment(sbService, companyId, userId, args, structuredEvents, ctx));
     }
 
-    // ────────── MEMORY TOOLS ──────────
+    case "execute_shift_update": {
+      const ctx = buildPermCtx(companyId, userId, platformRoles, companyRole, activeModules);
+      return resultToToolResponse(await executeShiftUpdate(sbService, companyId, userId, args, structuredEvents, ctx));
+    }
+
+    case "execute_shift_deletion": {
+      const ctx = buildPermCtx(companyId, userId, platformRoles, companyRole, activeModules);
+      return resultToToolResponse(await executeShiftDeletion(sbService, companyId, userId, args, structuredEvents, ctx));
+    }
+
+    case "execute_shift_swap": {
+      const ctx = buildPermCtx(companyId, userId, platformRoles, companyRole, activeModules);
+      return resultToToolResponse(await executeShiftSwap(sbService, companyId, userId, args, structuredEvents, ctx));
+    }
+
     case "save_user_preference":
       return resultToToolResponse(await saveUserPreference(sbService, companyId, userId, args));
 
@@ -691,7 +734,7 @@ ${generateCapabilityDocs()}
 ### Draft & Execute (APPROVAL-GATED WRITES)
 You can now create AND execute records in the platform:
 
-**CRITICAL — STOP AFTER DRAFT**: After calling ANY draft tool (create_employee_draft, create_audit_template_draft, create_shift_draft, reassign_corrective_action), you MUST immediately STOP making tool calls and present the draft preview to the user. Do NOT call any execute tool (execute_employee_creation, execute_audit_template_creation, execute_shift_creation, execute_ca_reassignment) in the same response. The approval card UI will handle the approval flow. You must wait for the NEXT user message containing explicit approval before executing.
+**CRITICAL — STOP AFTER DRAFT**: After calling ANY draft tool (create_employee_draft, create_audit_template_draft, create_shift_draft, update_shift_draft, delete_shift_draft, swap_shift_draft, reassign_corrective_action), you MUST immediately STOP making tool calls and present the draft preview to the user. Do NOT call any execute tool in the same response. The approval card UI will handle the approval flow. You must wait for the NEXT user message containing explicit approval before executing.
 
 **Employee Creation Flow:**
 1. Use \`create_employee_draft\` to prepare the draft and show preview
@@ -716,6 +759,24 @@ You can now create AND execute records in the platform:
 2. STOP — do not call any more tools. Present the draft to the user.
 3. Wait for user approval in a NEW message
 4. ONLY THEN call \`execute_shift_creation\` with the pending_action_id
+
+**Shift Update Flow:**
+1. Use \`update_shift_draft\` to prepare a change preview. You can find shifts by employee_name + shift_date, or by shift_id. Specify what changes: new_start_time, new_end_time, new_shift_date, new_role, or new_employee_name.
+2. STOP — present the change summary to the user.
+3. Wait for user approval
+4. ONLY THEN call \`execute_shift_update\` with the pending_action_id
+
+**Shift Deletion Flow:**
+1. Use \`delete_shift_draft\` to show what will be removed (the shift + assignment).
+2. STOP — this is HIGH RISK. Present the impact clearly.
+3. Wait for user approval
+4. ONLY THEN call \`execute_shift_deletion\` with the pending_action_id
+
+**Shift Swap Flow:**
+1. Use \`swap_shift_draft\` with both employee names and the date. This swaps their assignments.
+2. STOP — this is HIGH RISK. Show both sides of the swap.
+3. Wait for user approval
+4. ONLY THEN call \`execute_shift_swap\` with the pending_action_id
 
 ### Approval Rules
 - MEDIUM risk: User must confirm with clear affirmative response

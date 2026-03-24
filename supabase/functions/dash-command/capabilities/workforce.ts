@@ -469,3 +469,394 @@ export async function executeShiftCreation(
     message: `Shift created successfully for ${shiftData.shift_date}${assignmentMsg}.`,
   });
 }
+
+// ─── Shift Lookup Helper ───
+
+async function findShift(
+  sb: any, companyId: string, args: any
+): Promise<{ shift: any; assignment: any; error?: string }> {
+  // Direct ID lookup
+  if (args.shift_id) {
+    const { data: shift } = await sb.from("shifts")
+      .select("id, shift_date, start_time, end_time, role, location_id, locations(name), status, company_id")
+      .eq("id", args.shift_id).maybeSingle();
+    if (!shift) return { shift: null, assignment: null, error: "Shift not found." };
+    if (shift.company_id !== companyId) return { shift: null, assignment: null, error: "Cross-tenant action rejected." };
+    const { data: assignment } = await sb.from("shift_assignments")
+      .select("id, staff_id, employees(full_name), status")
+      .eq("shift_id", shift.id).limit(1).maybeSingle();
+    return { shift, assignment };
+  }
+
+  // Lookup by employee + date + optional location
+  if (args.employee_name && args.shift_date) {
+    const { data: empData } = await sb.from("employees")
+      .select("id, full_name").eq("company_id", companyId)
+      .ilike("full_name", `%${args.employee_name}%`).limit(5);
+    if (!empData?.length) return { shift: null, assignment: null, error: `Employee "${args.employee_name}" not found.` };
+    if (empData.length > 1) return { shift: null, assignment: null, error: `Multiple employees match "${args.employee_name}": ${empData.map((e: any) => e.full_name).join(", ")}. Please be more specific.` };
+    const empId = empData[0].id;
+    const empName = empData[0].full_name;
+
+    // Find shift assignments for this employee on this date
+    const { data: assignments } = await sb.from("shift_assignments")
+      .select("id, shift_id, staff_id, status, shifts(id, shift_date, start_time, end_time, role, location_id, locations(name), status, company_id)")
+      .eq("staff_id", empId).eq("shifts.shift_date", args.shift_date).limit(5);
+
+    const valid = (assignments || []).filter((a: any) => a.shifts && a.shifts.company_id === companyId);
+    if (!valid.length) return { shift: null, assignment: null, error: `No shift found for ${empName} on ${args.shift_date}.` };
+    if (valid.length > 1 && args.location_name) {
+      const filtered = valid.filter((a: any) => a.shifts.locations?.name?.toLowerCase().includes(args.location_name.toLowerCase()));
+      if (filtered.length === 1) return { shift: filtered[0].shifts, assignment: { id: filtered[0].id, staff_id: filtered[0].staff_id, employees: { full_name: empName }, status: filtered[0].status } };
+    }
+    if (valid.length > 1) return { shift: null, assignment: null, error: `${empName} has ${valid.length} shifts on ${args.shift_date}. Please specify location or time.` };
+    return { shift: valid[0].shifts, assignment: { id: valid[0].id, staff_id: valid[0].staff_id, employees: { full_name: empName }, status: valid[0].status } };
+  }
+
+  return { shift: null, assignment: null, error: "Please provide a shift_id, or employee_name + shift_date to identify the shift." };
+}
+
+// ─── Draft: Update Shift ───
+
+export async function updateShiftDraft(
+  sb: any, sbService: any, companyId: string, userId: string, args: any, structuredEvents: string[],
+  ctx: PermissionContext
+): Promise<CapabilityResult<any>> {
+  const permCheck = checkCapabilityPermission({ action: "update", module: "workforce", ctx });
+  if (!permCheck.ok) return permCheck;
+
+  const { shift, assignment, error } = await findShift(sb, companyId, args);
+  if (error || !shift) return capabilityError(error || "Shift not found.");
+
+  // Resolve new employee if reassigning
+  let newEmployeeId: string | null = null;
+  let newEmployeeName: string | null = null;
+  if (args.new_employee_name) {
+    const { data: empData } = await sb.from("employees")
+      .select("id, full_name").eq("company_id", companyId)
+      .ilike("full_name", `%${args.new_employee_name}%`).limit(5);
+    if (!empData?.length) return capabilityError(`Employee "${args.new_employee_name}" not found.`);
+    if (empData.length > 1) return capabilityError(`Multiple employees match "${args.new_employee_name}": ${empData.map((e: any) => e.full_name).join(", ")}`);
+    newEmployeeId = empData[0].id;
+    newEmployeeName = empData[0].full_name;
+  }
+
+  const changes: Record<string, { from: any; to: any }> = {};
+  if (args.new_start_time && args.new_start_time !== shift.start_time) changes.start_time = { from: shift.start_time, to: args.new_start_time };
+  if (args.new_end_time && args.new_end_time !== shift.end_time) changes.end_time = { from: shift.end_time, to: args.new_end_time };
+  if (args.new_shift_date && args.new_shift_date !== shift.shift_date) changes.shift_date = { from: shift.shift_date, to: args.new_shift_date };
+  if (args.new_role && args.new_role !== shift.role) changes.role = { from: shift.role, to: args.new_role };
+  if (newEmployeeId) changes.employee = { from: assignment?.employees?.full_name || "unassigned", to: newEmployeeName };
+
+  if (Object.keys(changes).length === 0) return capabilityError("No changes specified. Please tell me what to change (time, date, role, or employee).");
+
+  const preview = {
+    shift_id: shift.id,
+    shift_date: shift.shift_date,
+    location_name: shift.locations?.name,
+    current: { start_time: shift.start_time, end_time: shift.end_time, role: shift.role, employee: assignment?.employees?.full_name || "unassigned" },
+    changes,
+    new_employee_id: newEmployeeId,
+    old_assignment_id: assignment?.id || null,
+    old_employee_id: assignment?.staff_id || null,
+    reason: args.reason,
+  };
+
+  const { data: paData } = await sbService.from("dash_pending_actions").insert({
+    company_id: companyId, user_id: userId, action_name: "update_shift",
+    action_type: "write", risk_level: "medium", preview_json: preview, status: "pending",
+  }).select("id").single();
+
+  const changeSummary = Object.entries(changes).map(([k, v]: any) => `${k}: ${v.from} → ${v.to}`).join(", ");
+  structuredEvents.push(makeStructuredEvent("action_preview", {
+    action: "Update Shift",
+    summary: `${shift.locations?.name} on ${shift.shift_date}: ${changeSummary}`,
+    risk: "medium",
+    affected: [shift.locations?.name, assignment?.employees?.full_name, newEmployeeName].filter(Boolean),
+    pending_action_id: paData?.id, draft: preview, can_approve: true,
+  }));
+
+  return success({
+    type: "action_preview", pending_action_id: paData?.id,
+    message: `Shift update draft created. Changes: ${changeSummary}. Please approve to proceed.`,
+  });
+}
+
+// ─── Execute: Update Shift ───
+
+export async function executeShiftUpdate(
+  sbService: any, companyId: string, userId: string, args: any, structuredEvents: string[],
+  ctx: PermissionContext
+): Promise<CapabilityResult<any>> {
+  const permCheck = checkCapabilityPermission({ action: "update", module: "workforce", ctx });
+  if (!permCheck.ok) return permCheck;
+  if (!args.pending_action_id) return capabilityError("Missing pending_action_id.");
+
+  const { data: pa } = await sbService.from("dash_pending_actions")
+    .select("id, status, company_id, preview_json").eq("id", args.pending_action_id).maybeSingle();
+  if (!pa) return capabilityError("Pending action not found.");
+  if (pa.company_id !== companyId) return capabilityError("Cross-tenant action rejected.");
+  if (pa.status !== "pending") return capabilityError(`Action already ${pa.status}.`);
+
+  const preview = pa.preview_json as any;
+  const updateFields: any = { updated_at: new Date().toISOString() };
+  if (preview.changes.start_time) updateFields.start_time = preview.changes.start_time.to;
+  if (preview.changes.end_time) updateFields.end_time = preview.changes.end_time.to;
+  if (preview.changes.shift_date) updateFields.shift_date = preview.changes.shift_date.to;
+  if (preview.changes.role) updateFields.role = preview.changes.role.to;
+
+  const { error: updateError } = await sbService.from("shifts")
+    .update(updateFields).eq("id", preview.shift_id).eq("company_id", companyId);
+
+  if (updateError) {
+    await sbService.from("dash_pending_actions").update({ status: "failed", execution_result: { error: updateError.message }, updated_at: new Date().toISOString() }).eq("id", pa.id);
+    structuredEvents.push(makeStructuredEvent("execution_result", { status: "error", title: "Shift Update Failed", summary: updateError.message, errors: [updateError.message] }));
+    return capabilityError(`Shift update failed: ${updateError.message}`);
+  }
+
+  // Handle employee reassignment if requested
+  if (preview.new_employee_id) {
+    if (preview.old_assignment_id) {
+      await sbService.from("shift_assignments").delete().eq("id", preview.old_assignment_id);
+    }
+    await sbService.from("shift_assignments").insert({
+      shift_id: preview.shift_id, staff_id: preview.new_employee_id,
+      assigned_by: userId, status: "assigned", approval_status: "approved", approved_by: userId, approved_at: new Date().toISOString(),
+    });
+  }
+
+  await sbService.from("dash_pending_actions").update({
+    status: "executed", approved_at: new Date().toISOString(), approved_by: userId,
+    execution_result: { success: true }, updated_at: new Date().toISOString(),
+  }).eq("id", pa.id);
+
+  await logCapabilityAction(sbService, {
+    companyId, userId, capability: "workforce.update_shift", actionType: "write",
+    riskLevel: "medium", request: preview, result: { shift_id: preview.shift_id, changes: preview.changes },
+    entitiesAffected: [preview.shift_id], module: "workforce",
+  });
+
+  const changeSummary = Object.entries(preview.changes).map(([k, v]: any) => `${k}: ${v.from} → ${v.to}`).join(", ");
+  structuredEvents.push(makeStructuredEvent("execution_result", {
+    status: "success", title: "Shift Updated",
+    summary: `Shift at ${preview.location_name} on ${preview.shift_date} updated: ${changeSummary}`,
+    changes: Object.entries(preview.changes).map(([k, v]: any) => `${k}: ${v.from} → ${v.to}`),
+  }));
+
+  return success({ type: "shift_updated", shift_id: preview.shift_id, message: `Shift updated successfully.` });
+}
+
+// ─── Draft: Delete Shift ───
+
+export async function deleteShiftDraft(
+  sb: any, sbService: any, companyId: string, userId: string, args: any, structuredEvents: string[],
+  ctx: PermissionContext
+): Promise<CapabilityResult<any>> {
+  const permCheck = checkCapabilityPermission({ action: "update", module: "workforce", ctx });
+  if (!permCheck.ok) return permCheck;
+
+  const { shift, assignment, error } = await findShift(sb, companyId, args);
+  if (error || !shift) return capabilityError(error || "Shift not found.");
+
+  const preview = {
+    shift_id: shift.id, shift_date: shift.shift_date,
+    start_time: shift.start_time, end_time: shift.end_time,
+    role: shift.role, location_name: shift.locations?.name,
+    employee_name: assignment?.employees?.full_name || "unassigned",
+    assignment_id: assignment?.id || null,
+    reason: args.reason,
+  };
+
+  const { data: paData } = await sbService.from("dash_pending_actions").insert({
+    company_id: companyId, user_id: userId, action_name: "delete_shift",
+    action_type: "write", risk_level: "high", preview_json: preview, status: "pending",
+  }).select("id").single();
+
+  structuredEvents.push(makeStructuredEvent("action_preview", {
+    action: "Delete Shift",
+    summary: `Remove ${preview.role} shift at ${preview.location_name} on ${preview.shift_date} (${preview.start_time}-${preview.end_time}), assigned to ${preview.employee_name}`,
+    risk: "high",
+    affected: [preview.location_name, preview.employee_name, preview.shift_date].filter(Boolean),
+    pending_action_id: paData?.id, draft: preview, can_approve: true,
+  }));
+
+  return success({
+    type: "action_preview", pending_action_id: paData?.id,
+    message: `Shift deletion draft created. This will remove the shift and its assignment. Please approve.`,
+  });
+}
+
+// ─── Execute: Delete Shift ───
+
+export async function executeShiftDeletion(
+  sbService: any, companyId: string, userId: string, args: any, structuredEvents: string[],
+  ctx: PermissionContext
+): Promise<CapabilityResult<any>> {
+  const permCheck = checkCapabilityPermission({ action: "update", module: "workforce", ctx });
+  if (!permCheck.ok) return permCheck;
+  if (!args.pending_action_id) return capabilityError("Missing pending_action_id.");
+
+  const { data: pa } = await sbService.from("dash_pending_actions")
+    .select("id, status, company_id, preview_json").eq("id", args.pending_action_id).maybeSingle();
+  if (!pa) return capabilityError("Pending action not found.");
+  if (pa.company_id !== companyId) return capabilityError("Cross-tenant action rejected.");
+  if (pa.status !== "pending") return capabilityError(`Action already ${pa.status}.`);
+
+  const preview = pa.preview_json as any;
+
+  // Remove assignment first, then cancel the shift
+  if (preview.assignment_id) {
+    await sbService.from("shift_assignments").delete().eq("id", preview.assignment_id);
+  }
+
+  const { error: delError } = await sbService.from("shifts")
+    .update({ cancelled_at: new Date().toISOString(), status: "cancelled", updated_at: new Date().toISOString() })
+    .eq("id", preview.shift_id).eq("company_id", companyId);
+
+  if (delError) {
+    await sbService.from("dash_pending_actions").update({ status: "failed", execution_result: { error: delError.message }, updated_at: new Date().toISOString() }).eq("id", pa.id);
+    structuredEvents.push(makeStructuredEvent("execution_result", { status: "error", title: "Shift Deletion Failed", summary: delError.message, errors: [delError.message] }));
+    return capabilityError(`Shift deletion failed: ${delError.message}`);
+  }
+
+  await sbService.from("dash_pending_actions").update({
+    status: "executed", approved_at: new Date().toISOString(), approved_by: userId,
+    execution_result: { success: true }, updated_at: new Date().toISOString(),
+  }).eq("id", pa.id);
+
+  await logCapabilityAction(sbService, {
+    companyId, userId, capability: "workforce.delete_shift", actionType: "write",
+    riskLevel: "high", request: preview, result: { shift_id: preview.shift_id, cancelled: true },
+    entitiesAffected: [preview.shift_id], module: "workforce",
+  });
+
+  structuredEvents.push(makeStructuredEvent("execution_result", {
+    status: "success", title: "Shift Cancelled",
+    summary: `${preview.role} shift at ${preview.location_name} on ${preview.shift_date} has been cancelled.`,
+    changes: [`Shift cancelled`, `Assignment for ${preview.employee_name} removed`],
+  }));
+
+  return success({ type: "shift_deleted", shift_id: preview.shift_id, message: `Shift cancelled successfully.` });
+}
+
+// ─── Draft: Swap Shifts ───
+
+export async function swapShiftDraft(
+  sb: any, sbService: any, companyId: string, userId: string, args: any, structuredEvents: string[],
+  ctx: PermissionContext
+): Promise<CapabilityResult<any>> {
+  const permCheck = checkCapabilityPermission({ action: "update", module: "workforce", ctx });
+  if (!permCheck.ok) return permCheck;
+
+  // Resolve both employees
+  const resolve = async (name: string) => {
+    const { data } = await sb.from("employees").select("id, full_name").eq("company_id", companyId).ilike("full_name", `%${name}%`).limit(5);
+    if (!data?.length) return { error: `Employee "${name}" not found.` };
+    if (data.length > 1) return { error: `Multiple employees match "${name}": ${data.map((e: any) => e.full_name).join(", ")}` };
+    return { id: data[0].id, name: data[0].full_name };
+  };
+
+  const empA = await resolve(args.employee_a_name);
+  if (empA.error) return capabilityError(empA.error);
+  const empB = await resolve(args.employee_b_name);
+  if (empB.error) return capabilityError(empB.error);
+
+  // Find their assignments on the given date
+  const findAssignment = async (empId: string, empName: string) => {
+    const { data } = await sb.from("shift_assignments")
+      .select("id, shift_id, staff_id, shifts(id, shift_date, start_time, end_time, role, location_id, locations(name), company_id)")
+      .eq("staff_id", empId).eq("shifts.shift_date", args.shift_date).limit(5);
+    const valid = (data || []).filter((a: any) => a.shifts && a.shifts.company_id === companyId);
+    if (!valid.length) return { error: `No shift found for ${empName} on ${args.shift_date}.` };
+    if (valid.length > 1 && args.location_name) {
+      const filtered = valid.filter((a: any) => a.shifts.locations?.name?.toLowerCase().includes(args.location_name.toLowerCase()));
+      if (filtered.length === 1) return filtered[0];
+    }
+    if (valid.length > 1) return { error: `${empName} has ${valid.length} shifts on ${args.shift_date}. Please specify location.` };
+    return valid[0];
+  };
+
+  const assA = await findAssignment(empA.id!, empA.name!);
+  if (assA.error) return capabilityError(assA.error);
+  const assB = await findAssignment(empB.id!, empB.name!);
+  if (assB.error) return capabilityError(assB.error);
+
+  const preview = {
+    employee_a: { id: empA.id, name: empA.name, assignment_id: assA.id, shift_id: assA.shift_id, shift: `${assA.shifts.start_time}-${assA.shifts.end_time} ${assA.shifts.role} at ${assA.shifts.locations?.name}` },
+    employee_b: { id: empB.id, name: empB.name, assignment_id: assB.id, shift_id: assB.shift_id, shift: `${assB.shifts.start_time}-${assB.shifts.end_time} ${assB.shifts.role} at ${assB.shifts.locations?.name}` },
+    shift_date: args.shift_date,
+  };
+
+  const { data: paData } = await sbService.from("dash_pending_actions").insert({
+    company_id: companyId, user_id: userId, action_name: "swap_shifts",
+    action_type: "write", risk_level: "high", preview_json: preview, status: "pending",
+  }).select("id").single();
+
+  structuredEvents.push(makeStructuredEvent("action_preview", {
+    action: "Swap Shifts",
+    summary: `Swap on ${args.shift_date}: ${empA.name} (${preview.employee_a.shift}) ↔ ${empB.name} (${preview.employee_b.shift})`,
+    risk: "high",
+    affected: [empA.name, empB.name],
+    pending_action_id: paData?.id, draft: preview, can_approve: true,
+  }));
+
+  return success({
+    type: "action_preview", pending_action_id: paData?.id,
+    message: `Shift swap draft created. ${empA.name} and ${empB.name} will trade shifts. Please approve.`,
+  });
+}
+
+// ─── Execute: Swap Shifts ───
+
+export async function executeShiftSwap(
+  sbService: any, companyId: string, userId: string, args: any, structuredEvents: string[],
+  ctx: PermissionContext
+): Promise<CapabilityResult<any>> {
+  const permCheck = checkCapabilityPermission({ action: "update", module: "workforce", ctx });
+  if (!permCheck.ok) return permCheck;
+  if (!args.pending_action_id) return capabilityError("Missing pending_action_id.");
+
+  const { data: pa } = await sbService.from("dash_pending_actions")
+    .select("id, status, company_id, preview_json").eq("id", args.pending_action_id).maybeSingle();
+  if (!pa) return capabilityError("Pending action not found.");
+  if (pa.company_id !== companyId) return capabilityError("Cross-tenant action rejected.");
+  if (pa.status !== "pending") return capabilityError(`Action already ${pa.status}.`);
+
+  const preview = pa.preview_json as any;
+  const a = preview.employee_a;
+  const b = preview.employee_b;
+
+  // Swap: update assignment A to point to employee B, and B to employee A
+  const { error: e1 } = await sbService.from("shift_assignments")
+    .update({ staff_id: b.id, assigned_by: userId, assigned_at: new Date().toISOString() })
+    .eq("id", a.assignment_id);
+  const { error: e2 } = await sbService.from("shift_assignments")
+    .update({ staff_id: a.id, assigned_by: userId, assigned_at: new Date().toISOString() })
+    .eq("id", b.assignment_id);
+
+  if (e1 || e2) {
+    const errMsg = (e1?.message || "") + " " + (e2?.message || "");
+    await sbService.from("dash_pending_actions").update({ status: "failed", execution_result: { error: errMsg.trim() }, updated_at: new Date().toISOString() }).eq("id", pa.id);
+    structuredEvents.push(makeStructuredEvent("execution_result", { status: "error", title: "Shift Swap Failed", summary: errMsg.trim(), errors: [errMsg.trim()] }));
+    return capabilityError(`Shift swap failed: ${errMsg.trim()}`);
+  }
+
+  await sbService.from("dash_pending_actions").update({
+    status: "executed", approved_at: new Date().toISOString(), approved_by: userId,
+    execution_result: { success: true }, updated_at: new Date().toISOString(),
+  }).eq("id", pa.id);
+
+  await logCapabilityAction(sbService, {
+    companyId, userId, capability: "workforce.swap_shifts", actionType: "write",
+    riskLevel: "high", request: preview, result: { swapped: [a.assignment_id, b.assignment_id] },
+    entitiesAffected: [a.shift_id, b.shift_id], module: "workforce",
+  });
+
+  structuredEvents.push(makeStructuredEvent("execution_result", {
+    status: "success", title: "Shifts Swapped",
+    summary: `${a.name} and ${b.name} have swapped shifts on ${preview.shift_date}.`,
+    changes: [`${a.name} → ${b.shift}`, `${b.name} → ${a.shift}`],
+  }));
+
+  return success({ type: "shifts_swapped", message: `Shifts swapped successfully between ${a.name} and ${b.name}.` });
+}
