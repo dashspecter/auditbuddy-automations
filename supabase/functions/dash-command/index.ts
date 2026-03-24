@@ -535,8 +535,8 @@ async function executeToolInner(
         }
       }
 
-      if (!requestInfo) return { error: "No pending time-off request found for this employee." };
-      if (requestInfo.status !== "pending") return { error: `Request is already "${requestInfo.status}".` };
+      if (!requestInfo) return resultToToolResponse(capabilityError("No pending time-off request found for this employee."));
+      if (requestInfo.status !== "pending") return resultToToolResponse(capabilityError(`Request is already "${requestInfo.status}".`));
 
       const draft = {
         request_id: requestInfo.id,
