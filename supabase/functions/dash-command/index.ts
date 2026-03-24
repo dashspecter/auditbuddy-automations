@@ -23,6 +23,8 @@ import { getOpenCorrectiveActions, reassignCorrectiveAction, executeCaReassignme
 import { searchEmployees, getAttendanceExceptions, createEmployeeDraft, createShiftDraft, executeEmployeeCreation, executeShiftCreation } from "./capabilities/workforce.ts";
 import { getTaskCompletionSummary, getWorkOrderStatus, getDocumentExpiries, getTrainingGaps } from "./capabilities/operations.ts";
 import { searchLocations, getLocationOverview, getCrossModuleSummary } from "./capabilities/overview.ts";
+import { saveUserPreference, getUserPreferences, saveOrgMemory, getOrgMemory, saveWorkflow, listSavedWorkflows } from "./capabilities/memory.ts";
+import { downloadFileAsBase64 as dlFileBase64, transformSpreadsheetToSchedule, transformSopToTraining, parseUploadedFile } from "./capabilities/file-processing.ts";
 
 // ─── Module Gating Map (canonical module codes matching company_modules.module_name) ───
 const TOOL_MODULE_MAP: Record<string, string> = {
@@ -173,70 +175,7 @@ function cap<T>(data: T[] | null, limit = MAX_TOOL_ROWS) {
   return { items: items.slice(0, limit), total, returned: Math.min(total, limit), truncated: total > limit };
 }
 
-/**
- * Downloads a file from Supabase Storage and returns it as base64 with its MIME type.
- * Handles signed URLs, public URLs, and direct storage paths.
- */
-async function downloadFileAsBase64(
-  sbService: any,
-  fileUrl: string
-): Promise<{ base64: string; mimeType: string }> {
-  // Determine MIME type from URL/extension
-  const urlPath = fileUrl.split("?")[0].toLowerCase();
-  let mimeType = "application/octet-stream";
-  if (urlPath.endsWith(".pdf")) mimeType = "application/pdf";
-  else if (urlPath.endsWith(".png")) mimeType = "image/png";
-  else if (urlPath.endsWith(".jpg") || urlPath.endsWith(".jpeg")) mimeType = "image/jpeg";
-  else if (urlPath.endsWith(".gif")) mimeType = "image/gif";
-  else if (urlPath.endsWith(".webp")) mimeType = "image/webp";
-  else if (urlPath.endsWith(".csv")) mimeType = "text/csv";
-  else if (urlPath.endsWith(".xlsx") || urlPath.endsWith(".xls")) mimeType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
-
-  // Try to parse as Supabase Storage URL and download via SDK
-  const storageMarker = "/storage/v1/object/";
-  if (fileUrl.includes(storageMarker)) {
-    const urlParts = fileUrl.split(storageMarker);
-    if (urlParts.length >= 2) {
-      let bucketAndPath = urlParts[1].split("?")[0];
-      // Remove "public/" or "sign/" prefix
-      if (bucketAndPath.startsWith("public/")) bucketAndPath = bucketAndPath.substring(7);
-      else if (bucketAndPath.startsWith("sign/")) bucketAndPath = bucketAndPath.substring(5);
-
-      const segments = bucketAndPath.split("/");
-      const bucket = segments[0];
-      const path = decodeURIComponent(segments.slice(1).join("/"));
-
-      console.log(`downloadFileAsBase64: bucket=${bucket}, path=${path}`);
-
-      const { data, error } = await sbService.storage.from(bucket).download(path);
-      if (error) {
-        console.error("Storage download error:", error);
-        throw new Error(`Could not download file from storage: ${error.message}`);
-      }
-
-      const arrayBuffer = await data.arrayBuffer();
-      const bytes = new Uint8Array(arrayBuffer);
-      let binary = "";
-      for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
-      const base64 = btoa(binary);
-      return { base64, mimeType };
-    }
-  }
-
-  // Fallback: direct HTTP fetch for external URLs
-  console.log(`downloadFileAsBase64: fetching external URL`);
-  const resp = await fetch(fileUrl);
-  if (!resp.ok) throw new Error(`Failed to fetch file: HTTP ${resp.status}`);
-  const arrayBuffer = await resp.arrayBuffer();
-  const bytes = new Uint8Array(arrayBuffer);
-  let binary = "";
-  for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
-  const base64 = btoa(binary);
-  // Try to get content-type from response
-  const ct = resp.headers.get("content-type");
-  if (ct) mimeType = ct.split(";")[0].trim();
-  return { base64, mimeType };
-}
+// downloadFileAsBase64 is now imported from capabilities/file-processing.ts as dlFileBase64
 
 async function utcRange(sb: any, from: string, to: string, tz = DEFAULT_TIMEZONE) {
   const { data, error } = await sb.rpc("tz_date_range_to_utc", { from_date: from, to_date: to, tz });
@@ -306,16 +245,11 @@ async function executeToolInner(
   structuredEvents: string[]
 ): Promise<any> {
   switch (name) {
-    // ────────── READ TOOLS (unchanged) ──────────
-    case "search_locations": {
-      const { data, error } = await sb.from("locations").select("id, name, address").ilike("name", `%${args.query}%`).limit(10);
-      if (error) return { error: error.message };
-      return { locations: data };
-    }
 
     // ────────── OVERVIEW & LOCATION TOOLS (capability modules) ──────────
     case "search_locations":
       return searchLocations(sb, companyId, args);
+
 
     case "search_employees":
       return searchEmployees(sb, companyId, args);
@@ -379,164 +313,37 @@ async function executeToolInner(
     case "execute_ca_reassignment":
       return executeCaReassignment(sbService, companyId, userId, args, structuredEvents);
 
-    // ────────── MEMORY TOOLS (Dash-specific, stays inline) ──────────
-    case "save_user_preference": {
-      const { error } = await sbService.from("dash_user_preferences").upsert({
-        company_id: companyId,
-        user_id: userId,
-        preference_key: args.preference_key,
-        preference_value: args.preference_value,
-        updated_at: new Date().toISOString(),
-      }, { onConflict: "company_id,user_id,preference_key" });
-      if (error) return { error: error.message };
-      return { saved: true, key: args.preference_key, message: `Preference "${args.preference_key}" saved.` };
-    }
+    // ────────── MEMORY TOOLS (capability module) ──────────
+    case "save_user_preference":
+      return saveUserPreference(sbService, companyId, userId, args);
 
-    case "get_user_preferences": {
-      const { data, error } = await sb.from("dash_user_preferences")
-        .select("preference_key, preference_value, updated_at")
-        .eq("user_id", userId)
-        .order("updated_at", { ascending: false });
-      if (error) return { error: error.message };
-      const prefs: Record<string, any> = {};
-      for (const p of data ?? []) prefs[p.preference_key] = p.preference_value;
-      return { preferences: prefs, count: (data ?? []).length };
-    }
+    case "get_user_preferences":
+      return getUserPreferences(sb, userId);
 
-    case "save_org_memory": {
-      const { error } = await sbService.from("dash_org_memory").upsert({
-        company_id: companyId,
-        memory_type: args.memory_type,
-        memory_key: args.memory_key,
-        content_json: args.content,
-        created_by: userId,
-        updated_at: new Date().toISOString(),
-      }, { onConflict: "company_id,memory_type,memory_key" });
-      if (error) return { error: error.message };
-      return { saved: true, type: args.memory_type, key: args.memory_key, message: `Organization memory "${args.memory_key}" saved.` };
-    }
+    case "save_org_memory":
+      return saveOrgMemory(sbService, companyId, userId, args);
 
-    case "get_org_memory": {
-      let q = sb.from("dash_org_memory")
-        .select("memory_type, memory_key, content_json, updated_at")
-        .order("updated_at", { ascending: false })
-        .limit(50);
-      if (args.memory_type) q = q.eq("memory_type", args.memory_type);
-      const { data, error } = await q;
-      if (error) return { error: error.message };
-      return { memories: data ?? [], count: (data ?? []).length };
-    }
+    case "get_org_memory":
+      return getOrgMemory(sb, args);
 
-    // ────────── WORKFLOW TOOLS ──────────
-    case "save_workflow": {
-      const { data, error } = await sbService.from("dash_saved_workflows").insert({
-        company_id: companyId,
-        user_id: userId,
-        name: args.name,
-        description: args.description || null,
-        workflow_json: { prompt: args.prompt },
-        is_shared: args.is_shared || false,
-      }).select("id, name").single();
-      if (error) return { error: error.message };
-      return { saved: true, workflow_id: data.id, name: data.name, message: `Workflow "${data.name}" saved. It will appear as a shortcut in your Dash sidebar.` };
-    }
+    case "save_workflow":
+      return saveWorkflow(sbService, companyId, userId, args);
 
-    case "list_saved_workflows": {
-      const { data, error } = await sb.from("dash_saved_workflows")
-        .select("id, name, description, workflow_json, is_shared, created_at")
-        .or(`user_id.eq.${userId},is_shared.eq.true`)
-        .order("created_at", { ascending: false })
-        .limit(20);
-      if (error) return { error: error.message };
-      return { workflows: data ?? [], count: (data ?? []).length };
-    }
+    case "list_saved_workflows":
+      return listSavedWorkflows(sb, userId);
 
-    // ────────── FILE TRANSFORMATION TOOLS ──────────
-    case "transform_spreadsheet_to_schedule": {
-      const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY")!;
-      try {
-        const resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-          method: "POST",
-          headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
-          body: JSON.stringify({
-            model: "google/gemini-2.5-flash",
-            messages: [{
-              role: "user",
-              content: [
-                { type: "text", text: `Analyze this spreadsheet and extract schedule/shift data. Return a JSON object with: { shifts: [{ role: string, date: "YYYY-MM-DD", start_time: "HH:MM", end_time: "HH:MM", location_name?: string, employee_name?: string, min_staff?: number }], warnings: string[] }. Only return valid JSON, no markdown fences.` },
-                { type: "image_url", image_url: { url: args.file_url } },
-              ],
-            }],
-            stream: false,
-          }),
-        });
-        if (!resp.ok) return { error: "Failed to parse spreadsheet." };
-        const result = await resp.json();
-        const content = result.choices?.[0]?.message?.content || "";
-        try {
-          const jsonMatch = content.match(/\{[\s\S]*\}/);
-          if (jsonMatch) {
-            const parsed = JSON.parse(jsonMatch[0]);
-            return { type: "schedule_extraction", file_name: args.file_name, ...parsed, next_step: "Review shifts and create each using create_shift_draft." };
-          }
-        } catch {}
-        return { raw_extraction: content, error: "Could not parse structured schedule data." };
-      } catch (err: any) {
-        return { error: `Schedule extraction failed: ${err.message}` };
-      }
-    }
+    // ────────── FILE PROCESSING TOOLS (capability module) ──────────
+    case "transform_spreadsheet_to_schedule":
+      return transformSpreadsheetToSchedule(args);
 
-    case "transform_sop_to_training": {
-      const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY")!;
-      try {
-        let fileContent: { base64: string; mimeType: string };
-        try {
-          fileContent = await downloadFileAsBase64(sbService, args.file_url);
-        } catch (dlErr: any) {
-          console.error("File download failed:", dlErr);
-          return { error: "Could not access the uploaded file. Please try re-uploading." };
-        }
+    case "transform_sop_to_training":
+      return transformSopToTraining(sbService, args);
 
-        const resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-          method: "POST",
-          headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
-          body: JSON.stringify({
-            model: "google/gemini-2.5-flash",
-            messages: [{
-              role: "user",
-              content: [
-                { type: "text", text: `Analyze this SOP/procedure document and extract it as a training module. Return a JSON object with: { module_name: string, description: string, sections: [{ title: string, key_points: string[], duration_minutes: number }], quiz_questions: [{ question: string, options: string[], correct_answer_index: number }], estimated_total_duration_minutes: number }. Only return valid JSON, no markdown fences.` },
-                { type: "image_url", image_url: { url: `data:${fileContent.mimeType};base64,${fileContent.base64}` } },
-              ],
-            }],
-            stream: false,
-          }),
-        });
-        if (!resp.ok) {
-          const errText = await resp.text();
-          console.error("AI parse error:", resp.status, errText);
-          return { error: "Failed to parse SOP document." };
-        }
-        const result = await resp.json();
-        const content = result.choices?.[0]?.message?.content || "";
-        try {
-          const jsonMatch = content.match(/\{[\s\S]*\}/);
-          if (jsonMatch) {
-            const parsed = JSON.parse(jsonMatch[0]);
-            if (args.module_name) parsed.module_name = args.module_name;
-            return { type: "training_module_extraction", file_name: args.file_name, ...parsed, next_step: "Review the training module structure. This is a draft — the training module creation tool will be available in a future update." };
-          }
-        } catch {}
-        return { raw_extraction: content, error: "Could not parse training module structure." };
-      } catch (err: any) {
-        return { error: `SOP extraction failed: ${err.message}` };
-      }
-    }
+    case "transform_compliance_doc_to_audit":
+      return parseUploadedFile(sbService, companyId, userId, { ...args, intent: "compliance_audit" }, structuredEvents);
 
-    // transform_compliance_doc_to_audit is now handled by parse_uploaded_file with intent="compliance_audit"
-    case "transform_compliance_doc_to_audit": {
-      return await executeToolInner(sb, sbService, "parse_uploaded_file", { ...args, intent: "compliance_audit" }, companyId, userId, role, activeModules, structuredEvents);
-    }
+    case "parse_uploaded_file":
+      return parseUploadedFile(sbService, companyId, userId, args, structuredEvents);
 
     // ────────── TIME-OFF CAPABILITY TOOLS ──────────
     case "get_time_off_balance": {

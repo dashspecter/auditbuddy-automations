@@ -97,7 +97,27 @@ export const CAPABILITY_REGISTRY: Record<string, CapabilityEntry> = {
     maturity: "stable",
   },
 
-/**
+  memory: {
+    module: "dash",
+    entities: ["user_preference", "org_memory", "saved_workflow"],
+    aliases: ["preference", "memory", "shortcut", "workflow"],
+    reads: ["get_user_preferences", "get_org_memory", "list_saved_workflows"],
+    actions: ["save_user_preference", "save_org_memory", "save_workflow"],
+    approvalClass: {},
+    maturity: "stable",
+  },
+
+  file_processing: {
+    module: "dash",
+    entities: ["uploaded_file"],
+    aliases: ["file", "upload", "PDF", "document", "spreadsheet"],
+    reads: [],
+    actions: ["parse_uploaded_file", "transform_spreadsheet_to_schedule", "transform_sop_to_training", "transform_compliance_doc_to_audit"],
+    approvalClass: { parse: "auto_approved" },
+    maturity: "stable",
+  },
+};
+
  * Get all registered tool names across all capabilities.
  */
 export function getAllRegisteredTools(): string[] {
