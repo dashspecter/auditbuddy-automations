@@ -117,7 +117,7 @@ const MessageBubble = memo(({ msg, onSuggestedClick, onDirectApproval }: { msg: 
 
       {/* Main markdown content */}
       <div className="text-sm leading-relaxed prose prose-sm max-w-none break-words overflow-hidden prose-headings:text-foreground prose-p:text-foreground prose-p:break-words prose-strong:text-foreground prose-li:text-foreground prose-td:text-foreground prose-th:text-foreground/80 prose-th:font-semibold prose-table:text-xs prose-pre:overflow-x-auto prose-pre:max-w-full prose-code:break-all prose-a:break-all [&_*]:max-w-full" style={{ overflowWrap: "anywhere", wordBreak: "break-word" }}>
-        <ReactMarkdown>{msg.content}</ReactMarkdown>
+        <ReactMarkdown remarkPlugins={[remarkGfm]}>{msg.content}</ReactMarkdown>
       </div>
 
       {/* Structured events after text (tables, actions, results, clarifications) */}
