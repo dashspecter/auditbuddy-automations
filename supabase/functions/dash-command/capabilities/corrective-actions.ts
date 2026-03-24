@@ -15,7 +15,7 @@ export async function getOpenCorrectiveActions(
 ): Promise<CapabilityResult<any>> {
   const limit = Math.min(args.limit || 50, 200);
   let q = sb.from("corrective_actions").select("id, title, severity, status, due_at, created_at, location_id, locations(name), assigned_to")
-    .in("status", ["open", "in_progress"]).order("created_at", { ascending: false }).limit(limit);
+    .eq("company_id", companyId).in("status", ["open", "in_progress"]).order("created_at", { ascending: false }).limit(limit);
   if (args.location_id) q = q.eq("location_id", args.location_id);
   if (args.severity) q = q.eq("severity", args.severity);
   const { data, error } = await q;

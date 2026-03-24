@@ -49,7 +49,7 @@ export async function getTrainingGaps(
   sb: any, companyId: string, args: any
 ): Promise<CapabilityResult<any>> {
   let q = sb.from("training_assignments").select("id, employee_id, employees(full_name, location_id, locations(name)), training_module_id, training_modules(title), status, due_date")
-    .in("status", ["assigned", "in_progress"]);
+    .eq("company_id", companyId).in("status", ["assigned", "in_progress"]);
   if (args.location_id) q = q.eq("employees.location_id", args.location_id);
   const { data, error } = await q.limit(100);
   if (error) return capabilityError(error.message);
