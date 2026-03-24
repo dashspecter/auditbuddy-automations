@@ -8,7 +8,7 @@ import { AUDIT_FINISHED_STATUSES, DEFAULT_TIMEZONE } from "../shared/constants.t
 export async function searchLocations(
   sb: any, companyId: string, args: any
 ): Promise<any> {
-  const { data, error } = await sb.from("locations").select("id, name, address").ilike("name", `%${args.query}%`).limit(10);
+  const { data, error } = await sb.from("locations").select("id, name, address").eq("company_id", companyId).ilike("name", `%${args.query}%`).limit(10);
   if (error) return { error: error.message };
   return { locations: data };
 }
