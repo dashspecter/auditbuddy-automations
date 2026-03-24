@@ -129,6 +129,12 @@ function hydrateArgsFromDraft(actionName: string, previewJson: any): Record<stri
         new_assigned_name: previewJson.new_assigned_name,
         reason: previewJson.reason,
       };
+    case "update_shift":
+      return { pending_action_id: previewJson.pending_action_id };
+    case "delete_shift":
+      return { pending_action_id: previewJson.pending_action_id };
+    case "swap_shifts":
+      return { pending_action_id: previewJson.pending_action_id };
     case "create_time_off_request":
       return {
         employee_id: previewJson.employee_id,
