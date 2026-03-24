@@ -21,7 +21,7 @@ export async function getWorkOrderStatus(
   sb: any, companyId: string, args: any
 ): Promise<CapabilityResult<any>> {
   const limit = Math.min(args.limit || 50, 200);
-  let q = sb.from("cmms_work_orders").select("id, title, status, priority, created_at, location_id, locations(name)").order("created_at", { ascending: false }).limit(limit);
+  let q = sb.from("cmms_work_orders").select("id, title, status, priority, created_at, location_id, locations(name)").eq("company_id", companyId).order("created_at", { ascending: false }).limit(limit);
   if (args.location_id) q = q.eq("location_id", args.location_id);
   if (args.status) q = q.eq("status", args.status);
   else q = q.in("status", ["open", "in_progress"]);
