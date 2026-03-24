@@ -46,7 +46,7 @@ export const CAPABILITY_REGISTRY: Record<string, CapabilityEntry> = {
     maturity: "stable",
   },
 
-  // ─── Future module stubs (planned, not yet implemented) ───
+  // ─── Migrated to capability modules ───
   audits: {
     module: "location_audits",
     entities: ["location_audit", "audit_template", "audit_section"],
@@ -54,7 +54,7 @@ export const CAPABILITY_REGISTRY: Record<string, CapabilityEntry> = {
     reads: ["get_audit_results", "compare_location_performance"],
     actions: ["create_audit_template"],
     approvalClass: { create: "manager_required" },
-    maturity: "beta", // Existing tools, not yet migrated to capability layer
+    maturity: "stable",
   },
 
   corrective_actions: {
@@ -64,7 +64,7 @@ export const CAPABILITY_REGISTRY: Record<string, CapabilityEntry> = {
     reads: ["get_open_corrective_actions"],
     actions: ["reassign_corrective_action"],
     approvalClass: { reassign: "manager_required" },
-    maturity: "beta",
+    maturity: "stable",
   },
 
   workforce: {
@@ -74,9 +74,28 @@ export const CAPABILITY_REGISTRY: Record<string, CapabilityEntry> = {
     reads: ["search_employees", "get_attendance_exceptions"],
     actions: ["create_employee", "create_shift"],
     approvalClass: { create: "manager_required" },
-    maturity: "beta",
+    maturity: "stable",
   },
-};
+
+  operations: {
+    module: "operations",
+    entities: ["task", "work_order", "document", "training_assignment"],
+    aliases: ["task", "work order", "document", "training", "sarcina", "comanda"],
+    reads: ["get_task_completion_summary", "get_work_order_status", "get_document_expiries", "get_training_gaps"],
+    actions: [],
+    approvalClass: {},
+    maturity: "stable",
+  },
+
+  overview: {
+    module: "overview",
+    entities: ["location"],
+    aliases: ["overview", "summary", "dashboard", "rezumat"],
+    reads: ["search_locations", "get_location_overview", "get_cross_module_summary"],
+    actions: [],
+    approvalClass: {},
+    maturity: "stable",
+  },
 
 /**
  * Get all registered tool names across all capabilities.
