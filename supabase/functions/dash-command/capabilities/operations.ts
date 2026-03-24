@@ -4,12 +4,8 @@
  * Migrated from index.ts.
  */
 import { MAX_TOOL_ROWS } from "../shared/constants.ts";
+import { cap } from "../shared/utils.ts";
 
-function cap<T>(data: T[] | null, limit = MAX_TOOL_ROWS) {
-  const items = data ?? [];
-  const total = items.length;
-  return { items: items.slice(0, limit), total, returned: Math.min(total, limit), truncated: total > limit };
-}
 
 export async function getTaskCompletionSummary(
   sb: any, companyId: string, args: any
@@ -41,7 +37,7 @@ export async function getDocumentExpiries(
   const daysAhead = args.days_ahead || 30;
   const cutoff = new Date();
   cutoff.setDate(cutoff.getDate() + daysAhead);
-  const { data, error } = await sb.from("documents").select("id, title, expiry_date, status").not("expiry_date", "is", null).lte("expiry_date", cutoff.toISOString()).order("expiry_date", { ascending: true }).limit(50);
+  const { data, error } = await sb.from("documents").select("id, title, expiry_date, status").eq("company_id", companyId).not("expiry_date", "is", null).lte("expiry_date", cutoff.toISOString()).order("expiry_date", { ascending: true }).limit(50);
   if (error) return { error: error.message };
   return { days_ahead: daysAhead, documents: (data ?? []).map((d: any) => ({ id: d.id, title: d.title, expiry_date: d.expiry_date, expired: new Date(d.expiry_date) < new Date() })) };
 }

@@ -2,9 +2,10 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 // ─── Shared Capability Layer Imports ───
-import { AUDIT_FINISHED_STATUSES, DEFAULT_TIMEZONE, MAX_TOOL_ROWS, MODULE_CODES } from "./shared/constants.ts";
+import { DEFAULT_TIMEZONE } from "./shared/constants.ts";
 import { resultToToolResponse } from "./shared/contracts.ts";
 import { type PermissionContext } from "./shared/permissions.ts";
+import { makeStructuredEvent } from "./shared/utils.ts";
 import {
   getTimeOffBalance,
   listTimeOffRequests,
@@ -162,20 +163,12 @@ const ACTION_RISK: Record<string, "low" | "medium" | "high"> = {
 };
 
 // ─── Permission Context Builder ─────────────────────────────
-function buildPermCtx(companyId: string, userId: string, role: string, activeModules: string[]): PermissionContext {
-  const platformRoles = role === "admin" ? ["admin"] : role === "manager" ? ["manager"] : [];
-  const companyRole = role === "admin" ? "company_owner" : role === "manager" ? "company_admin" : "company_member";
+function buildPermCtx(companyId: string, userId: string, platformRoles: string[], companyRole: string, activeModules: string[]): PermissionContext {
   return { companyId, actorUserId: userId, platformRoles, companyRole, activeModules };
 }
 
-// ─── Helpers ────────────────────────────────────────────────
-function cap<T>(data: T[] | null, limit = MAX_TOOL_ROWS) {
-  const items = data ?? [];
-  const total = items.length;
-  return { items: items.slice(0, limit), total, returned: Math.min(total, limit), truncated: total > limit };
-}
-
 // downloadFileAsBase64 is now imported from capabilities/file-processing.ts as dlFileBase64
+
 
 async function utcRange(sb: any, from: string, to: string, tz = DEFAULT_TIMEZONE) {
   const { data, error } = await sb.rpc("tz_date_range_to_utc", { from_date: from, to_date: to, tz });
@@ -211,10 +204,7 @@ function sanitizeInput(text: string): string {
     .replace(/<\|user\|>/gi, "");
 }
 
-// ─── Structured Event Helpers ───────────────────────────────
-function makeStructuredEvent(type: string, data: any): string {
-  return JSON.stringify({ type: "structured_event", event_type: type, data });
-}
+
 
 // ─── Tool Definitions (extracted to tools.ts) ───────────────
 import { tools } from "./tools.ts";
@@ -222,7 +212,7 @@ import { tools } from "./tools.ts";
 // ─── Tool Execution ─────────────────────────────────────────
 async function executeTool(
   sb: any, sbService: any, name: string, args: any, 
-  companyId: string, userId: string, role: string, activeModules: string[],
+  companyId: string, userId: string, platformRoles: string[], companyRole: string, activeModules: string[],
   structuredEvents: string[]
 ): Promise<any> {
   // Module gating check
@@ -232,7 +222,7 @@ async function executeTool(
   }
 
   try {
-    return await executeToolInner(sb, sbService, name, args, companyId, userId, role, activeModules, structuredEvents);
+    return await executeToolInner(sb, sbService, name, args, companyId, userId, platformRoles, companyRole, activeModules, structuredEvents);
   } catch (err: any) {
     console.error(`[Dash] Tool "${name}" error:`, err);
     return { error: `Tool "${name}" failed: ${err.message || "Unknown error"}. You may retry this request.`, recoverable: true };
@@ -241,7 +231,7 @@ async function executeTool(
 
 async function executeToolInner(
   sb: any, sbService: any, name: string, args: any,
-  companyId: string, userId: string, role: string, activeModules: string[],
+  companyId: string, userId: string, platformRoles: string[], companyRole: string, activeModules: string[],
   structuredEvents: string[]
 ): Promise<any> {
   switch (name) {
@@ -347,12 +337,12 @@ async function executeToolInner(
 
     // ────────── TIME-OFF CAPABILITY TOOLS ──────────
     case "get_time_off_balance": {
-      const ctx = buildPermCtx(companyId, userId, role, activeModules);
+      const ctx = buildPermCtx(companyId, userId, platformRoles, companyRole, activeModules);
       return resultToToolResponse(await getTimeOffBalance(sb, ctx, { employee_id: args.employee_id, employee_name: args.employee_name }));
     }
 
     case "list_time_off_requests": {
-      const ctx = buildPermCtx(companyId, userId, role, activeModules);
+      const ctx = buildPermCtx(companyId, userId, platformRoles, companyRole, activeModules);
       const result = await listTimeOffRequests(sb, ctx, { employee_name: args.employee_name, status: args.status, from: args.from, to: args.to });
       if (result.ok && result.data.requests.length > 0) {
         structuredEvents.push(makeStructuredEvent("data_table", {
@@ -365,7 +355,7 @@ async function executeToolInner(
     }
 
     case "list_pending_time_off_approvals": {
-      const ctx = buildPermCtx(companyId, userId, role, activeModules);
+      const ctx = buildPermCtx(companyId, userId, platformRoles, companyRole, activeModules);
       const result = await listPendingApprovals(sb, ctx);
       if (result.ok && result.data.requests.length > 0) {
         structuredEvents.push(makeStructuredEvent("data_table", {
@@ -378,12 +368,12 @@ async function executeToolInner(
     }
 
     case "check_time_off_conflicts": {
-      const ctx = buildPermCtx(companyId, userId, role, activeModules);
+      const ctx = buildPermCtx(companyId, userId, platformRoles, companyRole, activeModules);
       return resultToToolResponse(await checkTimeOffConflicts(sb, ctx, { employee_id: args.employee_id, employee_name: args.employee_name, start_date: args.start_date, end_date: args.end_date }));
     }
 
     case "get_team_time_off_calendar": {
-      const ctx = buildPermCtx(companyId, userId, role, activeModules);
+      const ctx = buildPermCtx(companyId, userId, platformRoles, companyRole, activeModules);
       const result = await getTeamTimeOffCalendar(sb, ctx, { location_name: args.location_name, from: args.from, to: args.to });
       if (result.ok && result.data.entries.length > 0) {
         structuredEvents.push(makeStructuredEvent("data_table", {
@@ -396,7 +386,7 @@ async function executeToolInner(
     }
 
     case "create_time_off_request_draft": {
-      const ctx = buildPermCtx(companyId, userId, role, activeModules);
+      const ctx = buildPermCtx(companyId, userId, platformRoles, companyRole, activeModules);
       // Pre-validate via capability layer
       const conflicts = await checkTimeOffConflicts(sb, ctx, { employee_name: args.employee_name, employee_id: args.employee_id, start_date: args.start_date, end_date: args.end_date });
 
@@ -462,7 +452,7 @@ async function executeToolInner(
       if (pa.status !== "pending") return { error: `Action already ${pa.status}.` };
 
       const preview = pa.preview_json as any;
-      const ctx = buildPermCtx(companyId, userId, role, activeModules);
+      const ctx = buildPermCtx(companyId, userId, platformRoles, companyRole, activeModules);
       const result = await createTimeOffRequest(sb, sbService, ctx, {
         employee_id: preview.employee_id,
         employee_name: preview.employee_name,
@@ -501,7 +491,7 @@ async function executeToolInner(
 
     case "approve_time_off_request_draft": {
       // Create a draft to approve — user must confirm
-      const ctx = buildPermCtx(companyId, userId, role, activeModules);
+      const ctx = buildPermCtx(companyId, userId, platformRoles, companyRole, activeModules);
       
       // Resolve the request to show preview
       let requestInfo: any = null;
@@ -573,7 +563,7 @@ async function executeToolInner(
       if (pa.status !== "pending") return { error: `Action already ${pa.status}.` };
 
       const preview = pa.preview_json as any;
-      const ctx = buildPermCtx(companyId, userId, role, activeModules);
+      const ctx = buildPermCtx(companyId, userId, platformRoles, companyRole, activeModules);
       const result = await approveTimeOffRequest(sb, sbService, ctx, { request_id: preview.request_id, employee_name: preview.employee_name });
 
       if (result.ok) {
@@ -597,7 +587,7 @@ async function executeToolInner(
     }
 
     case "reject_time_off_request_dash": {
-      const ctx = buildPermCtx(companyId, userId, role, activeModules);
+      const ctx = buildPermCtx(companyId, userId, platformRoles, companyRole, activeModules);
       const result = await rejectTimeOffRequest(sb, sbService, ctx, { request_id: args.request_id, employee_name: args.employee_name, rejection_reason: args.rejection_reason });
       if (result.ok) {
         structuredEvents.push(makeStructuredEvent("execution_result", {
@@ -611,7 +601,7 @@ async function executeToolInner(
     }
 
     case "cancel_time_off_request_dash": {
-      const ctx = buildPermCtx(companyId, userId, role, activeModules);
+      const ctx = buildPermCtx(companyId, userId, platformRoles, companyRole, activeModules);
       const result = await cancelTimeOffRequest(sb, sbService, ctx, { request_id: args.request_id });
       if (result.ok) {
         structuredEvents.push(makeStructuredEvent("execution_result", {
@@ -820,7 +810,7 @@ serve(async (req) => {
       } catch (e) { console.error("[Dash] Failed to resolve pending action for direct approval:", e); }
 
       const allStructuredEvents: string[] = [];
-      const toolResult = await executeTool(sb, sbService, toolName, hydratedArgs, companyId, userId, displayRole, activeModules, allStructuredEvents);
+      const toolResult = await executeTool(sb, sbService, toolName, hydratedArgs, companyId, userId, platformRoles, companyRole, activeModules, allStructuredEvents);
       
       // Log action with canonical module
       const canonicalModule = resolveCanonicalModule(toolName);
@@ -985,7 +975,7 @@ serve(async (req) => {
           let args: any;
           try { args = JSON.parse(tc.function.arguments); } catch { args = {}; }
           toolsUsed.push(toolName);
-          const toolResult = await executeTool(sb, sbService, toolName, args, companyId, userId, displayRole, activeModules, allStructuredEvents);
+          const toolResult = await executeTool(sb, sbService, toolName, args, companyId, userId, platformRoles, companyRole, activeModules, allStructuredEvents);
           conversationMessages.push({ role: "tool", tool_call_id: tc.id, content: JSON.stringify(toolResult) });
           // Mark if a draft tool was called — block further execute tools in this batch
           if (toolName.endsWith("_draft") || toolName === "reassign_corrective_action") {
@@ -1020,7 +1010,7 @@ serve(async (req) => {
           const fileUrl = urlMatch[1];
           const fileName = nameMatch?.[1]?.split(",")[0]?.trim() || "uploaded_file";
           const intent = /compliance|regulation/i.test(lastUserMsg) ? "compliance_audit" : "audit_template";
-          const fallbackResult = await executeTool(sb, sbService, "parse_uploaded_file", { file_url: fileUrl, file_name: fileName, intent }, companyId, userId, displayRole, activeModules, allStructuredEvents);
+          const fallbackResult = await executeTool(sb, sbService, "parse_uploaded_file", { file_url: fileUrl, file_name: fileName, intent }, companyId, userId, platformRoles, companyRole, activeModules, allStructuredEvents);
           if (!fallbackResult.error) {
             conversationMessages.push(msg);
             conversationMessages.push({ role: "user", content: `[System: The file was successfully parsed. Here is the extracted data: ${JSON.stringify(fallbackResult).substring(0, 3000)}. Present this to the user as a structured audit template preview.]` });

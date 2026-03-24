@@ -8,7 +8,7 @@ import { AUDIT_FINISHED_STATUSES, DEFAULT_TIMEZONE } from "../shared/constants.t
 export async function searchLocations(
   sb: any, companyId: string, args: any
 ): Promise<any> {
-  const { data, error } = await sb.from("locations").select("id, name, address").ilike("name", `%${args.query}%`).limit(10);
+  const { data, error } = await sb.from("locations").select("id, name, address").eq("company_id", companyId).ilike("name", `%${args.query}%`).limit(10);
   if (error) return { error: error.message };
   return { locations: data };
 }
@@ -19,7 +19,7 @@ export async function getLocationOverview(
   let locationId = args.location_id;
   let locationName = args.location_name;
   if (!locationId && locationName) {
-    const { data } = await sb.from("locations").select("id, name").ilike("name", `%${locationName}%`).limit(1);
+    const { data } = await sb.from("locations").select("id, name").eq("company_id", companyId).ilike("name", `%${locationName}%`).limit(1);
     if (data?.[0]) { locationId = data[0].id; locationName = data[0].name; }
     else return { error: `No location found matching "${locationName}"` };
   }

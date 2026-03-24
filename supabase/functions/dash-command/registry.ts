@@ -118,6 +118,7 @@ export const CAPABILITY_REGISTRY: Record<string, CapabilityEntry> = {
   },
 };
 
+/**
  * Get all registered tool names across all capabilities.
  */
 export function getAllRegisteredTools(): string[] {

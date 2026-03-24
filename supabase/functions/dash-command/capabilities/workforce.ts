@@ -2,17 +2,9 @@
  * Workforce Capability Module
  * Migrated from index.ts — employees, shifts, attendance domain logic.
  */
-import { MAX_TOOL_ROWS, DEFAULT_TIMEZONE } from "../shared/constants.ts";
+import { DEFAULT_TIMEZONE, MAX_TOOL_ROWS } from "../shared/constants.ts";
+import { cap, makeStructuredEvent } from "../shared/utils.ts";
 
-function cap<T>(data: T[] | null, limit = MAX_TOOL_ROWS) {
-  const items = data ?? [];
-  const total = items.length;
-  return { items: items.slice(0, limit), total, returned: Math.min(total, limit), truncated: total > limit };
-}
-
-function makeStructuredEvent(type: string, data: any): string {
-  return JSON.stringify({ type: "structured_event", event_type: type, data });
-}
 
 // ─── Read Tools ───
 
@@ -22,7 +14,7 @@ export async function searchEmployees(
   const limit = Math.min(args.limit || 10, MAX_TOOL_ROWS);
   const term = `%${args.query}%`;
   const { data, error } = await sb.from("employees").select("id, full_name, role, status, location_id, locations(name)")
-    .or(`full_name.ilike.${term},phone.ilike.${term},email.ilike.${term}`).limit(limit);
+    .eq("company_id", companyId).or(`full_name.ilike.${term},phone.ilike.${term},email.ilike.${term}`).limit(limit);
   if (error) return { error: error.message };
   return { count: data?.length ?? 0, employees: data?.map((e: any) => ({ id: e.id, name: e.full_name, role: e.role, status: e.status, location: e.locations?.name })) };
 }
@@ -51,7 +43,7 @@ export async function createEmployeeDraft(
 ): Promise<any> {
   let locationId = null;
   if (args.location_name) {
-    const { data: locData } = await sb.from("locations").select("id, name").ilike("name", `%${args.location_name}%`).limit(1);
+    const { data: locData } = await sb.from("locations").select("id, name").eq("company_id", companyId).ilike("name", `%${args.location_name}%`).limit(1);
     if (locData?.[0]) locationId = locData[0].id;
   }
 
