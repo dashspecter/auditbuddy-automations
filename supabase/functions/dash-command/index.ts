@@ -2,7 +2,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 // ─── Shared Capability Layer Imports ───
-import { AUDIT_FINISHED_STATUSES, DEFAULT_TIMEZONE, MODULE_CODES } from "./shared/constants.ts";
+import { DEFAULT_TIMEZONE } from "./shared/constants.ts";
 import { resultToToolResponse } from "./shared/contracts.ts";
 import { type PermissionContext } from "./shared/permissions.ts";
 import { makeStructuredEvent } from "./shared/utils.ts";
