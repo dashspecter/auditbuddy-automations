@@ -308,12 +308,6 @@ async function executeToolInner(
   structuredEvents: string[]
 ): Promise<any> {
   switch (name) {
-    // ────────── READ TOOLS (unchanged) ──────────
-    case "search_locations": {
-      const { data, error } = await sb.from("locations").select("id, name, address").ilike("name", `%${args.query}%`).limit(10);
-      if (error) return { error: error.message };
-      return { locations: data };
-    }
 
     // ────────── OVERVIEW & LOCATION TOOLS (capability modules) ──────────
     case "search_locations":
