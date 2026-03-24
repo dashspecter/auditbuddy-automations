@@ -152,6 +152,13 @@ const ACTION_RISK: Record<string, "low" | "medium" | "high"> = {
   cancel_time_off_request_dash: "medium",
 };
 
+// ─── Permission Context Builder ─────────────────────────────
+function buildPermCtx(companyId: string, userId: string, role: string, activeModules: string[]): PermissionContext {
+  const platformRoles = role === "admin" ? ["admin"] : role === "manager" ? ["manager"] : [];
+  const companyRole = role === "admin" ? "company_owner" : role === "manager" ? "company_admin" : "company_member";
+  return { companyId, actorUserId: userId, platformRoles, companyRole, activeModules };
+}
+
 // ─── Helpers ────────────────────────────────────────────────
 function cap<T>(data: T[] | null, limit = MAX_TOOL_ROWS) {
   const items = data ?? [];
