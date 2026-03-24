@@ -12,6 +12,7 @@ import { DashScopeBar } from "./DashScopeBar";
 import { DashSessionHistory } from "./DashSessionHistory";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useNavigate } from "react-router-dom";
+import { useCompany } from "@/hooks/useCompany";
 
 interface DashPanelProps {
   trigger?: React.ReactNode;
@@ -42,15 +43,19 @@ export function DashPanel({ trigger }: DashPanelProps) {
   const isMobile = useIsMobile();
   const navigate = useNavigate();
   const { data: roleData, isLoading: roleLoading } = useUserRole();
+  const { data: company, isLoading: companyLoading } = useCompany();
   const [open, setOpen] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
   const { messages, isLoading, sendMessage, sendDirectApproval, clearChat, cancelStream, sessionId, loadSession } = useDashChat();
 
-  // P2-6: Role guard — only admin and manager can access Dash
-  if (roleLoading) return null;
-  if (!roleData?.isAdmin && !roleData?.isManager) return null;
+  const isOwnerOrAdmin = company?.userRole === "company_owner" || company?.userRole === "company_admin";
+  const hasDashAccess = isOwnerOrAdmin || roleData?.isAdmin || roleData?.isManager;
 
-  const role = roleData?.isAdmin ? "admin" : roleData?.isManager ? "manager" : "staff";
+  // Align panel visibility with the /dash route access rules.
+  if (roleLoading || companyLoading) return null;
+  if (!hasDashAccess) return null;
+
+  const role = roleData?.isAdmin || isOwnerOrAdmin ? "admin" : roleData?.isManager ? "manager" : "staff";
   const suggested = SUGGESTED_BY_ROLE[role] || SUGGESTED_BY_ROLE.staff;
 
   const handleSend = (text: string) => {

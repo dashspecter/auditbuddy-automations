@@ -82,10 +82,15 @@ const Index = () => {
     );
   }
 
-  // Redirect to staff home for staff users, otherwise to dashboard (or command on mobile for owner/admin)
+  // Redirect to staff home for staff users. Company owners/admins default to Dash
+  // on desktop and the mobile command view on mobile.
   if (user) {
     const isOwnerOrAdmin = company?.userRole === 'company_owner' || company?.userRole === 'company_admin';
-    const target = isStaff ? "/staff" : (isMobile && isOwnerOrAdmin) ? "/command" : "/dashboard";
+    const target = isStaff
+      ? "/staff"
+      : isOwnerOrAdmin
+        ? (isMobile ? "/command" : "/dash")
+        : "/dashboard";
     return <Navigate to={target} replace />;
   }
 
