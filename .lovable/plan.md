@@ -1,46 +1,61 @@
 
 
-# Phase 7: COMPLETED — Bug Fixes + Final Extraction
+
+# Phase 8: COMPLETED — Standardize All Modules on CapabilityResult + Permission Enforcement
 
 ## What Was Done
 
-### Bug Fixes
-1. **`parse_uploaded_file` restored** — Full implementation in `capabilities/file-processing.ts` with support for `audit_template`, `compliance_audit`, and `id_card` intents. Auto-creates drafts with pending action approval flow.
-2. **Duplicate `search_locations` removed** — Old unscoped inline case deleted; capability version now executes correctly.
+### Contract Standardization
+All 8 capability modules now return `CapabilityResult<T>`:
+- `capabilities/audits.ts` — `success()` / `capabilityError()` on all 4 functions
+- `capabilities/corrective-actions.ts` — all 3 functions
+- `capabilities/workforce.ts` — all 6 functions
+- `capabilities/operations.ts` — all 4 functions (read-only)
+- `capabilities/overview.ts` — all 3 functions (read-only)
+- `capabilities/memory.ts` — all 6 functions
+- `capabilities/file-processing.ts` — all 4 functions
 
-### Extractions
-3. **`capabilities/memory.ts`** — 6 tools extracted: `save_user_preference`, `get_user_preferences`, `save_org_memory`, `get_org_memory`, `save_workflow`, `list_saved_workflows`
-4. **`capabilities/file-processing.ts`** — 4 tools + `downloadFileAsBase64` helper: `parse_uploaded_file`, `transform_spreadsheet_to_schedule`, `transform_sop_to_training`, `transform_compliance_doc_to_audit`
-5. **`registry.ts`** — Added `memory` and `file_processing` entries
+### Permission Enforcement
+All write operations now call `checkCapabilityPermission()`:
+- `createAuditTemplateDraft` + `executeAuditTemplateCreation` → `{ action: "create", module: "location_audits" }`
+- `reassignCorrectiveAction` + `executeCaReassignment` → `{ action: "update", module: "corrective_actions" }`
+- `createEmployeeDraft` + `executeEmployeeCreation` → `{ action: "create", module: "workforce" }`
+- `createShiftDraft` + `executeShiftCreation` → `{ action: "create", module: "workforce" }`
+- `parseUploadedFile` (audit intents) → `{ action: "create", module: "location_audits" }`
 
-### Result
-- `index.ts` is now ~750 lines of pure orchestration (auth, LLM loop, SSE, routing)
-- `executeToolInner` is a thin routing switch — every case is 1-3 lines
-- **Zero inline domain logic** remains
-- All 8 capability modules: time-off, audits, corrective-actions, workforce, operations, overview, memory, file-processing
+### Audit Logging
+Write functions now use `logCapabilityAction()` from `shared/logging.ts`:
+- `executeAuditTemplateCreation`, `executeCaReassignment`, `executeEmployeeCreation`, `executeShiftCreation`
+
+### Routing Standardization
+All `executeToolInner` cases now:
+- Wrap responses with `resultToToolResponse()` for consistent LLM communication
+- Pass `PermissionContext` via `buildPermCtx()` to all write functions
+- Pattern is identical to the time-off reference implementation
 
 ## Architecture (Final State)
 
 ```text
 supabase/functions/dash-command/
-├── index.ts                 ← Pure orchestration (~750 lines)
+├── index.ts                 ← Pure orchestration (~1150 lines)
 ├── registry.ts              ← 8 domain entries
 ├── tools.ts                 ← Tool definitions
 ├── capabilities/
-│   ├── time-off.ts          ← Time-Off reads + actions
-│   ├── audits.ts            ← Audit reads + template creation
-│   ├── corrective-actions.ts ← CA reads + reassignment
-│   ├── workforce.ts         ← Employee + shift + attendance
-│   ├── operations.ts        ← Tasks, CMMS, docs, training
-│   ├── overview.ts          ← Location search + cross-module
-│   ├── memory.ts            ← User prefs + org memory + workflows
-│   └── file-processing.ts   ← File parsing + transforms
+│   ├── time-off.ts          ← CapabilityResult ✅ + Permissions ✅ + Logging ✅
+│   ├── audits.ts            ← CapabilityResult ✅ + Permissions ✅ + Logging ✅
+│   ├── corrective-actions.ts ← CapabilityResult ✅ + Permissions ✅ + Logging ✅
+│   ├── workforce.ts         ← CapabilityResult ✅ + Permissions ✅ + Logging ✅
+│   ├── operations.ts        ← CapabilityResult ✅ (read-only, no writes)
+│   ├── overview.ts          ← CapabilityResult ✅ (read-only, no writes)
+│   ├── memory.ts            ← CapabilityResult ✅ (Dash-internal, always available)
+│   └── file-processing.ts   ← CapabilityResult ✅ + Permissions ✅ (audit intents)
 └── shared/
     ├── constants.ts
-    ├── contracts.ts
-    ├── permissions.ts
-    ├── validation.ts
-    └── logging.ts
+    ├── contracts.ts          ← CapabilityResult<T> + resultToToolResponse()
+    ├── permissions.ts        ← checkCapabilityPermission() + role helpers
+    ├── validation.ts         ← Date, overlap, balance validators
+    ├── logging.ts            ← logCapabilityAction()
+    └── utils.ts              ← cap() + makeStructuredEvent()
 ```
 
 ## Phases Completed
@@ -49,5 +64,6 @@ supabase/functions/dash-command/
 - Phase 3: Time-Off Reference Implementation ✅
 - Phase 4: Tool Definitions Extraction ✅
 - Phase 5: System Prompt + Routing ✅
-- Phase 6: Bulk Domain Migration (audits, CAs, workforce, operations, overview) ✅
-- Phase 7: Bug Fixes + Final Extraction (memory, file-processing, parse_uploaded_file) ✅
+- Phase 6: Bulk Domain Migration ✅
+- Phase 7: Bug Fixes + Final Extraction ✅
+- Phase 8: Contract Standardization + Permission Enforcement ✅
