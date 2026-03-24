@@ -675,6 +675,7 @@ function buildSystemPrompt(ctx: { role: string; companyName: string; modules: st
 - **Locations**: ${ctx.locations.length > 0 ? ctx.locations.join(", ") : "Not loaded"}
 - **Today**: ${ctx.today} (${ctx.todayLabel})
 - **Timezone**: Europe/Bucharest
+- **CRITICAL DATE RULE**: When the user says "this week", "last week", "this month", "last 30 days", "today", "yesterday", or ANY relative date expression, you MUST auto-resolve it to concrete YYYY-MM-DD dates using the Today value above. NEVER ask the user to specify dates. Examples: "this week" = Monday of current week to today. "last 30 days" = today minus 30 to today. "last month" = first to last day of previous month.
 
 ## Your Capabilities (auto-generated from registry)
 

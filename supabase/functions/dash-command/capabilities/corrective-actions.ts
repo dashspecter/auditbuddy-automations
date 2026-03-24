@@ -14,7 +14,7 @@ export async function getOpenCorrectiveActions(
   sb: any, companyId: string, args: any
 ): Promise<CapabilityResult<any>> {
   const limit = Math.min(args.limit || 50, 200);
-  let q = sb.from("corrective_actions").select("id, title, severity, status, due_at, created_at, location_id, locations(name), assigned_to")
+  let q = sb.from("corrective_actions").select("id, title, severity, status, due_at, created_at, location_id, locations(name), owner_user_id")
     .eq("company_id", companyId).in("status", ["open", "in_progress"]).order("created_at", { ascending: false }).limit(limit);
   if (args.location_id) q = q.eq("location_id", args.location_id);
   if (args.severity) q = q.eq("severity", args.severity);
@@ -22,7 +22,7 @@ export async function getOpenCorrectiveActions(
   if (error) return capabilityError(error.message);
   const c = cap(data, limit);
   return success({
-    corrective_actions: c.items.map((ca: any) => ({ id: ca.id, title: ca.title, severity: ca.severity, status: ca.status, due_at: ca.due_at, location: ca.locations?.name, assigned_to: ca.assigned_to })),
+    corrective_actions: c.items.map((ca: any) => ({ id: ca.id, title: ca.title, severity: ca.severity, status: ca.status, due_at: ca.due_at, location: ca.locations?.name, assigned_to: ca.owner_user_id })),
     total: c.total, returned: c.returned, truncated: c.truncated,
   });
 }
@@ -37,7 +37,7 @@ export async function reassignCorrectiveAction(
   if (!permCheck.ok) return permCheck;
 
   const { data: caData, error: caError } = await sb.from("corrective_actions")
-    .select("id, title, assigned_to, location_id, locations(name), company_id")
+    .select("id, title, owner_user_id, location_id, locations(name), company_id")
     .eq("id", args.corrective_action_id)
     .maybeSingle();
 
@@ -62,7 +62,7 @@ export async function reassignCorrectiveAction(
     preview_json: {
       ca_id: caData.id,
       ca_title: caData.title,
-      old_assigned_to: caData.assigned_to,
+      old_assigned_to: caData.owner_user_id,
       new_assigned_to: args.new_assigned_to,
       new_assigned_name: newAssigneeName,
       reason: args.reason,
@@ -116,7 +116,7 @@ export async function executeCaReassignment(
   const preview = pa.preview_json as any;
 
   const { error: updateError } = await sbService.from("corrective_actions")
-    .update({ assigned_to: preview.new_assigned_to, updated_at: new Date().toISOString() })
+    .update({ owner_user_id: preview.new_assigned_to, updated_at: new Date().toISOString() })
     .eq("id", preview.ca_id)
     .eq("company_id", companyId);
 

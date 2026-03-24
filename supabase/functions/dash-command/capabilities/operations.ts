@@ -48,11 +48,11 @@ export async function getDocumentExpiries(
 export async function getTrainingGaps(
   sb: any, companyId: string, args: any
 ): Promise<CapabilityResult<any>> {
-  let q = sb.from("training_assignments").select("id, employee_id, employees(full_name, location_id, locations(name)), training_module_id, training_modules(title), status, due_date")
+  let q = sb.from("training_assignments").select("id, trainee_employee_id, employees!training_assignments_trainee_employee_id_fkey(full_name, location_id, locations(name)), module_id, training_programs(name), status, start_date")
     .eq("company_id", companyId).in("status", ["assigned", "in_progress"]);
   if (args.location_id) q = q.eq("employees.location_id", args.location_id);
   const { data, error } = await q.limit(100);
   if (error) return capabilityError(error.message);
-  const overdue = (data ?? []).filter((a: any) => a.due_date && new Date(a.due_date) < new Date());
-  return success({ total_incomplete: (data ?? []).length, overdue_count: overdue.length, gaps: (data ?? []).map((a: any) => ({ employee: a.employees?.full_name, module: a.training_modules?.title, status: a.status, due_date: a.due_date, location: a.employees?.locations?.name })) });
+  const overdue = (data ?? []).filter((a: any) => a.start_date && new Date(a.start_date) < new Date());
+  return success({ total_incomplete: (data ?? []).length, overdue_count: overdue.length, gaps: (data ?? []).map((a: any) => ({ employee: a.employees?.full_name, module: a.training_programs?.name, status: a.status, due_date: a.start_date, location: a.employees?.locations?.name })) });
 }
