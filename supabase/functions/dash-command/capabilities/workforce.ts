@@ -14,7 +14,7 @@ export async function searchEmployees(
   const limit = Math.min(args.limit || 10, MAX_TOOL_ROWS);
   const term = `%${args.query}%`;
   const { data, error } = await sb.from("employees").select("id, full_name, role, status, location_id, locations(name)")
-    .or(`full_name.ilike.${term},phone.ilike.${term},email.ilike.${term}`).limit(limit);
+    .eq("company_id", companyId).or(`full_name.ilike.${term},phone.ilike.${term},email.ilike.${term}`).limit(limit);
   if (error) return { error: error.message };
   return { count: data?.length ?? 0, employees: data?.map((e: any) => ({ id: e.id, name: e.full_name, role: e.role, status: e.status, location: e.locations?.name })) };
 }
