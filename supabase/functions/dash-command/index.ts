@@ -1,18 +1,21 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
-};
-
-const DEFAULT_TIMEZONE = "Europe/Bucharest";
-const MAX_TOOL_ROWS = 200;
-
-// ─── Shared Audit Completion Semantics ───
-// Aligns with src/lib/auditHelpers.ts COMPLETED_STATUSES
-const AUDIT_FINISHED_STATUSES = ["completed", "compliant", "non-compliant", "non_compliant"];
+// ─── Shared Capability Layer Imports ───
+import { AUDIT_FINISHED_STATUSES, DEFAULT_TIMEZONE, MAX_TOOL_ROWS, MODULE_CODES } from "./shared/constants.ts";
+import { resultToToolResponse } from "./shared/contracts.ts";
+import { type PermissionContext } from "./shared/permissions.ts";
+import {
+  getTimeOffBalance,
+  listTimeOffRequests,
+  listPendingApprovals,
+  checkTimeOffConflicts,
+  getTeamTimeOffCalendar,
+  createTimeOffRequest,
+  approveTimeOffRequest,
+  rejectTimeOffRequest,
+  cancelTimeOffRequest,
+} from "./capabilities/time-off.ts";
 
 // ─── Module Gating Map (canonical module codes matching company_modules.module_name) ───
 const TOOL_MODULE_MAP: Record<string, string> = {
