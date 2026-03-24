@@ -1,69 +1,76 @@
 
 
+# Fix All Remaining Audit Issues
 
-# Phase 8: COMPLETED — Standardize All Modules on CapabilityResult + Permission Enforcement
+Five concrete fixes, all in the `dash-command` edge function.
 
-## What Was Done
+---
 
-### Contract Standardization
-All 8 capability modules now return `CapabilityResult<T>`:
-- `capabilities/audits.ts` — `success()` / `capabilityError()` on all 4 functions
-- `capabilities/corrective-actions.ts` — all 3 functions
-- `capabilities/workforce.ts` — all 6 functions
-- `capabilities/operations.ts` — all 4 functions (read-only)
-- `capabilities/overview.ts` — all 3 functions (read-only)
-- `capabilities/memory.ts` — all 6 functions
-- `capabilities/file-processing.ts` — all 4 functions
+## Fix 1 — P0: Define `corsHeaders` (index.ts)
 
-### Permission Enforcement
-All write operations now call `checkCapabilityPermission()`:
-- `createAuditTemplateDraft` + `executeAuditTemplateCreation` → `{ action: "create", module: "location_audits" }`
-- `reassignCorrectiveAction` + `executeCaReassignment` → `{ action: "update", module: "corrective_actions" }`
-- `createEmployeeDraft` + `executeEmployeeCreation` → `{ action: "create", module: "workforce" }`
-- `createShiftDraft` + `executeShiftCreation` → `{ action: "create", module: "workforce" }`
-- `parseUploadedFile` (audit intents) → `{ action: "create", module: "location_audits" }`
+Add the CORS constant after the imports (before `TOOL_MODULE_MAP`). It's referenced 58 times but never declared.
 
-### Audit Logging
-Write functions now use `logCapabilityAction()` from `shared/logging.ts`:
-- `executeAuditTemplateCreation`, `executeCaReassignment`, `executeEmployeeCreation`, `executeShiftCreation`
-
-### Routing Standardization
-All `executeToolInner` cases now:
-- Wrap responses with `resultToToolResponse()` for consistent LLM communication
-- Pass `PermissionContext` via `buildPermCtx()` to all write functions
-- Pattern is identical to the time-off reference implementation
-
-## Architecture (Final State)
-
-```text
-supabase/functions/dash-command/
-├── index.ts                 ← Pure orchestration (~1150 lines)
-├── registry.ts              ← 8 domain entries
-├── tools.ts                 ← Tool definitions
-├── capabilities/
-│   ├── time-off.ts          ← CapabilityResult ✅ + Permissions ✅ + Logging ✅
-│   ├── audits.ts            ← CapabilityResult ✅ + Permissions ✅ + Logging ✅
-│   ├── corrective-actions.ts ← CapabilityResult ✅ + Permissions ✅ + Logging ✅
-│   ├── workforce.ts         ← CapabilityResult ✅ + Permissions ✅ + Logging ✅
-│   ├── operations.ts        ← CapabilityResult ✅ (read-only, no writes)
-│   ├── overview.ts          ← CapabilityResult ✅ (read-only, no writes)
-│   ├── memory.ts            ← CapabilityResult ✅ (Dash-internal, always available)
-│   └── file-processing.ts   ← CapabilityResult ✅ + Permissions ✅ (audit intents)
-└── shared/
-    ├── constants.ts
-    ├── contracts.ts          ← CapabilityResult<T> + resultToToolResponse()
-    ├── permissions.ts        ← checkCapabilityPermission() + role helpers
-    ├── validation.ts         ← Date, overlap, balance validators
-    ├── logging.ts            ← logCapabilityAction()
-    └── utils.ts              ← cap() + makeStructuredEvent()
+```typescript
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
+};
 ```
 
-## Phases Completed
-- Phase 1: Shared Foundation ✅
-- Phase 2: Capability Registry ✅
-- Phase 3: Time-Off Reference Implementation ✅
-- Phase 4: Tool Definitions Extraction ✅
-- Phase 5: System Prompt + Routing ✅
-- Phase 6: Bulk Domain Migration ✅
-- Phase 7: Bug Fixes + Final Extraction ✅
-- Phase 8: Contract Standardization + Permission Enforcement ✅
+Insert at line 30, before the `TOOL_MODULE_MAP` declaration.
+
+---
+
+## Fix 2 — P1: Tighten `create` permission (shared/permissions.ts)
+
+Currently line 74-77 allows ALL roles to create anything. Change to require manager-level for `workforce` and `location_audits` creates, while keeping time-off as self-service:
+
+```typescript
+case "create":
+  if (module === "workforce" && !isManagerLevel(ctx)) {
+    return permissionDenied("Only managers or admins can create employees and shifts.");
+  }
+  if (module === "location_audits" && !isManagerLevel(ctx)) {
+    return permissionDenied("Only managers or admins can create audit templates.");
+  }
+  return success(true);
+```
+
+---
+
+## Fix 3 — P1: Add `company_id` filter to `getOrgMemory` (memory.ts)
+
+Update function signature to accept `companyId` and add `.eq("company_id", companyId)` to the query. Update the call site in `index.ts` line 332 to pass `companyId`.
+
+---
+
+## Fix 4 — P1: Add `company_id` filter to `getAuditResults` (audits.ts)
+
+Add `.eq("company_id", companyId)` to the query chain at line 20 (the `companyId` param already exists but is unused).
+
+---
+
+## Fix 5 — P1: Wrap time-off orchestration returns in `resultToToolResponse`
+
+In `index.ts`, wrap the raw return objects at:
+- Line 451-460 (`create_time_off_request_draft`) → wrap in `resultToToolResponse(success(...))`
+- Line 464 (error path) → wrap in `resultToToolResponse(capabilityError(...))`
+- Line 533 (not found error) → same
+- Line 534 (status error) → same
+- Line 566-572 (approval draft return) → wrap in `resultToToolResponse(success(...))`
+- Line 576 (missing id error) → same
+- Line 636-637 (unknown tool default) → wrap in `resultToToolResponse(capabilityError(...))`
+
+Import `success` and `capabilityError` from contracts (already imported: `resultToToolResponse`).
+
+---
+
+## Files Modified
+
+| File | Changes |
+|------|---------|
+| `index.ts` | Add `corsHeaders` constant; add `success`/`capabilityError` imports; wrap all raw time-off returns; pass `companyId` to `getOrgMemory` |
+| `shared/permissions.ts` | Tighten `create` case with module-specific checks |
+| `capabilities/memory.ts` | Add `companyId` param + filter to `getOrgMemory` |
+| `capabilities/audits.ts` | Add `.eq("company_id", companyId)` to `getAuditResults` query |
+
