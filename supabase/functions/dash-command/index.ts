@@ -49,6 +49,12 @@ const TOOL_MODULE_MAP: Record<string, string> = {
   execute_ca_reassignment: "corrective_actions",
   create_shift_draft: "workforce",
   execute_shift_creation: "workforce",
+  update_shift_draft: "workforce",
+  execute_shift_update: "workforce",
+  delete_shift_draft: "workforce",
+  execute_shift_deletion: "workforce",
+  swap_shift_draft: "workforce",
+  execute_shift_swap: "workforce",
   transform_spreadsheet_to_schedule: "workforce",
   transform_sop_to_training: "workforce",
   // Time-Off capability tools
