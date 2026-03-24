@@ -17,6 +17,13 @@ import {
   cancelTimeOffRequest,
 } from "./capabilities/time-off.ts";
 
+// ─── Domain Capability Imports ───
+import { getAuditResults, compareLocationPerformance, createAuditTemplateDraft, executeAuditTemplateCreation } from "./capabilities/audits.ts";
+import { getOpenCorrectiveActions, reassignCorrectiveAction, executeCaReassignment } from "./capabilities/corrective-actions.ts";
+import { searchEmployees, getAttendanceExceptions, createEmployeeDraft, createShiftDraft, executeEmployeeCreation, executeShiftCreation } from "./capabilities/workforce.ts";
+import { getTaskCompletionSummary, getWorkOrderStatus, getDocumentExpiries, getTrainingGaps } from "./capabilities/operations.ts";
+import { searchLocations, getLocationOverview, getCrossModuleSummary } from "./capabilities/overview.ts";
+
 // ─── Module Gating Map (canonical module codes matching company_modules.module_name) ───
 const TOOL_MODULE_MAP: Record<string, string> = {
   get_audit_results: "location_audits",
