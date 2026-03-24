@@ -14,7 +14,7 @@ export async function getOpenCorrectiveActions(
   sb: any, companyId: string, args: any
 ): Promise<CapabilityResult<any>> {
   const limit = Math.min(args.limit || 50, 200);
-  let q = sb.from("corrective_actions").select("id, title, severity, status, due_at, created_at, location_id, locations(name), assigned_to")
+  let q = sb.from("corrective_actions").select("id, title, severity, status, due_at, created_at, location_id, locations(name), owner_user_id")
     .eq("company_id", companyId).in("status", ["open", "in_progress"]).order("created_at", { ascending: false }).limit(limit);
   if (args.location_id) q = q.eq("location_id", args.location_id);
   if (args.severity) q = q.eq("severity", args.severity);
@@ -22,7 +22,7 @@ export async function getOpenCorrectiveActions(
   if (error) return capabilityError(error.message);
   const c = cap(data, limit);
   return success({
-    corrective_actions: c.items.map((ca: any) => ({ id: ca.id, title: ca.title, severity: ca.severity, status: ca.status, due_at: ca.due_at, location: ca.locations?.name, assigned_to: ca.assigned_to })),
+    corrective_actions: c.items.map((ca: any) => ({ id: ca.id, title: ca.title, severity: ca.severity, status: ca.status, due_at: ca.due_at, location: ca.locations?.name, assigned_to: ca.owner_user_id })),
     total: c.total, returned: c.returned, truncated: c.truncated,
   });
 }
