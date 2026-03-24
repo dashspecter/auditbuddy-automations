@@ -1,8 +1,10 @@
 /**
  * Workforce Capability Module
- * Migrated from index.ts — employees, shifts, attendance domain logic.
+ * Phase 8: Standardized on CapabilityResult + permission enforcement.
  */
-import { DEFAULT_TIMEZONE, MAX_TOOL_ROWS } from "../shared/constants.ts";
+import { type CapabilityResult, success, capabilityError } from "../shared/contracts.ts";
+import { type PermissionContext, checkCapabilityPermission } from "../shared/permissions.ts";
+import { logCapabilityAction } from "../shared/logging.ts";
 import { cap, makeStructuredEvent } from "../shared/utils.ts";
 
 
@@ -10,37 +12,44 @@ import { cap, makeStructuredEvent } from "../shared/utils.ts";
 
 export async function searchEmployees(
   sb: any, companyId: string, args: any
-): Promise<any> {
-  const limit = Math.min(args.limit || 10, MAX_TOOL_ROWS);
+): Promise<CapabilityResult<any>> {
+  const limit = Math.min(args.limit || 10, 200);
   const term = `%${args.query}%`;
   const { data, error } = await sb.from("employees").select("id, full_name, role, status, location_id, locations(name)")
     .eq("company_id", companyId).or(`full_name.ilike.${term},phone.ilike.${term},email.ilike.${term}`).limit(limit);
-  if (error) return { error: error.message };
-  return { count: data?.length ?? 0, employees: data?.map((e: any) => ({ id: e.id, name: e.full_name, role: e.role, status: e.status, location: e.locations?.name })) };
+  if (error) return capabilityError(error.message);
+  return success({ count: data?.length ?? 0, employees: data?.map((e: any) => ({ id: e.id, name: e.full_name, role: e.role, status: e.status, location: e.locations?.name })) });
 }
 
 export async function getAttendanceExceptions(
   sb: any, companyId: string, args: any,
   utcRange: (sb: any, from: string, to: string) => Promise<{ fromUtc: string; toUtc: string } | null>
-): Promise<any> {
-  const limit = Math.min(args.limit || 50, MAX_TOOL_ROWS);
+): Promise<CapabilityResult<any>> {
+  const limit = Math.min(args.limit || 50, 200);
   const ur = await utcRange(sb, args.from, args.to);
-  if (!ur) return { error: "Failed to convert date range" };
+  if (!ur) return capabilityError("Failed to convert date range");
   let q = sb.from("attendance_logs").select("id, staff_id, employees(full_name), check_in_at, check_out_at, is_late, late_minutes, auto_clocked_out, location_id, locations(name)")
     .gte("check_in_at", ur.fromUtc).lt("check_in_at", ur.toUtc)
     .or("is_late.eq.true,check_out_at.is.null").order("check_in_at", { ascending: false }).limit(limit);
   if (args.location_id) q = q.eq("location_id", args.location_id);
   const { data, error } = await q;
-  if (error) return { error: error.message };
+  if (error) return capabilityError(error.message);
   const c = cap(data, limit);
-  return { ...c, exceptions: c.items.map((l: any) => ({ id: l.id, employee: l.employees?.full_name, check_in: l.check_in_at, check_out: l.check_out_at, is_late: l.is_late, late_minutes: l.late_minutes, auto_clocked_out: l.auto_clocked_out, location: l.locations?.name })) };
+  return success({
+    exceptions: c.items.map((l: any) => ({ id: l.id, employee: l.employees?.full_name, check_in: l.check_in_at, check_out: l.check_out_at, is_late: l.is_late, late_minutes: l.late_minutes, auto_clocked_out: l.auto_clocked_out, location: l.locations?.name })),
+    total: c.total, returned: c.returned, truncated: c.truncated,
+  });
 }
 
 // ─── Draft Tools ───
 
 export async function createEmployeeDraft(
-  sb: any, sbService: any, companyId: string, userId: string, args: any, structuredEvents: string[]
-): Promise<any> {
+  sb: any, sbService: any, companyId: string, userId: string, args: any, structuredEvents: string[],
+  ctx: PermissionContext
+): Promise<CapabilityResult<any>> {
+  const permCheck = checkCapabilityPermission({ action: "create", module: "workforce", ctx });
+  if (!permCheck.ok) return permCheck;
+
   let locationId = null;
   if (args.location_name) {
     const { data: locData } = await sb.from("locations").select("id, name").eq("company_id", companyId).ilike("name", `%${args.location_name}%`).limit(1);
@@ -94,7 +103,7 @@ export async function createEmployeeDraft(
     can_approve: missing.length === 0,
   }));
 
-  return {
+  return success({
     type: "employee_draft",
     draft,
     missing_fields: missing,
@@ -104,12 +113,16 @@ export async function createEmployeeDraft(
     message: missing.length > 0
       ? `Draft created but missing: ${missing.join(", ")}. Please provide these to proceed.`
       : `Employee draft ready for "${draft.full_name}". A pending action has been created (ID: ${pendingActionId}). The user can approve to execute.`,
-  };
+  });
 }
 
 export async function createShiftDraft(
-  sb: any, sbService: any, companyId: string, userId: string, args: any, structuredEvents: string[]
-): Promise<any> {
+  sb: any, sbService: any, companyId: string, userId: string, args: any, structuredEvents: string[],
+  ctx: PermissionContext
+): Promise<CapabilityResult<any>> {
+  const permCheck = checkCapabilityPermission({ action: "create", module: "workforce", ctx });
+  if (!permCheck.ok) return permCheck;
+
   let locationId = args.location_id;
   let locationName = args.location_name;
   if (!locationId && locationName) {
@@ -121,7 +134,7 @@ export async function createShiftDraft(
         question: `Multiple locations match "${locationName}". Which one?`,
         options: candidates,
       }));
-      return { action: "Create Shift", summary: `Multiple locations match "${locationName}". Please select.`, risk: "medium", can_approve: false, missing_fields: ["location"], requires_approval: true, message: `Found ${data.length} locations matching "${locationName}". Please clarify.` };
+      return success({ action: "Create Shift", summary: `Multiple locations match "${locationName}". Please select.`, risk: "medium", can_approve: false, missing_fields: ["location"], requires_approval: true, message: `Found ${data.length} locations matching "${locationName}". Please clarify.` });
     }
   }
 
@@ -166,7 +179,7 @@ export async function createShiftDraft(
         question: `Multiple employees match "${args.employee_name}". Which one did you mean?`,
         options: candidates,
       }));
-      return { action: "Create Shift", summary: `Multiple employees match "${args.employee_name}". Please select one.`, risk: "medium", can_approve: false, missing_fields: ["employee"], requires_approval: true, message: `Found ${empData.length} employees matching "${args.employee_name}". Please clarify.` };
+      return success({ action: "Create Shift", summary: `Multiple employees match "${args.employee_name}". Please select one.`, risk: "medium", can_approve: false, missing_fields: ["employee"], requires_approval: true, message: `Found ${empData.length} employees matching "${args.employee_name}". Please clarify.` });
     } else {
       // Token-reversed match
       const tokens = employeeName.trim().split(/\s+/);
@@ -190,12 +203,12 @@ export async function createShiftDraft(
               question: `No exact match for "${args.employee_name}". Did you mean one of these?`,
               options: candidates,
             }));
-            return { action: "Create Shift", summary: `Could not find exact match for "${args.employee_name}". Please select from candidates.`, risk: "medium", can_approve: false, missing_fields: ["employee"], requires_approval: true, message: `Found possible matches for "${args.employee_name}". Please clarify.` };
+            return success({ action: "Create Shift", summary: `Could not find exact match for "${args.employee_name}". Please select from candidates.`, risk: "medium", can_approve: false, missing_fields: ["employee"], requires_approval: true, message: `Found possible matches for "${args.employee_name}". Please clarify.` });
           }
         }
       }
       if (!found) {
-        return { action: "Create Shift", summary: `Employee "${args.employee_name}" not found in this company. Please provide a valid employee name.`, risk: "medium", can_approve: false, missing_fields: ["employee"], requires_approval: true, message: `Could not find employee "${args.employee_name}". Please check the name and try again, or ask me to list employees.` };
+        return success({ action: "Create Shift", summary: `Employee "${args.employee_name}" not found in this company. Please provide a valid employee name.`, risk: "medium", can_approve: false, missing_fields: ["employee"], requires_approval: true, message: `Could not find employee "${args.employee_name}". Please check the name and try again, or ask me to list employees.` });
       }
     }
   }
@@ -243,7 +256,7 @@ export async function createShiftDraft(
     can_approve: missing.length === 0,
   }));
 
-  return {
+  return success({
     type: "shift_draft",
     draft,
     missing_fields: missing,
@@ -253,22 +266,26 @@ export async function createShiftDraft(
     message: missing.length > 0
       ? `Shift draft missing: ${missing.join(", ")}.`
       : `Shift draft ready. User can approve to create.`,
-  };
+  });
 }
 
 // ─── Execute Tools ───
 
 export async function executeEmployeeCreation(
   sbService: any, companyId: string, userId: string, args: any, structuredEvents: string[],
-  hydrateArgsFromDraft: (actionName: string, previewJson: any) => Record<string, any>
-): Promise<any> {
+  hydrateArgsFromDraft: (actionName: string, previewJson: any) => Record<string, any>,
+  ctx: PermissionContext
+): Promise<CapabilityResult<any>> {
+  const permCheck = checkCapabilityPermission({ action: "create", module: "workforce", ctx });
+  if (!permCheck.ok) return permCheck;
+
   if (args.pending_action_id && !args.full_name) {
     const { data: pa } = await sbService.from("dash_pending_actions")
       .select("id, status, company_id, preview_json")
       .eq("id", args.pending_action_id)
       .maybeSingle();
-    if (pa && pa.company_id !== companyId) return { error: "Cross-tenant action rejected." };
-    if (pa && pa.status !== "pending") return { error: `Action already ${pa.status}.` };
+    if (pa && pa.company_id !== companyId) return capabilityError("Cross-tenant action rejected.");
+    if (pa && pa.status !== "pending") return capabilityError(`Action already ${pa.status}.`);
     if (pa?.preview_json) {
       const preview = pa.preview_json as any;
       args = { ...args, ...hydrateArgsFromDraft("create_employee", preview) };
@@ -278,8 +295,8 @@ export async function executeEmployeeCreation(
       .select("id, status, company_id")
       .eq("id", args.pending_action_id)
       .maybeSingle();
-    if (pa && pa.company_id !== companyId) return { error: "Cross-tenant action rejected." };
-    if (pa && pa.status !== "pending") return { error: `Action already ${pa.status}.` };
+    if (pa && pa.company_id !== companyId) return capabilityError("Cross-tenant action rejected.");
+    if (pa && pa.status !== "pending") return capabilityError(`Action already ${pa.status}.`);
   }
 
   const { data: empData, error: empError } = await sbService.from("employees").insert({
@@ -310,7 +327,7 @@ export async function executeEmployeeCreation(
       summary: empError.message,
       errors: [empError.message],
     }));
-    return { error: `Failed to create employee: ${empError.message}` };
+    return capabilityError(`Failed to create employee: ${empError.message}`);
   }
 
   if (args.pending_action_id) {
@@ -325,18 +342,11 @@ export async function executeEmployeeCreation(
       .eq("id", args.pending_action_id);
   }
 
-  await sbService.from("dash_action_log").insert({
-    company_id: companyId,
-    user_id: userId,
-    action_type: "write",
-    action_name: "create_employee",
-    risk_level: "medium",
-    request_json: args,
-    result_json: { employee_id: empData.id },
-    status: "success",
-    approval_status: "approved",
-    entities_affected: [empData.id],
-    modules_touched: ["workforce"],
+  await logCapabilityAction(sbService, {
+    companyId, userId, capability: "workforce.create_employee", actionType: "write",
+    riskLevel: "medium", request: args,
+    result: { employee_id: empData.id },
+    entitiesAffected: [empData.id], module: "workforce",
   });
 
   structuredEvents.push(makeStructuredEvent("execution_result", {
@@ -346,27 +356,31 @@ export async function executeEmployeeCreation(
     changes: [`Employee "${empData.full_name}" created (ID: ${empData.id})`],
   }));
 
-  return {
+  return success({
     type: "employee_created",
     employee_id: empData.id,
     employee_name: empData.full_name,
     message: `Employee "${empData.full_name}" created successfully.`,
-  };
+  });
 }
 
 export async function executeShiftCreation(
-  sbService: any, companyId: string, userId: string, args: any, structuredEvents: string[]
-): Promise<any> {
-  if (!args.pending_action_id) return { error: "Missing pending_action_id." };
+  sbService: any, companyId: string, userId: string, args: any, structuredEvents: string[],
+  ctx: PermissionContext
+): Promise<CapabilityResult<any>> {
+  const permCheck = checkCapabilityPermission({ action: "create", module: "workforce", ctx });
+  if (!permCheck.ok) return permCheck;
+
+  if (!args.pending_action_id) return capabilityError("Missing pending_action_id.");
 
   const { data: pa } = await sbService.from("dash_pending_actions")
     .select("id, status, company_id, preview_json")
     .eq("id", args.pending_action_id)
     .maybeSingle();
 
-  if (!pa) return { error: "Pending action not found." };
-  if (pa.company_id !== companyId) return { error: "Cross-tenant action rejected." };
-  if (pa.status !== "pending") return { error: `Action already ${pa.status}.` };
+  if (!pa) return capabilityError("Pending action not found.");
+  if (pa.company_id !== companyId) return capabilityError("Cross-tenant action rejected.");
+  if (pa.status !== "pending") return capabilityError(`Action already ${pa.status}.`);
 
   const draft = pa.preview_json as any;
 
@@ -395,7 +409,7 @@ export async function executeShiftCreation(
       summary: shiftError.message,
       errors: [shiftError.message],
     }));
-    return { error: `Failed to create shift: ${shiftError.message}` };
+    return capabilityError(`Failed to create shift: ${shiftError.message}`);
   }
 
   let assignmentCreated = false;
@@ -426,18 +440,11 @@ export async function executeShiftCreation(
     })
     .eq("id", pa.id);
 
-  await sbService.from("dash_action_log").insert({
-    company_id: companyId,
-    user_id: userId,
-    action_type: "write",
-    action_name: "create_shift",
-    risk_level: "medium",
-    request_json: draft,
-    result_json: { shift_id: shiftData.id, assignment_created: assignmentCreated, employee_id: draft.employee_id },
-    status: "success",
-    approval_status: "approved",
-    entities_affected: [shiftData.id],
-    modules_touched: ["workforce"],
+  await logCapabilityAction(sbService, {
+    companyId, userId, capability: "workforce.create_shift", actionType: "write",
+    riskLevel: "medium", request: draft,
+    result: { shift_id: shiftData.id, assignment_created: assignmentCreated },
+    entitiesAffected: [shiftData.id], module: "workforce",
   });
 
   const assignmentMsg = assignmentCreated && assignedEmployeeName
@@ -455,10 +462,10 @@ export async function executeShiftCreation(
     ],
   }));
 
-  return {
+  return success({
     type: "shift_created",
     shift_id: shiftData.id,
     assignment_created: assignmentCreated,
     message: `Shift created successfully for ${shiftData.shift_date}${assignmentMsg}.`,
-  };
+  });
 }

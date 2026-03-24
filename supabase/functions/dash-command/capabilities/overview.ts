@@ -1,29 +1,30 @@
 /**
  * Overview Capability Module
  * Cross-module aggregates and location search.
- * Migrated from index.ts.
+ * Phase 8: Standardized on CapabilityResult.
  */
-import { AUDIT_FINISHED_STATUSES, DEFAULT_TIMEZONE } from "../shared/constants.ts";
+import { AUDIT_FINISHED_STATUSES } from "../shared/constants.ts";
+import { type CapabilityResult, success, capabilityError } from "../shared/contracts.ts";
 
 export async function searchLocations(
   sb: any, companyId: string, args: any
-): Promise<any> {
+): Promise<CapabilityResult<any>> {
   const { data, error } = await sb.from("locations").select("id, name, address").eq("company_id", companyId).ilike("name", `%${args.query}%`).limit(10);
-  if (error) return { error: error.message };
-  return { locations: data };
+  if (error) return capabilityError(error.message);
+  return success({ locations: data });
 }
 
 export async function getLocationOverview(
   sb: any, companyId: string, args: any
-): Promise<any> {
+): Promise<CapabilityResult<any>> {
   let locationId = args.location_id;
   let locationName = args.location_name;
   if (!locationId && locationName) {
     const { data } = await sb.from("locations").select("id, name").eq("company_id", companyId).ilike("name", `%${locationName}%`).limit(1);
     if (data?.[0]) { locationId = data[0].id; locationName = data[0].name; }
-    else return { error: `No location found matching "${locationName}"` };
+    else return capabilityError(`No location found matching "${locationName}"`);
   }
-  if (!locationId) return { error: "Please provide a location name or ID" };
+  if (!locationId) return capabilityError("Please provide a location name or ID");
 
   const [empRes, auditRes, caRes, taskRes] = await Promise.all([
     sb.from("employees").select("id", { count: "exact", head: true }).eq("location_id", locationId).eq("status", "active"),
@@ -31,19 +32,19 @@ export async function getLocationOverview(
     sb.from("corrective_actions").select("id", { count: "exact", head: true }).eq("location_id", locationId).in("status", ["open", "in_progress"]),
     sb.from("tasks").select("id", { count: "exact", head: true }).eq("location_id", locationId),
   ]);
-  return {
+  return success({
     location: { id: locationId, name: locationName },
     employees_active: empRes.count ?? 0,
     latest_audit_score: auditRes.data?.[0]?.overall_score ?? null,
     open_corrective_actions: caRes.count ?? 0,
     total_tasks: taskRes.count ?? 0,
-  };
+  });
 }
 
 export async function getCrossModuleSummary(
   sb: any, companyId: string, args: any,
   utcRange: (sb: any, from: string, to: string) => Promise<{ fromUtc: string; toUtc: string } | null>
-): Promise<any> {
+): Promise<CapabilityResult<any>> {
   const ur = await utcRange(sb, args.from, args.to);
   const locationFilter = args.location_id;
 
@@ -71,12 +72,12 @@ export async function getCrossModuleSummary(
   if (locationFilter) woQ = woQ.eq("location_id", locationFilter);
   const { data: wos } = await woQ.in("status", ["open", "in_progress"]).limit(200);
 
-  return {
+  return success({
     date_range: { from: args.from, to: args.to },
     location_id: locationFilter ?? "all",
     audits: { total: (audits ?? []).length, finished: finishedAudits.length, scored: scoredAudits.length, avg_score: avgScore },
     corrective_actions: { open: (cas ?? []).filter((c: any) => c.status === "open").length, in_progress: (cas ?? []).filter((c: any) => c.status === "in_progress").length, by_severity: { critical: (cas ?? []).filter((c: any) => c.severity === "critical").length, high: (cas ?? []).filter((c: any) => c.severity === "high").length } },
     attendance: { total_logs: (attLogs ?? []).length, late_arrivals: lateCount, missing_checkouts: noCheckout },
     work_orders: { open: (wos ?? []).filter((w: any) => w.status === "open").length, in_progress: (wos ?? []).filter((w: any) => w.status === "in_progress").length },
-  };
+  });
 }

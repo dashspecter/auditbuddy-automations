@@ -1,8 +1,10 @@
 /**
  * File Processing Capability Module
- * Handles file transformations (spreadsheet→schedule, SOP→training)
- * and the core parse_uploaded_file tool for PDF/image extraction.
+ * Phase 8: Standardized on CapabilityResult + permission enforcement.
  */
+import { type CapabilityResult, success, capabilityError } from "../shared/contracts.ts";
+import { type PermissionContext, checkCapabilityPermission } from "../shared/permissions.ts";
+import { makeStructuredEvent } from "../shared/utils.ts";
 
 /**
  * Downloads a file from Supabase Storage and returns it as base64 with its MIME type.
@@ -64,7 +66,7 @@ export async function downloadFileAsBase64(
 }
 
 // ─── Transform: Spreadsheet → Schedule ───
-export async function transformSpreadsheetToSchedule(args: any): Promise<any> {
+export async function transformSpreadsheetToSchedule(args: any): Promise<CapabilityResult<any>> {
   const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY")!;
   try {
     const resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
@@ -82,24 +84,24 @@ export async function transformSpreadsheetToSchedule(args: any): Promise<any> {
         stream: false,
       }),
     });
-    if (!resp.ok) return { error: "Failed to parse spreadsheet." };
+    if (!resp.ok) return capabilityError("Failed to parse spreadsheet.");
     const result = await resp.json();
     const content = result.choices?.[0]?.message?.content || "";
     try {
       const jsonMatch = content.match(/\{[\s\S]*\}/);
       if (jsonMatch) {
         const parsed = JSON.parse(jsonMatch[0]);
-        return { type: "schedule_extraction", file_name: args.file_name, ...parsed, next_step: "Review shifts and create each using create_shift_draft." };
+        return success({ type: "schedule_extraction", file_name: args.file_name, ...parsed, next_step: "Review shifts and create each using create_shift_draft." });
       }
     } catch {}
-    return { raw_extraction: content, error: "Could not parse structured schedule data." };
+    return capabilityError("Could not parse structured schedule data.");
   } catch (err: any) {
-    return { error: `Schedule extraction failed: ${err.message}` };
+    return capabilityError(`Schedule extraction failed: ${err.message}`);
   }
 }
 
 // ─── Transform: SOP → Training Module ───
-export async function transformSopToTraining(sbService: any, args: any): Promise<any> {
+export async function transformSopToTraining(sbService: any, args: any): Promise<CapabilityResult<any>> {
   const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY")!;
   try {
     let fileContent: { base64: string; mimeType: string };
@@ -107,7 +109,7 @@ export async function transformSopToTraining(sbService: any, args: any): Promise
       fileContent = await downloadFileAsBase64(sbService, args.file_url);
     } catch (dlErr: any) {
       console.error("File download failed:", dlErr);
-      return { error: "Could not access the uploaded file. Please try re-uploading." };
+      return capabilityError("Could not access the uploaded file. Please try re-uploading.");
     }
 
     const resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
@@ -128,7 +130,7 @@ export async function transformSopToTraining(sbService: any, args: any): Promise
     if (!resp.ok) {
       const errText = await resp.text();
       console.error("AI parse error:", resp.status, errText);
-      return { error: "Failed to parse SOP document." };
+      return capabilityError("Failed to parse SOP document.");
     }
     const result = await resp.json();
     const content = result.choices?.[0]?.message?.content || "";
@@ -137,23 +139,30 @@ export async function transformSopToTraining(sbService: any, args: any): Promise
       if (jsonMatch) {
         const parsed = JSON.parse(jsonMatch[0]);
         if (args.module_name) parsed.module_name = args.module_name;
-        return { type: "training_module_extraction", file_name: args.file_name, ...parsed, next_step: "Review the training module structure. This is a draft — the training module creation tool will be available in a future update." };
+        return success({ type: "training_module_extraction", file_name: args.file_name, ...parsed, next_step: "Review the training module structure. This is a draft — the training module creation tool will be available in a future update." });
       }
     } catch {}
-    return { raw_extraction: content, error: "Could not parse training module structure." };
+    return capabilityError("Could not parse training module structure.");
   } catch (err: any) {
-    return { error: `SOP extraction failed: ${err.message}` };
+    return capabilityError(`SOP extraction failed: ${err.message}`);
   }
 }
 
-// ─── Parse Uploaded File (P0 — restored) ───
+// ─── Parse Uploaded File ───
 export async function parseUploadedFile(
   sbService: any, companyId: string, userId: string,
-  args: any, structuredEvents: string[]
-): Promise<any> {
+  args: any, structuredEvents: string[],
+  ctx?: PermissionContext
+): Promise<CapabilityResult<any>> {
   const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY")!;
   const intent = args.intent || "audit_template";
   const requestedTemplateName = args.requested_template_name || null;
+
+  // Permission check for audit-intent paths (creates templates)
+  if ((intent === "audit_template" || intent === "compliance_audit") && ctx) {
+    const permCheck = checkCapabilityPermission({ action: "create", module: "location_audits", ctx });
+    if (!permCheck.ok) return permCheck;
+  }
 
   // Download the file
   let fileContent: { base64: string; mimeType: string };
@@ -161,7 +170,7 @@ export async function parseUploadedFile(
     fileContent = await downloadFileAsBase64(sbService, args.file_url);
   } catch (dlErr: any) {
     console.error("File download failed:", dlErr);
-    return { error: "Could not access the uploaded file. Please try re-uploading." };
+    return capabilityError("Could not access the uploaded file. Please try re-uploading.");
   }
 
   // Build intent-specific prompt
@@ -258,7 +267,7 @@ Only return valid JSON, no markdown fences.`;
     if (!resp.ok) {
       const errText = await resp.text();
       console.error("AI parse error:", resp.status, errText);
-      return { error: "Failed to parse the uploaded document." };
+      return capabilityError("Failed to parse the uploaded document.");
     }
 
     const result = await resp.json();
@@ -273,7 +282,7 @@ Only return valid JSON, no markdown fences.`;
     } catch {}
 
     if (!parsed) {
-      return { raw_extraction: content, error: "Could not parse structured data from the document." };
+      return capabilityError("Could not parse structured data from the document.");
     }
 
     // Apply name override if requested
@@ -319,28 +328,24 @@ Only return valid JSON, no markdown fences.`;
 
       const totalFields = sections.reduce((acc: number, s: any) => acc + (s.fields?.length || 0), 0);
 
-      structuredEvents.push(JSON.stringify({
-        type: "structured_event",
-        event_type: "action_preview",
-        data: {
-          action: "Create Audit Template",
-          summary: `"${templateName}" — ${sections.length} section(s), ${totalFields} field(s). Extracted from uploaded document.`,
-          risk: "medium",
-          affected: [templateName, `${sections.length} sections`, `${totalFields} fields`],
-          pending_action_id: paData?.id,
-          draft,
-          can_approve: true,
-        },
+      structuredEvents.push(makeStructuredEvent("action_preview", {
+        action: "Create Audit Template",
+        summary: `"${templateName}" — ${sections.length} section(s), ${totalFields} field(s). Extracted from uploaded document.`,
+        risk: "medium",
+        affected: [templateName, `${sections.length} sections`, `${totalFields} fields`],
+        pending_action_id: paData?.id,
+        draft,
+        can_approve: true,
       }));
 
-      return {
+      return success({
         type: "audit_template_draft",
         draft,
         pending_action_id: paData?.id,
         requires_approval: true,
         file_name: args.file_name,
         message: `Extracted audit template "${templateName}" with ${sections.length} section(s) and ${totalFields} field(s). Please review and approve.`,
-      };
+      });
     }
 
     // For ID card intent, auto-create employee draft
@@ -366,33 +371,29 @@ Only return valid JSON, no markdown fences.`;
           status: "pending",
         }).select("id").single();
 
-        structuredEvents.push(JSON.stringify({
-          type: "structured_event",
-          event_type: "action_preview",
-          data: {
-            action: "Create Employee from ID",
-            summary: `${parsed.full_name} — extracted from ID card. Please review and approve.`,
-            risk: "medium",
-            affected: [parsed.full_name],
-            pending_action_id: paData?.id,
-            draft: employeeDraft,
-            can_approve: true,
-          },
+        structuredEvents.push(makeStructuredEvent("action_preview", {
+          action: "Create Employee from ID",
+          summary: `${parsed.full_name} — extracted from ID card. Please review and approve.`,
+          risk: "medium",
+          affected: [parsed.full_name],
+          pending_action_id: paData?.id,
+          draft: employeeDraft,
+          can_approve: true,
         }));
 
-        return {
+        return success({
           type: "employee_draft_from_id",
           draft: employeeDraft,
           pending_action_id: paData?.id,
           requires_approval: true,
           message: `Extracted employee data for "${parsed.full_name}" from ID card. Please review and approve.`,
-        };
+        });
       }
     }
 
     // Generic extraction result
-    return { type: `${intent}_extraction`, file_name: args.file_name, ...parsed };
+    return success({ type: `${intent}_extraction`, file_name: args.file_name, ...parsed });
   } catch (err: any) {
-    return { error: `Document parsing failed: ${err.message}` };
+    return capabilityError(`Document parsing failed: ${err.message}`);
   }
 }

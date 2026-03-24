@@ -1,82 +1,69 @@
 
 
-# Phase 8: Standardize All Capability Modules on Shared Contracts + Permission Enforcement
 
-## What Remains (from the audit)
+# Phase 8: COMPLETED — Standardize All Modules on CapabilityResult + Permission Enforcement
 
-Two P1 items were identified but **not yet fixed**:
+## What Was Done
 
-1. **Non-time-off modules return raw objects** — audits, CAs, workforce, operations, overview, memory, file-processing all return `{ error: error.message }` instead of `CapabilityResult<T>`. Only `time-off.ts` uses the shared contract. This means error handling is inconsistent and `resultToToolResponse()` is never called for 7 of 8 modules.
+### Contract Standardization
+All 8 capability modules now return `CapabilityResult<T>`:
+- `capabilities/audits.ts` — `success()` / `capabilityError()` on all 4 functions
+- `capabilities/corrective-actions.ts` — all 3 functions
+- `capabilities/workforce.ts` — all 6 functions
+- `capabilities/operations.ts` — all 4 functions (read-only)
+- `capabilities/overview.ts` — all 3 functions (read-only)
+- `capabilities/memory.ts` — all 6 functions
+- `capabilities/file-processing.ts` — all 4 functions
 
-2. **No `checkCapabilityPermission` on non-time-off write operations** — `createAuditTemplateDraft`, `executeAuditTemplateCreation`, `reassignCorrectiveAction`, `createEmployeeDraft`, `executeEmployeeCreation`, `createShiftDraft`, `executeShiftCreation` have zero capability-level permission checks. Any authenticated Dash user can invoke these writes.
+### Permission Enforcement
+All write operations now call `checkCapabilityPermission()`:
+- `createAuditTemplateDraft` + `executeAuditTemplateCreation` → `{ action: "create", module: "location_audits" }`
+- `reassignCorrectiveAction` + `executeCaReassignment` → `{ action: "update", module: "corrective_actions" }`
+- `createEmployeeDraft` + `executeEmployeeCreation` → `{ action: "create", module: "workforce" }`
+- `createShiftDraft` + `executeShiftCreation` → `{ action: "create", module: "workforce" }`
+- `parseUploadedFile` (audit intents) → `{ action: "create", module: "location_audits" }`
 
----
+### Audit Logging
+Write functions now use `logCapabilityAction()` from `shared/logging.ts`:
+- `executeAuditTemplateCreation`, `executeCaReassignment`, `executeEmployeeCreation`, `executeShiftCreation`
 
-## What This Phase Delivers
+### Routing Standardization
+All `executeToolInner` cases now:
+- Wrap responses with `resultToToolResponse()` for consistent LLM communication
+- Pass `PermissionContext` via `buildPermCtx()` to all write functions
+- Pattern is identical to the time-off reference implementation
 
-Every capability module upgraded to match the `time-off.ts` reference pattern:
-- All functions return `CapabilityResult<T>`
-- All write functions call `checkCapabilityPermission` 
-- All routing in `executeToolInner` wraps responses with `resultToToolResponse()`
-- Consistent error shapes for the LLM across all domains
+## Architecture (Final State)
 
----
+```text
+supabase/functions/dash-command/
+├── index.ts                 ← Pure orchestration (~1150 lines)
+├── registry.ts              ← 8 domain entries
+├── tools.ts                 ← Tool definitions
+├── capabilities/
+│   ├── time-off.ts          ← CapabilityResult ✅ + Permissions ✅ + Logging ✅
+│   ├── audits.ts            ← CapabilityResult ✅ + Permissions ✅ + Logging ✅
+│   ├── corrective-actions.ts ← CapabilityResult ✅ + Permissions ✅ + Logging ✅
+│   ├── workforce.ts         ← CapabilityResult ✅ + Permissions ✅ + Logging ✅
+│   ├── operations.ts        ← CapabilityResult ✅ (read-only, no writes)
+│   ├── overview.ts          ← CapabilityResult ✅ (read-only, no writes)
+│   ├── memory.ts            ← CapabilityResult ✅ (Dash-internal, always available)
+│   └── file-processing.ts   ← CapabilityResult ✅ + Permissions ✅ (audit intents)
+└── shared/
+    ├── constants.ts
+    ├── contracts.ts          ← CapabilityResult<T> + resultToToolResponse()
+    ├── permissions.ts        ← checkCapabilityPermission() + role helpers
+    ├── validation.ts         ← Date, overlap, balance validators
+    ├── logging.ts            ← logCapabilityAction()
+    └── utils.ts              ← cap() + makeStructuredEvent()
+```
 
-## Changes Per File
-
-### 1. `capabilities/audits.ts`
-- Import `CapabilityResult`, `success`, `capabilityError`, `checkCapabilityPermission`, `logCapabilityAction`
-- Accept `PermissionContext` param on write functions (`createAuditTemplateDraft`, `executeAuditTemplateCreation`)
-- Add `checkCapabilityPermission({ action: "create", module: "location_audits", ctx })` at top of writes
-- Wrap returns: reads return `success({ audits, ...meta })`, errors return `capabilityError(msg)`
-- Add `logCapabilityAction` on successful template creation
-
-### 2. `capabilities/corrective-actions.ts`
-- Same pattern: `CapabilityResult` returns, permission check on `reassignCorrectiveAction` + `executeCaReassignment`
-- Module: `"corrective_actions"`, action: `"update"`
-
-### 3. `capabilities/workforce.ts`
-- Permission checks on all 4 write functions (employee draft/execute, shift draft/execute)
-- Module: `"workforce"`, action: `"create"`
-- `CapabilityResult` wrapping on all 6 functions
-
-### 4. `capabilities/operations.ts`
-- Read-only module — just wrap returns in `CapabilityResult` (no permission changes needed)
-
-### 5. `capabilities/overview.ts`
-- Read-only — wrap returns in `CapabilityResult`
-
-### 6. `capabilities/memory.ts`
-- Dash-internal tools — wrap in `CapabilityResult` for consistency, no module permission check (memory is always available)
-
-### 7. `capabilities/file-processing.ts`
-- `parseUploadedFile` — wrap in `CapabilityResult`, add permission check for audit-intent paths
-
-### 8. `index.ts` — `executeToolInner` routing
-- All non-time-off cases get wrapped: `return resultToToolResponse(await getAuditResults(...))`
-- Write cases pass `ctx` (from `buildPermCtx`) to capability functions
-- Pattern becomes identical to time-off cases
-
----
-
-## Implementation Order
-
-1. Update all 7 capability files (can be done in parallel — no interdependencies)
-2. Update `executeToolInner` routing to pass `ctx` and wrap with `resultToToolResponse`
-3. Deploy and verify
-
----
-
-## Files Modified
-
-| File | Action |
-|------|--------|
-| `capabilities/audits.ts` | Add imports, `CapabilityResult` returns, permission checks on writes |
-| `capabilities/corrective-actions.ts` | Same |
-| `capabilities/workforce.ts` | Same |
-| `capabilities/operations.ts` | `CapabilityResult` returns only |
-| `capabilities/overview.ts` | `CapabilityResult` returns only |
-| `capabilities/memory.ts` | `CapabilityResult` returns only |
-| `capabilities/file-processing.ts` | `CapabilityResult` returns + permission check |
-| `index.ts` | Wrap all routing with `resultToToolResponse`, pass `ctx` to writes |
-
+## Phases Completed
+- Phase 1: Shared Foundation ✅
+- Phase 2: Capability Registry ✅
+- Phase 3: Time-Off Reference Implementation ✅
+- Phase 4: Tool Definitions Extraction ✅
+- Phase 5: System Prompt + Routing ✅
+- Phase 6: Bulk Domain Migration ✅
+- Phase 7: Bug Fixes + Final Extraction ✅
+- Phase 8: Contract Standardization + Permission Enforcement ✅

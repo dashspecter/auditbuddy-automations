@@ -1,8 +1,12 @@
 /**
  * Audits Capability Module
  * Migrated from index.ts — all audit domain logic lives here.
+ * Phase 8: Standardized on CapabilityResult + permission enforcement.
  */
-import { AUDIT_FINISHED_STATUSES, MAX_TOOL_ROWS } from "../shared/constants.ts";
+import { AUDIT_FINISHED_STATUSES } from "../shared/constants.ts";
+import { type CapabilityResult, success, capabilityError } from "../shared/contracts.ts";
+import { type PermissionContext, checkCapabilityPermission } from "../shared/permissions.ts";
+import { logCapabilityAction } from "../shared/logging.ts";
 import { cap, makeStructuredEvent } from "../shared/utils.ts";
 
 
@@ -10,14 +14,14 @@ import { cap, makeStructuredEvent } from "../shared/utils.ts";
 
 export async function getAuditResults(
   sb: any, companyId: string, args: any, structuredEvents: string[]
-): Promise<any> {
-  const limit = Math.min(args.limit || 20, MAX_TOOL_ROWS);
+): Promise<CapabilityResult<any>> {
+  const limit = Math.min(args.limit || 20, 200);
   let q = sb.from("location_audits").select("id, overall_score, status, audit_date, location_id, locations(name), template_id, audit_templates(name)")
     .in("status", AUDIT_FINISHED_STATUSES).gte("audit_date", args.from).lte("audit_date", args.to).order("audit_date", { ascending: false }).limit(limit);
   if (args.location_id) q = q.eq("location_id", args.location_id);
   if (args.template_id) q = q.eq("template_id", args.template_id);
   const { data, error } = await q;
-  if (error) return { error: error.message };
+  if (error) return capabilityError(error.message);
   const c = cap(data, limit);
   const audits = c.items.map((a: any) => ({ id: a.id, score: a.overall_score, status: a.status, audit_date: a.audit_date, location: a.locations?.name, template: a.audit_templates?.name }));
   if (audits.length > 0) {
@@ -27,18 +31,18 @@ export async function getAuditResults(
       rows: audits.map((a: any) => [a.audit_date, a.location ?? "—", a.template ?? "—", a.score ?? "—", a.status]),
     }));
   }
-  return { ...c, audits };
+  return success({ audits, total: c.total, returned: c.returned, truncated: c.truncated });
 }
 
 export async function compareLocationPerformance(
   sb: any, companyId: string, args: any, structuredEvents: string[]
-): Promise<any> {
+): Promise<CapabilityResult<any>> {
   let locationIds: string[] = args.location_ids ?? [];
   if (locationIds.length === 0) {
     const { data: allLocs } = await sb.from("locations").select("id").eq("status", "active").eq("company_id", companyId).limit(100);
     locationIds = (allLocs ?? []).map((l: any) => l.id);
   }
-  if (locationIds.length === 0) return { error: "No active locations found for your company." };
+  if (locationIds.length === 0) return capabilityError("No active locations found for your company.");
 
   const results: any[] = [];
   const noDataLocations: string[] = [];
@@ -60,14 +64,18 @@ export async function compareLocationPerformance(
       rows: results.map((r: any) => [r.location_name, r.avg_score, r.audit_count, r.min_score, r.max_score]),
     }));
   }
-  return { date_range: { from: args.from, to: args.to }, comparisons: results, locations_with_no_scored_audits: noDataLocations };
+  return success({ date_range: { from: args.from, to: args.to }, comparisons: results, locations_with_no_scored_audits: noDataLocations });
 }
 
 // ─── Draft Tools ───
 
 export async function createAuditTemplateDraft(
-  sbService: any, companyId: string, userId: string, args: any, structuredEvents: string[]
-): Promise<any> {
+  sbService: any, companyId: string, userId: string, args: any, structuredEvents: string[],
+  ctx: PermissionContext
+): Promise<CapabilityResult<any>> {
+  const permCheck = checkCapabilityPermission({ action: "create", module: "location_audits", ctx });
+  if (!permCheck.ok) return permCheck;
+
   const sectionCount = args.sections?.length || 0;
   const fieldCount = args.sections?.reduce((sum: number, s: any) => sum + (s.fields?.length || 0), 0) || 0;
 
@@ -100,7 +108,7 @@ export async function createAuditTemplateDraft(
     can_approve: true,
   }));
 
-  return {
+  return success({
     type: "audit_template_draft",
     draft,
     pending_action_id: pendingActionId,
@@ -108,15 +116,19 @@ export async function createAuditTemplateDraft(
     requires_approval: true,
     risk_level: "medium",
     message: `Audit template "${args.template_name}" draft ready (ID: ${pendingActionId}). User can approve to create.`,
-  };
+  });
 }
 
 // ─── Execute Tools ───
 
 export async function executeAuditTemplateCreation(
   sbService: any, companyId: string, userId: string, args: any, structuredEvents: string[],
-  hydrateArgsFromDraft: (actionName: string, previewJson: any) => Record<string, any>
-): Promise<any> {
+  hydrateArgsFromDraft: (actionName: string, previewJson: any) => Record<string, any>,
+  ctx: PermissionContext
+): Promise<CapabilityResult<any>> {
+  const permCheck = checkCapabilityPermission({ action: "create", module: "location_audits", ctx });
+  if (!permCheck.ok) return permCheck;
+
   let templateName = args.template_name;
   let templateDescription = args.description;
   let templateSections = args.sections;
@@ -126,8 +138,8 @@ export async function executeAuditTemplateCreation(
       .select("id, status, company_id, preview_json")
       .eq("id", args.pending_action_id)
       .maybeSingle();
-    if (pa && pa.company_id !== companyId) return { error: "Cross-tenant action rejected." };
-    if (pa && pa.status !== "pending") return { error: `Action already ${pa.status}.` };
+    if (pa && pa.company_id !== companyId) return capabilityError("Cross-tenant action rejected.");
+    if (pa && pa.status !== "pending") return capabilityError(`Action already ${pa.status}.`);
 
     if (pa?.preview_json && (!templateName || !templateSections)) {
       const preview = pa.preview_json as any;
@@ -138,7 +150,7 @@ export async function executeAuditTemplateCreation(
   }
 
   if (!templateName) {
-    return { error: "Template name is required but was not provided." };
+    return capabilityError("Template name is required but was not provided.");
   }
 
   const { data: tmplData, error: tmplError } = await sbService.from("audit_templates").insert({
@@ -163,7 +175,7 @@ export async function executeAuditTemplateCreation(
       summary: tmplError.message,
       errors: [tmplError.message],
     }));
-    return { error: `Failed to create template: ${tmplError.message}` };
+    return capabilityError(`Failed to create template: ${tmplError.message}`);
   }
 
   let sectionErrors: string[] = [];
@@ -204,18 +216,10 @@ export async function executeAuditTemplateCreation(
       .eq("id", args.pending_action_id);
   }
 
-  await sbService.from("dash_action_log").insert({
-    company_id: companyId,
-    user_id: userId,
-    action_type: "write",
-    action_name: "create_audit_template",
-    risk_level: "medium",
-    request_json: args,
-    result_json: { template_id: tmplData.id },
-    status: "success",
-    approval_status: "approved",
-    entities_affected: [tmplData.id],
-    modules_touched: ["location_audits"],
+  await logCapabilityAction(sbService, {
+    companyId, userId, capability: "audits.create_template", actionType: "write",
+    riskLevel: "medium", request: args, result: { template_id: tmplData.id },
+    entitiesAffected: [tmplData.id], module: "location_audits",
   });
 
   const resultStatus = sectionErrors.length > 0 ? "partial" : "success";
@@ -227,11 +231,11 @@ export async function executeAuditTemplateCreation(
     errors: sectionErrors.length > 0 ? sectionErrors : undefined,
   }));
 
-  return {
+  return success({
     type: "audit_template_created",
     template_id: tmplData.id,
     template_name: tmplData.name,
     section_errors: sectionErrors,
     message: `Audit template "${tmplData.name}" created successfully! ${sectionErrors.length > 0 ? `${sectionErrors.length} issues with sections.` : "You can find it in Audit Templates."}`,
-  };
+  });
 }

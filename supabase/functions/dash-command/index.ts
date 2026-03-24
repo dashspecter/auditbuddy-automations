@@ -236,104 +236,123 @@ async function executeToolInner(
 ): Promise<any> {
   switch (name) {
 
-    // ────────── OVERVIEW & LOCATION TOOLS (capability modules) ──────────
+    // ────────── OVERVIEW & LOCATION TOOLS ──────────
     case "search_locations":
-      return searchLocations(sb, companyId, args);
-
+      return resultToToolResponse(await searchLocations(sb, companyId, args));
 
     case "search_employees":
-      return searchEmployees(sb, companyId, args);
+      return resultToToolResponse(await searchEmployees(sb, companyId, args));
 
     case "get_location_overview":
-      return getLocationOverview(sb, companyId, args);
+      return resultToToolResponse(await getLocationOverview(sb, companyId, args));
 
     case "get_cross_module_summary":
-      return getCrossModuleSummary(sb, companyId, args, utcRange);
+      return resultToToolResponse(await getCrossModuleSummary(sb, companyId, args, utcRange));
 
-    // ────────── AUDIT TOOLS (capability module) ──────────
+    // ────────── AUDIT TOOLS ──────────
     case "get_audit_results":
-      return getAuditResults(sb, companyId, args, structuredEvents);
+      return resultToToolResponse(await getAuditResults(sb, companyId, args, structuredEvents));
 
     case "compare_location_performance":
-      return compareLocationPerformance(sb, companyId, args, structuredEvents);
+      return resultToToolResponse(await compareLocationPerformance(sb, companyId, args, structuredEvents));
 
-    // ────────── CORRECTIVE ACTIONS (capability module) ──────────
+    // ────────── CORRECTIVE ACTIONS ──────────
     case "get_open_corrective_actions":
-      return getOpenCorrectiveActions(sb, companyId, args);
+      return resultToToolResponse(await getOpenCorrectiveActions(sb, companyId, args));
 
-    // ────────── OPERATIONS (capability module) ──────────
+    // ────────── OPERATIONS ──────────
     case "get_task_completion_summary":
-      return getTaskCompletionSummary(sb, companyId, args);
+      return resultToToolResponse(await getTaskCompletionSummary(sb, companyId, args));
 
     case "get_attendance_exceptions":
-      return getAttendanceExceptions(sb, companyId, args, utcRange);
+      return resultToToolResponse(await getAttendanceExceptions(sb, companyId, args, utcRange));
 
     case "get_work_order_status":
-      return getWorkOrderStatus(sb, companyId, args);
+      return resultToToolResponse(await getWorkOrderStatus(sb, companyId, args));
 
     case "get_document_expiries":
-      return getDocumentExpiries(sb, companyId, args);
+      return resultToToolResponse(await getDocumentExpiries(sb, companyId, args));
 
     case "get_training_gaps":
-      return getTrainingGaps(sb, companyId, args);
+      return resultToToolResponse(await getTrainingGaps(sb, companyId, args));
 
-    // ────────── DRAFT TOOLS (capability modules) ──────────
-    case "create_employee_draft":
-      return createEmployeeDraft(sb, sbService, companyId, userId, args, structuredEvents);
+    // ────────── DRAFT TOOLS (with permission context) ──────────
+    case "create_employee_draft": {
+      const ctx = buildPermCtx(companyId, userId, platformRoles, companyRole, activeModules);
+      return resultToToolResponse(await createEmployeeDraft(sb, sbService, companyId, userId, args, structuredEvents, ctx));
+    }
 
-    case "create_audit_template_draft":
-      return createAuditTemplateDraft(sbService, companyId, userId, args, structuredEvents);
+    case "create_audit_template_draft": {
+      const ctx = buildPermCtx(companyId, userId, platformRoles, companyRole, activeModules);
+      return resultToToolResponse(await createAuditTemplateDraft(sbService, companyId, userId, args, structuredEvents, ctx));
+    }
 
-    case "create_shift_draft":
-      return createShiftDraft(sb, sbService, companyId, userId, args, structuredEvents);
+    case "create_shift_draft": {
+      const ctx = buildPermCtx(companyId, userId, platformRoles, companyRole, activeModules);
+      return resultToToolResponse(await createShiftDraft(sb, sbService, companyId, userId, args, structuredEvents, ctx));
+    }
 
-    case "reassign_corrective_action":
-      return reassignCorrectiveAction(sb, sbService, companyId, userId, args, structuredEvents);
+    case "reassign_corrective_action": {
+      const ctx = buildPermCtx(companyId, userId, platformRoles, companyRole, activeModules);
+      return resultToToolResponse(await reassignCorrectiveAction(sb, sbService, companyId, userId, args, structuredEvents, ctx));
+    }
 
-    // ────────── EXECUTE TOOLS (capability modules) ──────────
-    case "execute_employee_creation":
-      return executeEmployeeCreation(sbService, companyId, userId, args, structuredEvents, hydrateArgsFromDraft);
+    // ────────── EXECUTE TOOLS (with permission context) ──────────
+    case "execute_employee_creation": {
+      const ctx = buildPermCtx(companyId, userId, platformRoles, companyRole, activeModules);
+      return resultToToolResponse(await executeEmployeeCreation(sbService, companyId, userId, args, structuredEvents, hydrateArgsFromDraft, ctx));
+    }
 
-    case "execute_audit_template_creation":
-      return executeAuditTemplateCreation(sbService, companyId, userId, args, structuredEvents, hydrateArgsFromDraft);
+    case "execute_audit_template_creation": {
+      const ctx = buildPermCtx(companyId, userId, platformRoles, companyRole, activeModules);
+      return resultToToolResponse(await executeAuditTemplateCreation(sbService, companyId, userId, args, structuredEvents, hydrateArgsFromDraft, ctx));
+    }
 
-    case "execute_shift_creation":
-      return executeShiftCreation(sbService, companyId, userId, args, structuredEvents);
+    case "execute_shift_creation": {
+      const ctx = buildPermCtx(companyId, userId, platformRoles, companyRole, activeModules);
+      return resultToToolResponse(await executeShiftCreation(sbService, companyId, userId, args, structuredEvents, ctx));
+    }
 
-    case "execute_ca_reassignment":
-      return executeCaReassignment(sbService, companyId, userId, args, structuredEvents);
+    case "execute_ca_reassignment": {
+      const ctx = buildPermCtx(companyId, userId, platformRoles, companyRole, activeModules);
+      return resultToToolResponse(await executeCaReassignment(sbService, companyId, userId, args, structuredEvents, ctx));
+    }
 
-    // ────────── MEMORY TOOLS (capability module) ──────────
+    // ────────── MEMORY TOOLS ──────────
     case "save_user_preference":
-      return saveUserPreference(sbService, companyId, userId, args);
+      return resultToToolResponse(await saveUserPreference(sbService, companyId, userId, args));
 
     case "get_user_preferences":
-      return getUserPreferences(sb, userId);
+      return resultToToolResponse(await getUserPreferences(sb, userId));
 
     case "save_org_memory":
-      return saveOrgMemory(sbService, companyId, userId, args);
+      return resultToToolResponse(await saveOrgMemory(sbService, companyId, userId, args));
 
     case "get_org_memory":
-      return getOrgMemory(sb, args);
+      return resultToToolResponse(await getOrgMemory(sb, args));
 
     case "save_workflow":
-      return saveWorkflow(sbService, companyId, userId, args);
+      return resultToToolResponse(await saveWorkflow(sbService, companyId, userId, args));
 
     case "list_saved_workflows":
-      return listSavedWorkflows(sb, userId);
+      return resultToToolResponse(await listSavedWorkflows(sb, userId));
 
-    // ────────── FILE PROCESSING TOOLS (capability module) ──────────
+    // ────────── FILE PROCESSING TOOLS ──────────
     case "transform_spreadsheet_to_schedule":
-      return transformSpreadsheetToSchedule(args);
+      return resultToToolResponse(await transformSpreadsheetToSchedule(args));
 
     case "transform_sop_to_training":
-      return transformSopToTraining(sbService, args);
+      return resultToToolResponse(await transformSopToTraining(sbService, args));
 
-    case "transform_compliance_doc_to_audit":
-      return parseUploadedFile(sbService, companyId, userId, { ...args, intent: "compliance_audit" }, structuredEvents);
+    case "transform_compliance_doc_to_audit": {
+      const ctx = buildPermCtx(companyId, userId, platformRoles, companyRole, activeModules);
+      return resultToToolResponse(await parseUploadedFile(sbService, companyId, userId, { ...args, intent: "compliance_audit" }, structuredEvents, ctx));
+    }
 
-    case "parse_uploaded_file":
-      return parseUploadedFile(sbService, companyId, userId, args, structuredEvents);
+    case "parse_uploaded_file": {
+      const ctx = buildPermCtx(companyId, userId, platformRoles, companyRole, activeModules);
+      return resultToToolResponse(await parseUploadedFile(sbService, companyId, userId, args, structuredEvents, ctx));
+    }
 
     // ────────── TIME-OFF CAPABILITY TOOLS ──────────
     case "get_time_off_balance": {
