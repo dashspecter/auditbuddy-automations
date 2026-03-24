@@ -48,7 +48,7 @@ export async function getCrossModuleSummary(
   const ur = await utcRange(sb, args.from, args.to);
   const locationFilter = args.location_id;
 
-  let auditQ = sb.from("location_audits").select("id, overall_score, status, location_id, locations(name)").gte("audit_date", args.from).lte("audit_date", args.to);
+  let auditQ = sb.from("location_audits").select("id, overall_score, status, location_id, locations(name)").eq("company_id", companyId).gte("audit_date", args.from).lte("audit_date", args.to);
   if (locationFilter) auditQ = auditQ.eq("location_id", locationFilter);
   const { data: audits } = await auditQ.limit(200);
 
