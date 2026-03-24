@@ -70,10 +70,10 @@ export const CAPABILITY_REGISTRY: Record<string, CapabilityEntry> = {
   workforce: {
     module: "workforce",
     entities: ["employee", "shift", "attendance_log"],
-    aliases: ["employee", "staff", "angajat", "personal", "shift", "tura"],
+    aliases: ["employee", "staff", "angajat", "personal", "shift", "tura", "schedule", "program", "swap", "schimb"],
     reads: ["search_employees", "get_attendance_exceptions"],
-    actions: ["create_employee", "create_shift"],
-    approvalClass: { create: "manager_required" },
+    actions: ["create_employee", "create_shift", "update_shift", "delete_shift", "swap_shifts"],
+    approvalClass: { create: "manager_required", update: "manager_required", delete: "manager_required", swap: "manager_required" },
     maturity: "stable",
   },
 

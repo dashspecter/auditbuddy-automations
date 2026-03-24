@@ -353,7 +353,21 @@ async function executeToolInner(
       return resultToToolResponse(await executeCaReassignment(sbService, companyId, userId, args, structuredEvents, ctx));
     }
 
-    // ────────── MEMORY TOOLS ──────────
+    case "execute_shift_update": {
+      const ctx = buildPermCtx(companyId, userId, platformRoles, companyRole, activeModules);
+      return resultToToolResponse(await executeShiftUpdate(sbService, companyId, userId, args, structuredEvents, ctx));
+    }
+
+    case "execute_shift_deletion": {
+      const ctx = buildPermCtx(companyId, userId, platformRoles, companyRole, activeModules);
+      return resultToToolResponse(await executeShiftDeletion(sbService, companyId, userId, args, structuredEvents, ctx));
+    }
+
+    case "execute_shift_swap": {
+      const ctx = buildPermCtx(companyId, userId, platformRoles, companyRole, activeModules);
+      return resultToToolResponse(await executeShiftSwap(sbService, companyId, userId, args, structuredEvents, ctx));
+    }
+
     case "save_user_preference":
       return resultToToolResponse(await saveUserPreference(sbService, companyId, userId, args));
 
