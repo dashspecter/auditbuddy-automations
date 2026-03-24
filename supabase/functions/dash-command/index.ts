@@ -26,6 +26,7 @@ import { getTaskCompletionSummary, getWorkOrderStatus, getDocumentExpiries, getT
 import { searchLocations, getLocationOverview, getCrossModuleSummary } from "./capabilities/overview.ts";
 import { saveUserPreference, getUserPreferences, saveOrgMemory, getOrgMemory, saveWorkflow, listSavedWorkflows } from "./capabilities/memory.ts";
 import { downloadFileAsBase64 as dlFileBase64, transformSpreadsheetToSchedule, transformSopToTraining, parseUploadedFile } from "./capabilities/file-processing.ts";
+import { CAPABILITY_REGISTRY } from "./registry.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
