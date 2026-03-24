@@ -899,6 +899,13 @@ async function executeToolInner(
         }
       }
       results.sort((a, b) => (b.avg_score ?? 0) - (a.avg_score ?? 0));
+      if (results.length > 0) {
+        structuredEvents.push(makeStructuredEvent("data_table", {
+          title: `Location Audit Comparison (${args.from} — ${args.to})`,
+          columns: ["Location", "Avg Score", "Audits", "Min", "Max"],
+          rows: results.map((r: any) => [r.location_name, r.avg_score, r.audit_count, r.min_score, r.max_score]),
+        }));
+      }
       return { date_range: { from: args.from, to: args.to }, comparisons: results, locations_with_no_scored_audits: noDataLocations };
     }
 
