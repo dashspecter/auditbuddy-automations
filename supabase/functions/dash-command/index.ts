@@ -166,14 +166,8 @@ function buildPermCtx(companyId: string, userId: string, platformRoles: string[]
   return { companyId, actorUserId: userId, platformRoles, companyRole, activeModules };
 }
 
-// ─── Helpers ────────────────────────────────────────────────
-function cap<T>(data: T[] | null, limit = MAX_TOOL_ROWS) {
-  const items = data ?? [];
-  const total = items.length;
-  return { items: items.slice(0, limit), total, returned: Math.min(total, limit), truncated: total > limit };
-}
-
 // downloadFileAsBase64 is now imported from capabilities/file-processing.ts as dlFileBase64
+
 
 async function utcRange(sb: any, from: string, to: string, tz = DEFAULT_TIMEZONE) {
   const { data, error } = await sb.rpc("tz_date_range_to_utc", { from_date: from, to_date: to, tz });
