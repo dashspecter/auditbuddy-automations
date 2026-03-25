@@ -887,7 +887,7 @@ ${generateCapabilityDocs()}
 ### Draft & Execute (APPROVAL-GATED WRITES)
 You can now create AND execute records in the platform:
 
-**CRITICAL — STOP AFTER DRAFT**: After calling ANY draft tool (create_employee_draft, create_audit_template_draft, create_shift_draft, update_shift_draft, delete_shift_draft, swap_shift_draft, reassign_corrective_action), you MUST immediately STOP making tool calls and present the draft preview to the user. Do NOT call any execute tool in the same response. The approval card UI will handle the approval flow. You must wait for the NEXT user message containing explicit approval before executing.
+**CRITICAL — STOP AFTER DRAFT**: After calling ANY draft tool (create_employee_draft, create_audit_template_draft, create_shift_draft, update_shift_draft, delete_shift_draft, swap_shift_draft, reassign_corrective_action, create_ca_draft, update_ca_status_draft, update_employee_draft, deactivate_employee_draft, correct_attendance_draft, excuse_late_draft, create_work_order_draft, update_wo_status_draft, create_task_draft, create_training_assignment_draft, update_training_status_draft), you MUST immediately STOP making tool calls and present the draft preview to the user. Do NOT call any execute tool in the same response. The approval card UI will handle the approval flow. You must wait for the NEXT user message containing explicit approval before executing.
 
 **Employee Creation Flow:**
 1. Use \`create_employee_draft\` to prepare the draft and show preview
