@@ -421,6 +421,106 @@ async function executeToolInner(
       return resultToToolResponse(await executeShiftSwap(sbService, companyId, userId, args, structuredEvents, ctx));
     }
 
+    // ────────── B2: CA LIFECYCLE ──────────
+    case "create_ca_draft": {
+      const ctx = buildPermCtx(companyId, userId, platformRoles, companyRole, activeModules);
+      return resultToToolResponse(await createCaDraft(sb, sbService, companyId, userId, args, structuredEvents, ctx));
+    }
+    case "execute_ca_creation": {
+      const ctx = buildPermCtx(companyId, userId, platformRoles, companyRole, activeModules);
+      return resultToToolResponse(await executeCaCreation(sbService, companyId, userId, args, structuredEvents, ctx));
+    }
+    case "update_ca_status_draft": {
+      const ctx = buildPermCtx(companyId, userId, platformRoles, companyRole, activeModules);
+      return resultToToolResponse(await updateCaStatusDraft(sb, sbService, companyId, userId, args, structuredEvents, ctx));
+    }
+    case "execute_ca_status_update": {
+      const ctx = buildPermCtx(companyId, userId, platformRoles, companyRole, activeModules);
+      return resultToToolResponse(await executeCaStatusUpdate(sbService, companyId, userId, args, structuredEvents, ctx));
+    }
+
+    // ────────── B3: EMPLOYEE MANAGEMENT ──────────
+    case "update_employee_draft": {
+      const ctx = buildPermCtx(companyId, userId, platformRoles, companyRole, activeModules);
+      return resultToToolResponse(await updateEmployeeDraft(sb, sbService, companyId, userId, args, structuredEvents, ctx));
+    }
+    case "execute_employee_update": {
+      const ctx = buildPermCtx(companyId, userId, platformRoles, companyRole, activeModules);
+      return resultToToolResponse(await executeEmployeeUpdate(sbService, companyId, userId, args, structuredEvents, ctx));
+    }
+    case "deactivate_employee_draft": {
+      const ctx = buildPermCtx(companyId, userId, platformRoles, companyRole, activeModules);
+      return resultToToolResponse(await deactivateEmployeeDraft(sb, sbService, companyId, userId, args, structuredEvents, ctx));
+    }
+    case "execute_employee_deactivation": {
+      const ctx = buildPermCtx(companyId, userId, platformRoles, companyRole, activeModules);
+      return resultToToolResponse(await executeEmployeeDeactivation(sbService, companyId, userId, args, structuredEvents, ctx));
+    }
+
+    // ────────── B4: ATTENDANCE CORRECTIONS ──────────
+    case "correct_attendance_draft": {
+      const ctx = buildPermCtx(companyId, userId, platformRoles, companyRole, activeModules);
+      return resultToToolResponse(await correctAttendanceDraft(sb, sbService, companyId, userId, args, structuredEvents, ctx));
+    }
+    case "execute_attendance_correction": {
+      const ctx = buildPermCtx(companyId, userId, platformRoles, companyRole, activeModules);
+      return resultToToolResponse(await executeAttendanceCorrection(sbService, companyId, userId, args, structuredEvents, ctx));
+    }
+    case "excuse_late_draft": {
+      const ctx = buildPermCtx(companyId, userId, platformRoles, companyRole, activeModules);
+      return resultToToolResponse(await excuseLateDraft(sb, sbService, companyId, userId, args, structuredEvents, ctx));
+    }
+    case "execute_excuse_late": {
+      const ctx = buildPermCtx(companyId, userId, platformRoles, companyRole, activeModules);
+      return resultToToolResponse(await executeExcuseLate(sbService, companyId, userId, args, structuredEvents, ctx));
+    }
+
+    // ────────── B5: WORK ORDERS ──────────
+    case "create_work_order_draft": {
+      const ctx = buildPermCtx(companyId, userId, platformRoles, companyRole, activeModules);
+      return resultToToolResponse(await createWorkOrderDraft(sb, sbService, companyId, userId, args, structuredEvents, ctx));
+    }
+    case "execute_work_order_creation": {
+      const ctx = buildPermCtx(companyId, userId, platformRoles, companyRole, activeModules);
+      return resultToToolResponse(await executeWorkOrderCreation(sbService, companyId, userId, args, structuredEvents, ctx));
+    }
+    case "update_wo_status_draft": {
+      const ctx = buildPermCtx(companyId, userId, platformRoles, companyRole, activeModules);
+      return resultToToolResponse(await updateWoStatusDraft(sb, sbService, companyId, userId, args, structuredEvents, ctx));
+    }
+    case "execute_wo_status_update": {
+      const ctx = buildPermCtx(companyId, userId, platformRoles, companyRole, activeModules);
+      return resultToToolResponse(await executeWoStatusUpdate(sbService, companyId, userId, args, structuredEvents, ctx));
+    }
+
+    // ────────── B6: TASKS ──────────
+    case "create_task_draft": {
+      const ctx = buildPermCtx(companyId, userId, platformRoles, companyRole, activeModules);
+      return resultToToolResponse(await createTaskDraft(sb, sbService, companyId, userId, args, structuredEvents, ctx));
+    }
+    case "execute_task_creation": {
+      const ctx = buildPermCtx(companyId, userId, platformRoles, companyRole, activeModules);
+      return resultToToolResponse(await executeTaskCreation(sbService, companyId, userId, args, structuredEvents, ctx));
+    }
+
+    // ────────── B7: TRAINING ──────────
+    case "create_training_assignment_draft": {
+      const ctx = buildPermCtx(companyId, userId, platformRoles, companyRole, activeModules);
+      return resultToToolResponse(await createTrainingAssignmentDraft(sb, sbService, companyId, userId, args, structuredEvents, ctx));
+    }
+    case "execute_training_assignment": {
+      const ctx = buildPermCtx(companyId, userId, platformRoles, companyRole, activeModules);
+      return resultToToolResponse(await executeTrainingAssignment(sbService, companyId, userId, args, structuredEvents, ctx));
+    }
+    case "update_training_status_draft": {
+      const ctx = buildPermCtx(companyId, userId, platformRoles, companyRole, activeModules);
+      return resultToToolResponse(await updateTrainingStatusDraft(sb, sbService, companyId, userId, args, structuredEvents, ctx));
+    }
+    case "execute_training_status_update": {
+      const ctx = buildPermCtx(companyId, userId, platformRoles, companyRole, activeModules);
+      return resultToToolResponse(await executeTrainingStatusUpdate(sbService, companyId, userId, args, structuredEvents, ctx));
+    }
+
     case "save_user_preference":
       return resultToToolResponse(await saveUserPreference(sbService, companyId, userId, args));
 
