@@ -79,6 +79,15 @@ export function checkCapabilityPermission(params: {
       if (module === "location_audits" && !isManagerLevel(ctx)) {
         return permissionDenied("Only managers or admins can create audit templates.");
       }
+      if (module === "corrective_actions" && !isManagerLevel(ctx)) {
+        return permissionDenied("Only managers or admins can create corrective actions.");
+      }
+      if (module === "cmms" && !isManagerLevel(ctx)) {
+        return permissionDenied("Only managers or admins can create work orders.");
+      }
+      if (module === "tasks" && !isManagerLevel(ctx)) {
+        return permissionDenied("Only managers or admins can create tasks.");
+      }
       // Time-off and other modules: self-service allowed
       return success(true);
 
