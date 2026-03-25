@@ -10,7 +10,12 @@ import { cap } from "../shared/utils.ts";
 export async function getTaskCompletionSummary(
   sb: any, companyId: string, args: any
 ): Promise<CapabilityResult<any>> {
-  let q = sb.from("task_completions").select("id, completed_at, task_id, tasks(title, location_id, locations(name))").gte("completed_at", args.from).lte("completed_at", args.to + "T23:59:59Z");
+  // Defense-in-depth: task_completions has no company_id column, scope via tasks
+  const { data: companyTasks } = await sb.from("tasks").select("id").eq("company_id", companyId);
+  const taskIds = (companyTasks ?? []).map((t: any) => t.id);
+  if (taskIds.length === 0) return success({ date_range: { from: args.from, to: args.to }, completions_count: 0 });
+
+  let q = sb.from("task_completions").select("id, completed_at, task_id, tasks(title, location_id, locations(name))").in("task_id", taskIds).gte("completed_at", args.from).lte("completed_at", args.to + "T23:59:59Z");
   if (args.location_id) q = q.eq("tasks.location_id", args.location_id);
   const { data, error } = await q.limit(500);
   if (error) return capabilityError(error.message);

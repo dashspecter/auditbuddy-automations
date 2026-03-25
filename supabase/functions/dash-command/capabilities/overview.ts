@@ -30,7 +30,7 @@ export async function getLocationOverview(
     sb.from("employees").select("id", { count: "exact", head: true }).eq("location_id", locationId).eq("status", "active"),
     sb.from("location_audits").select("overall_score").eq("location_id", locationId).in("status", AUDIT_FINISHED_STATUSES).not("overall_score", "is", null).order("audit_date", { ascending: false }).limit(1),
     sb.from("corrective_actions").select("id", { count: "exact", head: true }).eq("location_id", locationId).in("status", ["open", "in_progress"]),
-    sb.from("tasks").select("id", { count: "exact", head: true }).eq("location_id", locationId),
+    sb.from("tasks").select("id", { count: "exact", head: true }).eq("location_id", locationId).eq("company_id", companyId),
   ]);
   return success({
     location: { id: locationId, name: locationName },
@@ -62,7 +62,25 @@ export async function getCrossModuleSummary(
 
   let attQ = sb.from("attendance_logs").select("id, is_late, late_minutes, auto_clocked_out, check_out_at");
   if (ur) attQ = attQ.gte("check_in_at", ur.fromUtc).lt("check_in_at", ur.toUtc);
-  if (locationFilter) attQ = attQ.eq("location_id", locationFilter);
+  if (locationFilter) {
+    attQ = attQ.eq("location_id", locationFilter);
+  } else {
+    // Defense-in-depth: attendance_logs has no company_id, scope via company locations
+    const { data: companyLocs } = await sb.from("locations").select("id").eq("company_id", companyId);
+    const locIds = (companyLocs ?? []).map((l: any) => l.id);
+    if (locIds.length > 0) attQ = attQ.in("location_id", locIds);
+    else {
+      // No locations = no attendance data possible
+      return success({
+        date_range: { from: args.from, to: args.to },
+        location_id: "all",
+        audits: { total: 0, finished: 0, scored: 0, avg_score: null },
+        corrective_actions: { open: 0, in_progress: 0, by_severity: { critical: 0, high: 0 } },
+        attendance: { total_logs: 0, late_arrivals: 0, missing_checkouts: 0 },
+        work_orders: { open: 0, in_progress: 0 },
+      });
+    }
+  }
   const { data: attLogs } = await attQ.limit(1000);
 
   const lateCount = (attLogs ?? []).filter((l: any) => l.is_late).length;
