@@ -19,6 +19,25 @@ export type DashStructuredEvent = {
 const DASH_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/dash-command`;
 const STREAM_TIMEOUT_MS = 90_000; // 90 seconds without data → abort
 
+/** Get a fresh access token, refreshing the session if needed */
+async function getFreshToken(): Promise<string> {
+  // First try getSession (cached, fast)
+  const { data: { session } } = await supabase.auth.getSession();
+  if (session?.access_token) {
+    // Check if token expires within 60 seconds — if so, force refresh
+    const expiresAt = session.expires_at ? session.expires_at * 1000 : 0;
+    if (expiresAt - Date.now() > 60_000) {
+      return session.access_token;
+    }
+  }
+  // Force refresh
+  const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
+  if (refreshError || !refreshData.session?.access_token) {
+    throw new Error("Session expired. Please sign in again.");
+  }
+  return refreshData.session.access_token;
+}
+
 function generateSessionId() {
   return crypto.randomUUID();
 }
@@ -227,18 +246,17 @@ export function useDashChat() {
     streamStartedRef.current = false;
 
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.access_token) throw new Error("You must be logged in");
+      let accessToken = await getFreshToken();
 
       const history = messages.map(m => ({ role: m.role, content: buildTransportText(m.content, m.attachments) }));
 
       abortRef.current = new AbortController();
 
-      const resp = await fetch(DASH_URL, {
+      const makeRequest = async (token: string) => fetch(DASH_URL, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${session.access_token}`,
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
           messages: history,
@@ -249,10 +267,22 @@ export function useDashChat() {
             execute_tool: executeTool,
           },
         }),
-        signal: abortRef.current.signal,
+        signal: abortRef.current!.signal,
       });
 
+      let resp = await makeRequest(accessToken);
+
+      // On 401, try refreshing the session once and retry
+      if (resp.status === 401) {
+        const { data: refreshData } = await supabase.auth.refreshSession();
+        if (refreshData.session?.access_token) {
+          accessToken = refreshData.session.access_token;
+          resp = await makeRequest(accessToken);
+        }
+      }
+
       if (!resp.ok || !resp.body) {
+        if (resp.status === 401) throw new Error("Session expired. Please sign in again.");
         const errBody = await resp.json().catch(() => ({ error: "Connection failed" }));
         throw new Error(errBody.error || "Failed to execute approval");
       }
@@ -294,8 +324,7 @@ export function useDashChat() {
     setIsLoading(true);
 
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.access_token) throw new Error("You must be logged in");
+      let accessToken = await getFreshToken();
 
       // Build transport text with file URLs for the backend only
       const history = [...messages, userMsg].map(m => ({
@@ -305,17 +334,29 @@ export function useDashChat() {
 
       abortRef.current = new AbortController();
 
-      const resp = await fetch(DASH_URL, {
+      const makeRequest = async (token: string) => fetch(DASH_URL, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${session.access_token}`,
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({ messages: history, session_id: sessionId }),
-        signal: abortRef.current.signal,
+        signal: abortRef.current!.signal,
       });
 
+      let resp = await makeRequest(accessToken);
+
+      // On 401, try refreshing the session once and retry
+      if (resp.status === 401) {
+        const { data: refreshData } = await supabase.auth.refreshSession();
+        if (refreshData.session?.access_token) {
+          accessToken = refreshData.session.access_token;
+          resp = await makeRequest(accessToken);
+        }
+      }
+
       if (!resp.ok || !resp.body) {
+        if (resp.status === 401) throw new Error("Session expired. Please sign in again.");
         if (resp.status === 429) throw new Error("Rate limit exceeded. Please wait a moment.");
         if (resp.status === 402) throw new Error("AI credits depleted. Please add credits in workspace settings.");
         const errBody = await resp.json().catch(() => ({ error: "Connection failed" }));
