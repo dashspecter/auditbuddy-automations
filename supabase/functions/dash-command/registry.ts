@@ -69,11 +69,11 @@ export const CAPABILITY_REGISTRY: Record<string, CapabilityEntry> = {
 
   workforce: {
     module: "workforce",
-    entities: ["employee", "shift", "attendance_log"],
-    aliases: ["employee", "staff", "angajat", "personal", "shift", "tura", "schedule", "program", "swap", "schimb"],
-    reads: ["search_employees", "get_attendance_exceptions"],
-    actions: ["create_employee", "create_shift", "update_shift", "delete_shift", "swap_shifts"],
-    approvalClass: { create: "manager_required", update: "manager_required", delete: "manager_required", swap: "manager_required" },
+    entities: ["employee", "shift", "attendance_log", "training_assignment"],
+    aliases: ["employee", "staff", "angajat", "personal", "shift", "tura", "schedule", "program", "swap", "schimb", "attendance", "prezenta", "training", "instruire"],
+    reads: ["search_employees", "get_attendance_exceptions", "get_training_gaps"],
+    actions: ["create_employee", "create_shift", "update_shift", "delete_shift", "swap_shifts", "update_employee_draft", "deactivate_employee_draft", "correct_attendance_draft", "excuse_late_draft", "create_training_assignment_draft", "update_training_status_draft"],
+    approvalClass: { create: "manager_required", update: "manager_required", delete: "manager_required", swap: "manager_required", deactivate: "manager_required" },
     maturity: "stable",
   },
 
