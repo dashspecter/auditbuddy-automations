@@ -20,9 +20,9 @@ import {
 
 // ─── Domain Capability Imports ───
 import { getAuditResults, compareLocationPerformance, createAuditTemplateDraft, executeAuditTemplateCreation } from "./capabilities/audits.ts";
-import { getOpenCorrectiveActions, reassignCorrectiveAction, executeCaReassignment } from "./capabilities/corrective-actions.ts";
+import { getOpenCorrectiveActions, reassignCorrectiveAction, executeCaReassignment, createCaDraft, executeCaCreation, updateCaStatusDraft, executeCaStatusUpdate } from "./capabilities/corrective-actions.ts";
 import { searchEmployees, getAttendanceExceptions, createEmployeeDraft, createShiftDraft, executeEmployeeCreation, executeShiftCreation, updateShiftDraft, executeShiftUpdate, deleteShiftDraft, executeShiftDeletion, swapShiftDraft, executeShiftSwap } from "./capabilities/workforce.ts";
-import { getTaskCompletionSummary, getWorkOrderStatus, getDocumentExpiries, getTrainingGaps } from "./capabilities/operations.ts";
+import { getTaskCompletionSummary, getWorkOrderStatus, getDocumentExpiries, getTrainingGaps, updateEmployeeDraft, executeEmployeeUpdate, deactivateEmployeeDraft, executeEmployeeDeactivation, correctAttendanceDraft, executeAttendanceCorrection, excuseLateDraft, executeExcuseLate, createWorkOrderDraft, executeWorkOrderCreation, updateWoStatusDraft, executeWoStatusUpdate, createTaskDraft, executeTaskCreation, createTrainingAssignmentDraft, executeTrainingAssignment, updateTrainingStatusDraft, executeTrainingStatusUpdate } from "./capabilities/operations.ts";
 import { searchLocations, getLocationOverview, getCrossModuleSummary } from "./capabilities/overview.ts";
 import { saveUserPreference, getUserPreferences, saveOrgMemory, getOrgMemory, saveWorkflow, listSavedWorkflows } from "./capabilities/memory.ts";
 import { downloadFileAsBase64 as dlFileBase64, transformSpreadsheetToSchedule, transformSopToTraining, parseUploadedFile } from "./capabilities/file-processing.ts";
@@ -57,6 +57,34 @@ const TOOL_MODULE_MAP: Record<string, string> = {
   execute_shift_swap: "workforce",
   transform_spreadsheet_to_schedule: "workforce",
   transform_sop_to_training: "workforce",
+  // B2: CA lifecycle
+  create_ca_draft: "corrective_actions",
+  execute_ca_creation: "corrective_actions",
+  update_ca_status_draft: "corrective_actions",
+  execute_ca_status_update: "corrective_actions",
+  // B3: Employee management
+  update_employee_draft: "workforce",
+  execute_employee_update: "workforce",
+  deactivate_employee_draft: "workforce",
+  execute_employee_deactivation: "workforce",
+  // B4: Attendance corrections
+  correct_attendance_draft: "workforce",
+  execute_attendance_correction: "workforce",
+  excuse_late_draft: "workforce",
+  execute_excuse_late: "workforce",
+  // B5: Work orders
+  create_work_order_draft: "cmms",
+  execute_work_order_creation: "cmms",
+  update_wo_status_draft: "cmms",
+  execute_wo_status_update: "cmms",
+  // B6: Tasks
+  create_task_draft: "tasks",
+  execute_task_creation: "tasks",
+  // B7: Training
+  create_training_assignment_draft: "workforce",
+  execute_training_assignment: "workforce",
+  update_training_status_draft: "workforce",
+  execute_training_status_update: "workforce",
   // Time-Off capability tools
   get_time_off_balance: "workforce",
   list_time_off_requests: "workforce",
@@ -83,6 +111,18 @@ const ACTION_EXECUTE_MAP: Record<string, string> = {
   update_shift: "execute_shift_update",
   delete_shift: "execute_shift_deletion",
   swap_shifts: "execute_shift_swap",
+  // B2-B7
+  create_corrective_action: "execute_ca_creation",
+  update_ca_status: "execute_ca_status_update",
+  update_employee: "execute_employee_update",
+  deactivate_employee: "execute_employee_deactivation",
+  correct_attendance: "execute_attendance_correction",
+  excuse_late_arrival: "execute_excuse_late",
+  create_work_order: "execute_work_order_creation",
+  update_wo_status: "execute_wo_status_update",
+  create_task: "execute_task_creation",
+  create_training_assignment: "execute_training_assignment",
+  update_training_status: "execute_training_status_update",
 };
 
 /** Hydrate execution args from pending action's preview_json based on action_name */
@@ -149,6 +189,19 @@ function hydrateArgsFromDraft(actionName: string, previewJson: any): Record<stri
         request_id: previewJson.request_id,
         employee_name: previewJson.employee_name,
       };
+    // B2-B7: all use pending_action_id from draft
+    case "create_corrective_action":
+    case "update_ca_status":
+    case "update_employee":
+    case "deactivate_employee":
+    case "correct_attendance":
+    case "excuse_late_arrival":
+    case "create_work_order":
+    case "update_wo_status":
+    case "create_task":
+    case "create_training_assignment":
+    case "update_training_status":
+      return { pending_action_id: previewJson.pending_action_id };
     default:
       return {};
   }
@@ -366,6 +419,106 @@ async function executeToolInner(
     case "execute_shift_swap": {
       const ctx = buildPermCtx(companyId, userId, platformRoles, companyRole, activeModules);
       return resultToToolResponse(await executeShiftSwap(sbService, companyId, userId, args, structuredEvents, ctx));
+    }
+
+    // ────────── B2: CA LIFECYCLE ──────────
+    case "create_ca_draft": {
+      const ctx = buildPermCtx(companyId, userId, platformRoles, companyRole, activeModules);
+      return resultToToolResponse(await createCaDraft(sb, sbService, companyId, userId, args, structuredEvents, ctx));
+    }
+    case "execute_ca_creation": {
+      const ctx = buildPermCtx(companyId, userId, platformRoles, companyRole, activeModules);
+      return resultToToolResponse(await executeCaCreation(sbService, companyId, userId, args, structuredEvents, ctx));
+    }
+    case "update_ca_status_draft": {
+      const ctx = buildPermCtx(companyId, userId, platformRoles, companyRole, activeModules);
+      return resultToToolResponse(await updateCaStatusDraft(sb, sbService, companyId, userId, args, structuredEvents, ctx));
+    }
+    case "execute_ca_status_update": {
+      const ctx = buildPermCtx(companyId, userId, platformRoles, companyRole, activeModules);
+      return resultToToolResponse(await executeCaStatusUpdate(sbService, companyId, userId, args, structuredEvents, ctx));
+    }
+
+    // ────────── B3: EMPLOYEE MANAGEMENT ──────────
+    case "update_employee_draft": {
+      const ctx = buildPermCtx(companyId, userId, platformRoles, companyRole, activeModules);
+      return resultToToolResponse(await updateEmployeeDraft(sb, sbService, companyId, userId, args, structuredEvents, ctx));
+    }
+    case "execute_employee_update": {
+      const ctx = buildPermCtx(companyId, userId, platformRoles, companyRole, activeModules);
+      return resultToToolResponse(await executeEmployeeUpdate(sbService, companyId, userId, args, structuredEvents, ctx));
+    }
+    case "deactivate_employee_draft": {
+      const ctx = buildPermCtx(companyId, userId, platformRoles, companyRole, activeModules);
+      return resultToToolResponse(await deactivateEmployeeDraft(sb, sbService, companyId, userId, args, structuredEvents, ctx));
+    }
+    case "execute_employee_deactivation": {
+      const ctx = buildPermCtx(companyId, userId, platformRoles, companyRole, activeModules);
+      return resultToToolResponse(await executeEmployeeDeactivation(sbService, companyId, userId, args, structuredEvents, ctx));
+    }
+
+    // ────────── B4: ATTENDANCE CORRECTIONS ──────────
+    case "correct_attendance_draft": {
+      const ctx = buildPermCtx(companyId, userId, platformRoles, companyRole, activeModules);
+      return resultToToolResponse(await correctAttendanceDraft(sb, sbService, companyId, userId, args, structuredEvents, ctx));
+    }
+    case "execute_attendance_correction": {
+      const ctx = buildPermCtx(companyId, userId, platformRoles, companyRole, activeModules);
+      return resultToToolResponse(await executeAttendanceCorrection(sbService, companyId, userId, args, structuredEvents, ctx));
+    }
+    case "excuse_late_draft": {
+      const ctx = buildPermCtx(companyId, userId, platformRoles, companyRole, activeModules);
+      return resultToToolResponse(await excuseLateDraft(sb, sbService, companyId, userId, args, structuredEvents, ctx));
+    }
+    case "execute_excuse_late": {
+      const ctx = buildPermCtx(companyId, userId, platformRoles, companyRole, activeModules);
+      return resultToToolResponse(await executeExcuseLate(sbService, companyId, userId, args, structuredEvents, ctx));
+    }
+
+    // ────────── B5: WORK ORDERS ──────────
+    case "create_work_order_draft": {
+      const ctx = buildPermCtx(companyId, userId, platformRoles, companyRole, activeModules);
+      return resultToToolResponse(await createWorkOrderDraft(sb, sbService, companyId, userId, args, structuredEvents, ctx));
+    }
+    case "execute_work_order_creation": {
+      const ctx = buildPermCtx(companyId, userId, platformRoles, companyRole, activeModules);
+      return resultToToolResponse(await executeWorkOrderCreation(sbService, companyId, userId, args, structuredEvents, ctx));
+    }
+    case "update_wo_status_draft": {
+      const ctx = buildPermCtx(companyId, userId, platformRoles, companyRole, activeModules);
+      return resultToToolResponse(await updateWoStatusDraft(sb, sbService, companyId, userId, args, structuredEvents, ctx));
+    }
+    case "execute_wo_status_update": {
+      const ctx = buildPermCtx(companyId, userId, platformRoles, companyRole, activeModules);
+      return resultToToolResponse(await executeWoStatusUpdate(sbService, companyId, userId, args, structuredEvents, ctx));
+    }
+
+    // ────────── B6: TASKS ──────────
+    case "create_task_draft": {
+      const ctx = buildPermCtx(companyId, userId, platformRoles, companyRole, activeModules);
+      return resultToToolResponse(await createTaskDraft(sb, sbService, companyId, userId, args, structuredEvents, ctx));
+    }
+    case "execute_task_creation": {
+      const ctx = buildPermCtx(companyId, userId, platformRoles, companyRole, activeModules);
+      return resultToToolResponse(await executeTaskCreation(sbService, companyId, userId, args, structuredEvents, ctx));
+    }
+
+    // ────────── B7: TRAINING ──────────
+    case "create_training_assignment_draft": {
+      const ctx = buildPermCtx(companyId, userId, platformRoles, companyRole, activeModules);
+      return resultToToolResponse(await createTrainingAssignmentDraft(sb, sbService, companyId, userId, args, structuredEvents, ctx));
+    }
+    case "execute_training_assignment": {
+      const ctx = buildPermCtx(companyId, userId, platformRoles, companyRole, activeModules);
+      return resultToToolResponse(await executeTrainingAssignment(sbService, companyId, userId, args, structuredEvents, ctx));
+    }
+    case "update_training_status_draft": {
+      const ctx = buildPermCtx(companyId, userId, platformRoles, companyRole, activeModules);
+      return resultToToolResponse(await updateTrainingStatusDraft(sb, sbService, companyId, userId, args, structuredEvents, ctx));
+    }
+    case "execute_training_status_update": {
+      const ctx = buildPermCtx(companyId, userId, platformRoles, companyRole, activeModules);
+      return resultToToolResponse(await executeTrainingStatusUpdate(sbService, companyId, userId, args, structuredEvents, ctx));
     }
 
     case "save_user_preference":
@@ -734,7 +887,7 @@ ${generateCapabilityDocs()}
 ### Draft & Execute (APPROVAL-GATED WRITES)
 You can now create AND execute records in the platform:
 
-**CRITICAL — STOP AFTER DRAFT**: After calling ANY draft tool (create_employee_draft, create_audit_template_draft, create_shift_draft, update_shift_draft, delete_shift_draft, swap_shift_draft, reassign_corrective_action), you MUST immediately STOP making tool calls and present the draft preview to the user. Do NOT call any execute tool in the same response. The approval card UI will handle the approval flow. You must wait for the NEXT user message containing explicit approval before executing.
+**CRITICAL — STOP AFTER DRAFT**: After calling ANY draft tool (create_employee_draft, create_audit_template_draft, create_shift_draft, update_shift_draft, delete_shift_draft, swap_shift_draft, reassign_corrective_action, create_ca_draft, update_ca_status_draft, update_employee_draft, deactivate_employee_draft, correct_attendance_draft, excuse_late_draft, create_work_order_draft, update_wo_status_draft, create_task_draft, create_training_assignment_draft, update_training_status_draft), you MUST immediately STOP making tool calls and present the draft preview to the user. Do NOT call any execute tool in the same response. The approval card UI will handle the approval flow. You must wait for the NEXT user message containing explicit approval before executing.
 
 **Employee Creation Flow:**
 1. Use \`create_employee_draft\` to prepare the draft and show preview
