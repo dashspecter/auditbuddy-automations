@@ -1040,7 +1040,10 @@ serve(async (req) => {
         // Hydrate execution args from draft preview_json
         if (pendingAction?.action_name && pendingAction?.preview_json) {
           const draftArgs = hydrateArgsFromDraft(pendingAction.action_name, pendingAction.preview_json);
+          // Merge draft args but ALWAYS preserve the authoritative pending_action_id
+          const safePendingActionId = hydratedArgs.pending_action_id;
           hydratedArgs = { ...hydratedArgs, ...draftArgs };
+          hydratedArgs.pending_action_id = safePendingActionId;
         }
       } catch (e) { console.error("[Dash] Failed to resolve pending action for direct approval:", e); }
 
