@@ -2,7 +2,7 @@ import { useRef, useEffect, memo } from "react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Bot, User, Sparkles, Loader2, RotateCcw, Paperclip } from "lucide-react";
 import { cn } from "@/lib/utils";
-import type { DashMessage, DashStructuredEvent } from "@/hooks/useDashChat";
+import type { DashMessage, DashStructuredEvent, ApprovalResult } from "@/hooks/useDashChat";
 import type { DashAttachment } from "@/components/dash/DashInput";
 import { Button } from "@/components/ui/button";
 import ReactMarkdown from "react-markdown";
