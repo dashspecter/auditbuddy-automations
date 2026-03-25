@@ -704,13 +704,16 @@ export async function executeShiftDeletion(
 
   const preview = pa.preview_json as any;
 
-  // Remove assignment first, then cancel the shift
+  // Remove assignment first, then hard-delete the shift record
   if (preview.assignment_id) {
     await sbService.from("shift_assignments").delete().eq("id", preview.assignment_id);
   }
 
+  // Delete any remaining assignments for this shift (e.g. open-shift or multi-assign)
+  await sbService.from("shift_assignments").delete().eq("shift_id", preview.shift_id);
+
   const { error: delError } = await sbService.from("shifts")
-    .update({ cancelled_at: new Date().toISOString(), status: "cancelled", updated_at: new Date().toISOString() })
+    .delete()
     .eq("id", preview.shift_id).eq("company_id", companyId);
 
   if (delError) {
@@ -726,17 +729,17 @@ export async function executeShiftDeletion(
 
   await logCapabilityAction(sbService, {
     companyId, userId, capability: "workforce.delete_shift", actionType: "write",
-    riskLevel: "high", request: preview, result: { shift_id: preview.shift_id, cancelled: true },
+    riskLevel: "high", request: preview, result: { shift_id: preview.shift_id, deleted: true },
     entitiesAffected: [preview.shift_id], module: "workforce",
   });
 
   structuredEvents.push(makeStructuredEvent("execution_result", {
-    status: "success", title: "Shift Cancelled",
-    summary: `${preview.role} shift at ${preview.location_name} on ${preview.shift_date} has been cancelled.`,
-    changes: [`Shift cancelled`, `Assignment for ${preview.employee_name} removed`],
+    status: "success", title: "Shift Deleted",
+    summary: `${preview.role} shift at ${preview.location_name} on ${preview.shift_date} has been deleted.`,
+    changes: [`Shift deleted`, `Assignment for ${preview.employee_name} removed`],
   }));
 
-  return success({ type: "shift_deleted", shift_id: preview.shift_id, message: `Shift cancelled successfully.` });
+  return success({ type: "shift_deleted", shift_id: preview.shift_id, message: `Shift deleted successfully.` });
 }
 
 // ─── Draft: Swap Shifts ───
