@@ -111,6 +111,18 @@ const ACTION_EXECUTE_MAP: Record<string, string> = {
   update_shift: "execute_shift_update",
   delete_shift: "execute_shift_deletion",
   swap_shifts: "execute_shift_swap",
+  // B2-B7
+  create_corrective_action: "execute_ca_creation",
+  update_ca_status: "execute_ca_status_update",
+  update_employee: "execute_employee_update",
+  deactivate_employee: "execute_employee_deactivation",
+  correct_attendance: "execute_attendance_correction",
+  excuse_late_arrival: "execute_excuse_late",
+  create_work_order: "execute_work_order_creation",
+  update_wo_status: "execute_wo_status_update",
+  create_task: "execute_task_creation",
+  create_training_assignment: "execute_training_assignment",
+  update_training_status: "execute_training_status_update",
 };
 
 /** Hydrate execution args from pending action's preview_json based on action_name */
