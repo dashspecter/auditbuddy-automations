@@ -49,12 +49,12 @@ function StructuredEventRenderer({ event, onSuggestedClick, onDirectApproval }: 
             onSuggestedClick(`I approve this action (pending_action_id: ${pendingActionId}). Please execute it now.`);
             return { success: true };
           }}
-          onReject={(pendingActionId) => {
+          onReject={async (pendingActionId) => {
             if (onDirectApproval) {
-              onDirectApproval(pendingActionId, "reject");
-            } else {
-              onSuggestedClick(`I reject this action (pending_action_id: ${pendingActionId}). Do not execute.`);
+              return await onDirectApproval(pendingActionId, "reject");
             }
+            onSuggestedClick(`I reject this action (pending_action_id: ${pendingActionId}). Do not execute.`);
+            return { success: true };
           }}
         />
       );
