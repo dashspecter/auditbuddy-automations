@@ -57,6 +57,34 @@ const TOOL_MODULE_MAP: Record<string, string> = {
   execute_shift_swap: "workforce",
   transform_spreadsheet_to_schedule: "workforce",
   transform_sop_to_training: "workforce",
+  // B2: CA lifecycle
+  create_ca_draft: "corrective_actions",
+  execute_ca_creation: "corrective_actions",
+  update_ca_status_draft: "corrective_actions",
+  execute_ca_status_update: "corrective_actions",
+  // B3: Employee management
+  update_employee_draft: "workforce",
+  execute_employee_update: "workforce",
+  deactivate_employee_draft: "workforce",
+  execute_employee_deactivation: "workforce",
+  // B4: Attendance corrections
+  correct_attendance_draft: "workforce",
+  execute_attendance_correction: "workforce",
+  excuse_late_draft: "workforce",
+  execute_excuse_late: "workforce",
+  // B5: Work orders
+  create_work_order_draft: "cmms",
+  execute_work_order_creation: "cmms",
+  update_wo_status_draft: "cmms",
+  execute_wo_status_update: "cmms",
+  // B6: Tasks
+  create_task_draft: "tasks",
+  execute_task_creation: "tasks",
+  // B7: Training
+  create_training_assignment_draft: "workforce",
+  execute_training_assignment: "workforce",
+  update_training_status_draft: "workforce",
+  execute_training_status_update: "workforce",
   // Time-Off capability tools
   get_time_off_balance: "workforce",
   list_time_off_requests: "workforce",
