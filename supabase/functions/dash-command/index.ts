@@ -125,7 +125,10 @@ const ACTION_EXECUTE_MAP: Record<string, string> = {
   update_training_status: "execute_training_status_update",
 };
 
-/** Hydrate execution args from pending action's preview_json based on action_name */
+/** Hydrate execution args from pending action's preview_json based on action_name.
+ *  IMPORTANT: Never return pending_action_id here — the caller already has the
+ *  authoritative value from direct_approval. Returning it from preview_json would
+ *  overwrite the real ID with undefined (preview_json doesn't store it). */
 function hydrateArgsFromDraft(actionName: string, previewJson: any): Record<string, any> {
   if (!previewJson) return {};
   switch (actionName) {
@@ -169,12 +172,6 @@ function hydrateArgsFromDraft(actionName: string, previewJson: any): Record<stri
         new_assigned_name: previewJson.new_assigned_name,
         reason: previewJson.reason,
       };
-    case "update_shift":
-      return { pending_action_id: previewJson.pending_action_id };
-    case "delete_shift":
-      return { pending_action_id: previewJson.pending_action_id };
-    case "swap_shifts":
-      return { pending_action_id: previewJson.pending_action_id };
     case "create_time_off_request":
       return {
         employee_id: previewJson.employee_id,
@@ -189,7 +186,10 @@ function hydrateArgsFromDraft(actionName: string, previewJson: any): Record<stri
         request_id: previewJson.request_id,
         employee_name: previewJson.employee_name,
       };
-    // B2-B7: all use pending_action_id from draft
+    // Actions that only need pending_action_id — return empty since caller already has it
+    case "update_shift":
+    case "delete_shift":
+    case "swap_shifts":
     case "create_corrective_action":
     case "update_ca_status":
     case "update_employee":
@@ -201,7 +201,7 @@ function hydrateArgsFromDraft(actionName: string, previewJson: any): Record<stri
     case "create_task":
     case "create_training_assignment":
     case "update_training_status":
-      return { pending_action_id: previewJson.pending_action_id };
+      return {};
     default:
       return {};
   }
