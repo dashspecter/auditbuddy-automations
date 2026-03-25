@@ -2,6 +2,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Check, X, AlertTriangle, Shield, Loader2 } from "lucide-react";
 import { useState, useCallback } from "react";
+import type { ApprovalResult } from "@/hooks/useDashChat";
 
 const RISK_CONFIG = {
   low: { color: "bg-green-500/10 text-green-700 border-green-200", icon: Shield, label: "Low Risk" },
@@ -19,8 +20,8 @@ interface ActionPreviewCardProps {
   missing_fields?: string[];
   draft?: any;
   resolved_status?: string; // from session reconciliation: "approved" | "rejected" | "expired" | "executed"
-  onApprove?: (pendingActionId: string) => void;
-  onReject?: (pendingActionId: string) => void;
+  onApprove?: (pendingActionId: string) => Promise<ApprovalResult> | void;
+  onReject?: (pendingActionId: string) => Promise<ApprovalResult> | void;
 }
 
 export function ActionPreviewCard({
@@ -38,20 +39,30 @@ export function ActionPreviewCard({
   const riskInfo = RISK_CONFIG[risk] || RISK_CONFIG.medium;
   const RiskIcon = riskInfo.icon;
 
-  const handleApprove = useCallback(() => {
+  const handleApprove = useCallback(async () => {
     if (!pending_action_id || !onApprove || status !== "pending") return;
     setStatus("approving");
     try {
-      onApprove(pending_action_id);
+      const result = await onApprove(pending_action_id);
+      if (result && typeof result === "object" && "success" in result) {
+        setStatus(result.success ? "approved" : "failed");
+      } else {
+        // Legacy void return — optimistically assume success after stream completes
+        setStatus("approved");
+      }
     } catch {
       setStatus("failed");
     }
   }, [pending_action_id, onApprove, status]);
 
-  const handleReject = useCallback(() => {
+  const handleReject = useCallback(async () => {
     if (!pending_action_id || !onReject || status !== "pending") return;
     setStatus("rejected");
-    onReject(pending_action_id);
+    try {
+      await onReject(pending_action_id);
+    } catch {
+      setStatus("failed");
+    }
   }, [pending_action_id, onReject, status]);
 
   return (

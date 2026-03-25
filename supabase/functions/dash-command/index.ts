@@ -1081,10 +1081,19 @@ serve(async (req) => {
         } catch (e) { console.error("[Dash] Failed to save session after approval:", e); }
       }
 
-      // Stream result as SSE
+      // Stream result as SSE — always emit a structured execution_result event
       const encoder = new TextEncoder();
       const stream = new ReadableStream({
         start(controller) {
+          // Emit structured execution_result so the frontend card can resolve its state
+          const execResultEvt = makeStructuredEvent("execution_result", {
+            status: toolResult.error ? "error" : "success",
+            title: toolResult.error ? "Execution Failed" : "Action Executed",
+            summary: toolResult.error || toolResult.message || "Action executed successfully.",
+            pending_action_id: direct_approval.pending_action_id,
+          });
+          // Prepend the execution result, then any tool-emitted structured events
+          controller.enqueue(encoder.encode(`data: ${execResultEvt}\n\n`));
           for (const evt of allStructuredEvents) {
             controller.enqueue(encoder.encode(`data: ${evt}\n\n`));
           }
