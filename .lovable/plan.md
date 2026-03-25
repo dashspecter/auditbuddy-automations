@@ -1,50 +1,112 @@
 
+Deep-dive findings
 
-# Seed Mock Data for Government Institution Account
+- The click itself is correct. The browser sent:
+  `direct_approval.pending_action_id = "66b7b204-1431-4bf0-b746-970ed31f2224"`
+- The backend draft is also correct. The pending action exists in the database, is still `pending`, and its `preview_json` contains shift details.
+- The failure happens inside the direct-approval backend path in `supabase/functions/dash-command/index.ts`:
+  1. it starts with `{ pending_action_id: direct_approval.pending_action_id }`
+  2. then it calls `hydrateArgsFromDraft(...)`
+  3. for `delete_shift`, `update_shift`, `swap_shifts`, and several later write actions, that helper returns:
+     `{ pending_action_id: previewJson.pending_action_id }`
+  4. but `preview_json` does not store `pending_action_id`
+  5. so the valid ID gets overwritten with `undefined`
+  6. `executeShiftDeletion()` then fails with `Missing pending_action_id.`
+- This is why the same request can show a valid approval card and still fail on click.
+- The bug is broader than delete-shift. The same overwrite pattern likely breaks direct approval for:
+  - update shift
+  - swap shifts
+  - create/update corrective actions
+  - employee update/deactivate
+  - attendance corrections
+  - work orders
+  - tasks
+  - training status/actions
+- There is also a second UI bug:
+  - `ActionPreviewCard` sets local state to `approving`
+  - but never gets a real success/failure result back
+  - so the card can stay stuck on `Executing...` even after the backend responds
+- There is also a deeper architecture gap:
+  - the product copy says users can approve in a new chat message
+  - but `useDashChat.sendMessage()` only sends plain text history, not structured action metadata
+  - so typed approvals like “yes/approve” are not server-deterministic today
 
-The Government Institution company is completely empty — no locations, employees, departments, audits, tasks, or any operational data. This plan seeds realistic Romanian municipal data across all features so the dashboard shows meaningful numbers.
+Why this likely escaped
 
-## Data to Insert (via SQL migrations)
+- `create_shift` can succeed because its hydrate path uses real draft fields, not `preview_json.pending_action_id`
+- delete/update/swap and the later governed write actions use a different hydrate pattern
+- I found no automated tests covering the direct approval path or pending-action hydration
+- the UI also does not clearly surface backend approval failures back into the card state
 
-### 1. Departments (5)
-Urbanism, Resurse Umane, Servicii Publice, Financiar-Contabilitate, Tehnic-Întreținere
+Implementation plan
 
-### 2. Locations (4)
-Primăria Centrală, Direcția Taxe și Impozite, Centrul de Relații cu Cetățenii, Depozitul Municipal
+1. Fix the server-side approval hydration bug
+- Update `supabase/functions/dash-command/index.ts`
+- Make the direct approval path preserve the incoming `direct_approval.pending_action_id` as the final source of truth
+- Do not let `hydrateArgsFromDraft()` overwrite it with an undefined value
+- Best fix:
+  - either remove `pending_action_id` returns from hydrate cases that do not need extra args
+  - or merge in this order: `draftArgs` first, then force `pending_action_id` last
 
-### 3. Employee Roles (6)
-Director Departament, Consilier Superior, Inspector, Referent, Operator Registratură, Tehnician
+2. Normalize all governed write actions
+- Audit every action in `ACTION_EXECUTE_MAP` + `hydrateArgsFromDraft()`
+- Split them into:
+  - actions that need hydrated business fields (`create_shift`, `create_employee`, `time_off`, etc.)
+  - actions that only need the server-side pending action ID
+- Ensure the second group never depends on `preview_json.pending_action_id`
 
-### 4. Employees (15)
-Realistic Romanian names, spread across locations and departments, mix of roles. All `status = 'active'`.
+3. Fix the approval-card UX state machine
+- Update:
+  - `src/components/dash/ActionPreviewCard.tsx`
+  - `src/components/dash/DashMessageList.tsx`
+  - `src/hooks/useDashChat.ts`
+- Make approval callbacks async and return a real result
+- On success: set card to approved
+- On retryable failure: revert card from `approving` back to `pending`
+- On hard failure: show failed state with retry option
+- Also make the card react to later `resolved_status` updates instead of only using initial local state
 
-### 5. Audit Template + Sections + Fields
-One "Inspecție Clădire Publică" template with 4 sections (Conformitate Documente, Curățenie, Securitate, Echipamente), each with 3-4 fields.
+4. Make typed approvals actually work
+- In `supabase/functions/dash-command/index.ts`, add a server-authoritative approval/rejection resolver for plain-text replies like:
+  - approve / yes / confirm / go ahead
+  - reject / cancel / no
+- If there is exactly one pending action for the active user/session/company, route that message through the same direct approval path automatically
+- If there are multiple pending actions, return a clarification instead of guessing
+- This removes dependence on the model remembering hidden IDs across turns
 
-### 6. Location Audits (12)
-Spread over last 60 days across all 4 locations. Mix of statuses (compliant, non_compliant, completed). Scores ranging 55-95%. Section scores in `cached_section_scores`.
+5. Improve failure signaling from backend to UI
+- When direct approval execution fails, return a structured execution result event, not just text
+- Keep the pending action retryable when appropriate
+- This will let the frontend render a clear error state instead of only showing `⚠️ Missing pending_action_id.` in the transcript
 
-### 7. Tasks (10)
-Municipal-relevant tasks (Reparație acoperiș, Actualizare registru, Pregătire raport buget, etc.) with mix of statuses (pending, completed, in_progress), priorities, and due dates.
+6. Add regression coverage
+- Add backend tests for:
+  - create shift approval
+  - delete shift approval
+  - update shift approval
+  - swap shift approval
+  - one B2/B3 action (for example update employee or create corrective action)
+- Specifically test that direct approval preserves the original `pending_action_id`
+- Add a small UI test or at minimum a manual QA checklist for card transitions:
+  - pending → approving → approved
+  - pending → approving → pending on failure
+  - reject flow
+  - typed “approve” flow
 
-### 8. Training Programs (3) + Assignments (8)
-Programs: Protecția Muncii, GDPR, Proceduri Administrație Publică. Assignments spread across employees with mix of statuses (completed, in_progress, planned, overdue).
+Files most likely to change
 
-### 9. Corrective Actions (5)
-Linked to locations, various severities (critical, major, minor), mix of open/in_progress/closed statuses.
+- `supabase/functions/dash-command/index.ts`
+- `src/hooks/useDashChat.ts`
+- `src/components/dash/ActionPreviewCard.tsx`
+- `src/components/dash/DashMessageList.tsx`
 
-### 10. Shifts + Shift Assignments + Attendance Logs (last 7 days)
-Daily shifts for locations, assignments for employees, attendance logs with check-in/check-out times, some late arrivals.
+Validation after fix
 
-### 11. Equipment (6)
-Municipal equipment across locations (Generator electric, Sistem HVAC, Centrală termică, etc.) with various statuses.
-
-## Technical Notes
-
-- All inserts use the company_id `546575db-dc0f-409f-8da2-170054b258f6`
-- Owner user_id `f9896025-8366-40eb-abce-73f2bfddd2aa` used as `created_by` where needed
-- UUIDs generated via `gen_random_uuid()`
-- Dates relative to `CURRENT_DATE` so data stays fresh
-- Will be executed as a single SQL migration with multiple INSERT statements
-- No schema changes needed — all tables already exist
-
+- Re-run the exact scenario from your screenshot:
+  1. create draft
+  2. click Approve & Execute
+  3. confirm the shift is actually cancelled
+  4. confirm `dash_pending_actions.status` becomes `executed`
+  5. confirm the card no longer stays stuck on `Executing...`
+- Then verify the same for update shift, swap shift, and one non-workforce governed action
+- Then test plain-text approval (“yes, approve it”) to confirm the non-button flow works end-to-end too
