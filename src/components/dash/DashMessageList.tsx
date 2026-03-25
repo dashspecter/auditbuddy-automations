@@ -42,13 +42,12 @@ function StructuredEventRenderer({ event, onSuggestedClick, onDirectApproval }: 
           missing_fields={event.data.missing_fields}
           draft={event.data.draft}
           resolved_status={event.data.resolved_status}
-          onApprove={(pendingActionId) => {
-            // Server-authoritative: no executeTool hint needed, backend resolves from pending action
+          onApprove={async (pendingActionId) => {
             if (onDirectApproval) {
-              onDirectApproval(pendingActionId, "approve");
-            } else {
-              onSuggestedClick(`I approve this action (pending_action_id: ${pendingActionId}). Please execute it now.`);
+              return await onDirectApproval(pendingActionId, "approve");
             }
+            onSuggestedClick(`I approve this action (pending_action_id: ${pendingActionId}). Please execute it now.`);
+            return { success: true };
           }}
           onReject={(pendingActionId) => {
             if (onDirectApproval) {
