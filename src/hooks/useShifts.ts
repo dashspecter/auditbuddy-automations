@@ -70,7 +70,8 @@ export const useShifts = (locationId?: string, startDate?: string, endDate?: str
           *,
           locations(name),
           shift_assignments(id, staff_id, shift_id, approval_status)
-        `);
+        `)
+        .is("cancelled_at", null);
       
       // Apply location filter ONLY if we have a real location ID
       if (normalizedLocationId) {

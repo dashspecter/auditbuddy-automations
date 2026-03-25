@@ -704,13 +704,16 @@ export async function executeShiftDeletion(
 
   const preview = pa.preview_json as any;
 
-  // Remove assignment first, then cancel the shift
+  // Remove assignment first, then hard-delete the shift record
   if (preview.assignment_id) {
     await sbService.from("shift_assignments").delete().eq("id", preview.assignment_id);
   }
 
+  // Delete any remaining assignments for this shift (e.g. open-shift or multi-assign)
+  await sbService.from("shift_assignments").delete().eq("shift_id", preview.shift_id);
+
   const { error: delError } = await sbService.from("shifts")
-    .update({ cancelled_at: new Date().toISOString(), status: "cancelled", updated_at: new Date().toISOString() })
+    .delete()
     .eq("id", preview.shift_id).eq("company_id", companyId);
 
   if (delError) {
