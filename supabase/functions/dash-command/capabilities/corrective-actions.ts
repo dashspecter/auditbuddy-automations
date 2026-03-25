@@ -166,3 +166,166 @@ export async function executeCaReassignment(
     message: `Corrective action "${preview.ca_title}" reassigned successfully.`,
   });
 }
+
+// ─── B2: Create Corrective Action ───
+
+export async function createCaDraft(
+  sb: any, sbService: any, companyId: string, userId: string, args: any, structuredEvents: string[],
+  ctx: PermissionContext
+): Promise<CapabilityResult<any>> {
+  const permCheck = checkCapabilityPermission({ action: "create", module: "corrective_actions", ctx });
+  if (!permCheck.ok) return permCheck;
+
+  let locationId = args.location_id || null;
+  let locationName = args.location_name || null;
+  if (locationName && !locationId) {
+    const { data } = await sb.from("locations").select("id, name").eq("company_id", companyId).ilike("name", `%${locationName}%`).limit(1);
+    if (data?.[0]) { locationId = data[0].id; locationName = data[0].name; }
+  }
+
+  // Resolve owner by name
+  let ownerUserId = args.owner_user_id || null;
+  let ownerName = args.owner_name || null;
+  if (ownerName && !ownerUserId) {
+    const { data: empData } = await sb.from("employees").select("id, full_name, user_id").eq("company_id", companyId).ilike("full_name", `%${ownerName}%`).limit(1);
+    if (empData?.[0]) { ownerUserId = empData[0].user_id || empData[0].id; ownerName = empData[0].full_name; }
+  }
+
+  const dueAt = args.due_at || new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+
+  const draft = {
+    title: args.title,
+    description: args.description || null,
+    severity: args.severity || "medium",
+    location_id: locationId,
+    location_name: locationName,
+    owner_user_id: ownerUserId,
+    owner_name: ownerName,
+    due_at: dueAt,
+    source_type: args.source_type || "manual",
+  };
+
+  const missing: string[] = [];
+  if (!draft.title) missing.push("title");
+  if (!locationId) missing.push("location");
+
+  let pendingActionId: string | null = null;
+  if (missing.length === 0) {
+    const { data: paData } = await sbService.from("dash_pending_actions").insert({
+      company_id: companyId, user_id: userId, action_name: "create_corrective_action",
+      action_type: "write", risk_level: "high", preview_json: draft, status: "pending",
+    }).select("id").single();
+    pendingActionId = paData?.id || null;
+  }
+
+  structuredEvents.push(makeStructuredEvent("action_preview", {
+    action: "Create Corrective Action",
+    summary: missing.length > 0 ? `Draft CA "${draft.title || "?"}" — missing: ${missing.join(", ")}` : `Create CA "${draft.title}" (${draft.severity}) at ${locationName}, due ${draft.due_at?.split("T")[0]}`,
+    risk: "high", affected: [draft.title, locationName, draft.severity].filter(Boolean),
+    pending_action_id: pendingActionId, draft, missing_fields: missing, can_approve: missing.length === 0,
+  }));
+
+  return success({ type: "ca_draft", draft, missing_fields: missing, pending_action_id: pendingActionId, requires_approval: true, risk_level: "high",
+    message: missing.length > 0 ? `CA draft missing: ${missing.join(", ")}.` : `CA draft ready. Approve to create.` });
+}
+
+export async function executeCaCreation(
+  sbService: any, companyId: string, userId: string, args: any, structuredEvents: string[],
+  ctx: PermissionContext
+): Promise<CapabilityResult<any>> {
+  const permCheck = checkCapabilityPermission({ action: "create", module: "corrective_actions", ctx });
+  if (!permCheck.ok) return permCheck;
+  if (!args.pending_action_id) return capabilityError("Missing pending_action_id.");
+
+  const { data: pa } = await sbService.from("dash_pending_actions").select("id, status, company_id, preview_json").eq("id", args.pending_action_id).maybeSingle();
+  if (!pa) return capabilityError("Pending action not found.");
+  if (pa.company_id !== companyId) return capabilityError("Cross-tenant action rejected.");
+  if (pa.status !== "pending") return capabilityError(`Action already ${pa.status}.`);
+
+  const draft = pa.preview_json as any;
+  const { data: caData, error: caError } = await sbService.from("corrective_actions").insert({
+    company_id: companyId, title: draft.title, description: draft.description, severity: draft.severity,
+    location_id: draft.location_id, owner_user_id: draft.owner_user_id || userId, due_at: draft.due_at,
+    source_type: draft.source_type || "manual", status: "open", created_by: userId,
+  }).select("id, title").single();
+
+  if (caError) {
+    await sbService.from("dash_pending_actions").update({ status: "failed", execution_result: { error: caError.message }, updated_at: new Date().toISOString() }).eq("id", pa.id);
+    structuredEvents.push(makeStructuredEvent("execution_result", { status: "error", title: "CA Creation Failed", summary: caError.message, errors: [caError.message] }));
+    return capabilityError(`Failed to create CA: ${caError.message}`);
+  }
+
+  await sbService.from("dash_pending_actions").update({ status: "executed", approved_at: new Date().toISOString(), approved_by: userId, execution_result: { ca_id: caData.id }, updated_at: new Date().toISOString() }).eq("id", pa.id);
+  await logCapabilityAction(sbService, { companyId, userId, capability: "corrective_actions.create", actionType: "write", riskLevel: "high", request: draft, result: { ca_id: caData.id }, entitiesAffected: [caData.id], module: "corrective_actions" });
+  structuredEvents.push(makeStructuredEvent("execution_result", { status: "success", title: "Corrective Action Created", summary: `"${caData.title}" created successfully.`, changes: [`CA "${caData.title}" created`] }));
+  return success({ type: "ca_created", ca_id: caData.id, ca_title: caData.title, message: `Corrective action "${caData.title}" created successfully.` });
+}
+
+// ─── B2: Update CA Status ───
+
+export async function updateCaStatusDraft(
+  sb: any, sbService: any, companyId: string, userId: string, args: any, structuredEvents: string[],
+  ctx: PermissionContext
+): Promise<CapabilityResult<any>> {
+  const permCheck = checkCapabilityPermission({ action: "update", module: "corrective_actions", ctx });
+  if (!permCheck.ok) return permCheck;
+
+  // Find CA by ID or title
+  let caData: any = null;
+  if (args.ca_id) {
+    const { data } = await sb.from("corrective_actions").select("id, title, status, severity, company_id").eq("id", args.ca_id).eq("company_id", companyId).maybeSingle();
+    caData = data;
+  } else if (args.ca_title) {
+    const { data } = await sb.from("corrective_actions").select("id, title, status, severity, company_id").eq("company_id", companyId).ilike("title", `%${args.ca_title}%`).limit(1);
+    caData = data?.[0];
+  }
+  if (!caData) return capabilityError("Corrective action not found.");
+
+  const newStatus = args.new_status;
+  if (!newStatus) return capabilityError("Missing new_status.");
+
+  const draft = { ca_id: caData.id, ca_title: caData.title, old_status: caData.status, new_status: newStatus, reason: args.reason };
+
+  const { data: paData } = await sbService.from("dash_pending_actions").insert({
+    company_id: companyId, user_id: userId, action_name: "update_ca_status",
+    action_type: "write", risk_level: "high", preview_json: draft, status: "pending",
+  }).select("id").single();
+
+  structuredEvents.push(makeStructuredEvent("action_preview", {
+    action: `Update CA Status: "${caData.title}"`,
+    summary: `Change status from "${caData.status}" to "${newStatus}".${args.reason ? ` Reason: ${args.reason}` : ""}`,
+    risk: "high", affected: [caData.title], pending_action_id: paData?.id, draft, can_approve: true,
+  }));
+
+  return success({ type: "ca_status_draft", draft, pending_action_id: paData?.id, requires_approval: true, message: `CA status change draft ready. Approve to proceed.` });
+}
+
+export async function executeCaStatusUpdate(
+  sbService: any, companyId: string, userId: string, args: any, structuredEvents: string[],
+  ctx: PermissionContext
+): Promise<CapabilityResult<any>> {
+  const permCheck = checkCapabilityPermission({ action: "update", module: "corrective_actions", ctx });
+  if (!permCheck.ok) return permCheck;
+  if (!args.pending_action_id) return capabilityError("Missing pending_action_id.");
+
+  const { data: pa } = await sbService.from("dash_pending_actions").select("id, status, company_id, preview_json").eq("id", args.pending_action_id).maybeSingle();
+  if (!pa) return capabilityError("Pending action not found.");
+  if (pa.company_id !== companyId) return capabilityError("Cross-tenant action rejected.");
+  if (pa.status !== "pending") return capabilityError(`Action already ${pa.status}.`);
+
+  const draft = pa.preview_json as any;
+  const updateFields: any = { status: draft.new_status, updated_at: new Date().toISOString() };
+  if (draft.new_status === "closed") updateFields.closed_at = new Date().toISOString();
+
+  const { error } = await sbService.from("corrective_actions").update(updateFields).eq("id", draft.ca_id).eq("company_id", companyId);
+  if (error) {
+    await sbService.from("dash_pending_actions").update({ status: "failed", execution_result: { error: error.message }, updated_at: new Date().toISOString() }).eq("id", pa.id);
+    structuredEvents.push(makeStructuredEvent("execution_result", { status: "error", title: "CA Status Update Failed", summary: error.message, errors: [error.message] }));
+    return capabilityError(`Status update failed: ${error.message}`);
+  }
+
+  await sbService.from("dash_pending_actions").update({ status: "executed", approved_at: new Date().toISOString(), approved_by: userId, execution_result: { success: true }, updated_at: new Date().toISOString() }).eq("id", pa.id);
+  await logCapabilityAction(sbService, { companyId, userId, capability: "corrective_actions.update_status", actionType: "write", riskLevel: "high", request: draft, result: { ca_id: draft.ca_id, new_status: draft.new_status }, entitiesAffected: [draft.ca_id], module: "corrective_actions" });
+  structuredEvents.push(makeStructuredEvent("execution_result", { status: "success", title: "CA Status Updated", summary: `"${draft.ca_title}" status changed to "${draft.new_status}".`, changes: [`Status: ${draft.old_status} → ${draft.new_status}`] }));
+  return success({ type: "ca_status_updated", ca_id: draft.ca_id, new_status: draft.new_status, message: `CA "${draft.ca_title}" status updated to "${draft.new_status}".` });
+}

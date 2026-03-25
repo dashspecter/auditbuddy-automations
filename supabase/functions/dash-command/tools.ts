@@ -519,6 +519,301 @@ export const tools = [
       },
     },
   },
+  // ─── B2: Corrective Action Lifecycle ───
+  {
+    type: "function",
+    function: {
+      name: "create_ca_draft",
+      description: "Create a new corrective action draft. Use when user says 'create CA', 'open corrective action', 'log a finding'.",
+      parameters: {
+        type: "object",
+        properties: {
+          title: { type: "string", description: "CA title" },
+          description: { type: "string", description: "Detailed description" },
+          severity: { type: "string", enum: ["critical", "high", "medium", "low"] },
+          location_name: { type: "string", description: "Location name" },
+          location_id: { type: "string", description: "Location UUID" },
+          owner_name: { type: "string", description: "Person responsible" },
+          owner_user_id: { type: "string", description: "Owner user UUID" },
+          due_at: { type: "string", description: "Due date ISO" },
+          source_type: { type: "string", enum: ["manual", "audit", "observation"], description: "Source" },
+        },
+        required: ["title"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_ca_creation",
+      description: "Execute CA creation after user approval.",
+      parameters: { type: "object", properties: { pending_action_id: { type: "string" } }, required: ["pending_action_id"] },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "update_ca_status_draft",
+      description: "Update a corrective action's status. Use when user says 'close CA', 'mark CA as done', 'change CA status'.",
+      parameters: {
+        type: "object",
+        properties: {
+          ca_id: { type: "string", description: "CA UUID" },
+          ca_title: { type: "string", description: "CA title (partial match)" },
+          new_status: { type: "string", enum: ["open", "in_progress", "pending_verification", "closed", "cancelled"] },
+          reason: { type: "string" },
+        },
+        required: ["new_status"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_ca_status_update",
+      description: "Execute CA status update after user approval.",
+      parameters: { type: "object", properties: { pending_action_id: { type: "string" } }, required: ["pending_action_id"] },
+    },
+  },
+  // ─── B3: Employee Management ───
+  {
+    type: "function",
+    function: {
+      name: "update_employee_draft",
+      description: "Update employee details (role, status, location, contact). Use when user says 'change role', 'transfer employee', 'update contact'.",
+      parameters: {
+        type: "object",
+        properties: {
+          employee_id: { type: "string" },
+          employee_name: { type: "string", description: "Employee name (partial match)" },
+          new_role: { type: "string" },
+          new_status: { type: "string", enum: ["active", "inactive", "on_leave"] },
+          new_email: { type: "string" },
+          new_phone: { type: "string" },
+          new_location_name: { type: "string" },
+          new_location_id: { type: "string" },
+          reason: { type: "string" },
+        },
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_employee_update",
+      description: "Execute employee update after user approval.",
+      parameters: { type: "object", properties: { pending_action_id: { type: "string" } }, required: ["pending_action_id"] },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "deactivate_employee_draft",
+      description: "Deactivate an employee (soft delete). Use when user says 'deactivate', 'remove employee', 'terminate'.",
+      parameters: {
+        type: "object",
+        properties: {
+          employee_id: { type: "string" },
+          employee_name: { type: "string" },
+          reason: { type: "string" },
+        },
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_employee_deactivation",
+      description: "Execute employee deactivation after user approval.",
+      parameters: { type: "object", properties: { pending_action_id: { type: "string" } }, required: ["pending_action_id"] },
+    },
+  },
+  // ─── B4: Attendance Corrections ───
+  {
+    type: "function",
+    function: {
+      name: "correct_attendance_draft",
+      description: "Correct an attendance record (fix missed checkout, adjust clock-in). Use when user says 'fix checkout', 'correct attendance', 'add missing checkout'.",
+      parameters: {
+        type: "object",
+        properties: {
+          attendance_log_id: { type: "string" },
+          employee_name: { type: "string" },
+          date: { type: "string", description: "Date YYYY-MM-DD" },
+          new_check_out: { type: "string", description: "New checkout time ISO" },
+          new_check_in: { type: "string", description: "New check-in time ISO" },
+          reason: { type: "string" },
+        },
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_attendance_correction",
+      description: "Execute attendance correction after user approval.",
+      parameters: { type: "object", properties: { pending_action_id: { type: "string" } }, required: ["pending_action_id"] },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "excuse_late_draft",
+      description: "Excuse a late arrival. Use when user says 'excuse late', 'mark as excused', 'forgive lateness'.",
+      parameters: {
+        type: "object",
+        properties: {
+          attendance_log_id: { type: "string" },
+          employee_name: { type: "string" },
+          date: { type: "string", description: "Date YYYY-MM-DD" },
+          reason: { type: "string" },
+        },
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_excuse_late",
+      description: "Execute late excuse after user approval.",
+      parameters: { type: "object", properties: { pending_action_id: { type: "string" } }, required: ["pending_action_id"] },
+    },
+  },
+  // ─── B5: Work Order Management ───
+  {
+    type: "function",
+    function: {
+      name: "create_work_order_draft",
+      description: "Create a new work order. Use when user says 'create work order', 'open maintenance request', 'log repair'.",
+      parameters: {
+        type: "object",
+        properties: {
+          title: { type: "string" },
+          description: { type: "string" },
+          priority: { type: "string", enum: ["low", "medium", "high", "critical"] },
+          location_name: { type: "string" },
+          location_id: { type: "string" },
+          assigned_name: { type: "string" },
+          assigned_to: { type: "string" },
+        },
+        required: ["title"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_work_order_creation",
+      description: "Execute work order creation after user approval.",
+      parameters: { type: "object", properties: { pending_action_id: { type: "string" } }, required: ["pending_action_id"] },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "update_wo_status_draft",
+      description: "Update work order status. Use when user says 'complete work order', 'close WO', 'mark WO in progress'.",
+      parameters: {
+        type: "object",
+        properties: {
+          wo_id: { type: "string" },
+          wo_title: { type: "string", description: "WO title (partial match)" },
+          new_status: { type: "string", enum: ["open", "in_progress", "completed", "cancelled"] },
+          reason: { type: "string" },
+        },
+        required: ["new_status"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_wo_status_update",
+      description: "Execute WO status update after user approval.",
+      parameters: { type: "object", properties: { pending_action_id: { type: "string" } }, required: ["pending_action_id"] },
+    },
+  },
+  // ─── B6: Task Management ───
+  {
+    type: "function",
+    function: {
+      name: "create_task_draft",
+      description: "Create a new task. Use when user says 'create task', 'add todo', 'assign task'.",
+      parameters: {
+        type: "object",
+        properties: {
+          title: { type: "string" },
+          description: { type: "string" },
+          priority: { type: "string", enum: ["low", "medium", "high", "critical"] },
+          location_name: { type: "string" },
+          location_id: { type: "string" },
+          due_date: { type: "string", description: "Due date YYYY-MM-DD" },
+          assigned_name: { type: "string" },
+          assigned_to: { type: "string" },
+        },
+        required: ["title"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_task_creation",
+      description: "Execute task creation after user approval.",
+      parameters: { type: "object", properties: { pending_action_id: { type: "string" } }, required: ["pending_action_id"] },
+    },
+  },
+  // ─── B7: Training Management ───
+  {
+    type: "function",
+    function: {
+      name: "create_training_assignment_draft",
+      description: "Assign training to an employee. Use when user says 'assign training', 'enroll in course', 'add training'.",
+      parameters: {
+        type: "object",
+        properties: {
+          employee_name: { type: "string" },
+          employee_id: { type: "string" },
+          module_name: { type: "string", description: "Training program name" },
+          module_id: { type: "string" },
+          start_date: { type: "string", description: "Start date YYYY-MM-DD" },
+        },
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_training_assignment",
+      description: "Execute training assignment after user approval.",
+      parameters: { type: "object", properties: { pending_action_id: { type: "string" } }, required: ["pending_action_id"] },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "update_training_status_draft",
+      description: "Update training assignment status. Use when user says 'mark training complete', 'fail training', 'update training status'.",
+      parameters: {
+        type: "object",
+        properties: {
+          assignment_id: { type: "string" },
+          employee_name: { type: "string" },
+          module_name: { type: "string" },
+          new_status: { type: "string", enum: ["assigned", "in_progress", "completed", "failed"] },
+        },
+        required: ["new_status"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_training_status_update",
+      description: "Execute training status update after user approval.",
+      parameters: { type: "object", properties: { pending_action_id: { type: "string" } }, required: ["pending_action_id"] },
+    },
+  },
   // --- MEMORY: User preferences ---
   {
     type: "function",
