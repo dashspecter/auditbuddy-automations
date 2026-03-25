@@ -189,6 +189,19 @@ function hydrateArgsFromDraft(actionName: string, previewJson: any): Record<stri
         request_id: previewJson.request_id,
         employee_name: previewJson.employee_name,
       };
+    // B2-B7: all use pending_action_id from draft
+    case "create_corrective_action":
+    case "update_ca_status":
+    case "update_employee":
+    case "deactivate_employee":
+    case "correct_attendance":
+    case "excuse_late_arrival":
+    case "create_work_order":
+    case "update_wo_status":
+    case "create_task":
+    case "create_training_assignment":
+    case "update_training_status":
+      return { pending_action_id: previewJson.pending_action_id };
     default:
       return {};
   }
