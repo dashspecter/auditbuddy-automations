@@ -22,7 +22,7 @@ interface DashMessageListProps {
   onDirectApproval?: (pendingActionId: string, action: "approve" | "reject", executeTool?: string) => Promise<ApprovalResult>;
 }
 
-function StructuredEventRenderer({ event, onSuggestedClick, onDirectApproval }: { event: DashStructuredEvent; onSuggestedClick: (q: string) => void; onDirectApproval?: (pendingActionId: string, action: "approve" | "reject", executeTool?: string) => void }) {
+function StructuredEventRenderer({ event, onSuggestedClick, onDirectApproval }: { event: DashStructuredEvent; onSuggestedClick: (q: string) => void; onDirectApproval?: (pendingActionId: string, action: "approve" | "reject", executeTool?: string) => Promise<ApprovalResult> }) {
   switch (event.type) {
     case "source_card":
       return <SourceCard module={event.data.module} entity={event.data.entity} id={event.data.id} label={event.data.label} />;
