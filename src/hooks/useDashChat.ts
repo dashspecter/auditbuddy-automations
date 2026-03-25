@@ -40,6 +40,9 @@ function buildTransportText(displayText: string, attachments?: DashAttachment[])
   return `${displayText}\n\n[Attached files: ${names}]\n[File URLs: ${urls}]`;
 }
 
+/** Result of a direct approval call — used by ActionPreviewCard to update its state */
+export type ApprovalResult = { success: boolean; error?: string };
+
 export function useDashChat() {
   const [messages, setMessages] = useState<DashMessage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -212,10 +215,13 @@ export function useDashChat() {
         { role: "assistant", content: "⚠️ No response received. The request may have timed out. Please try again.", timestamp: new Date() },
       ]);
     }
+
+    return { structuredEvents, content: assistantContent };
   };
 
-  const sendDirectApproval = useCallback(async (pendingActionId: string, action: "approve" | "reject", executeTool?: string) => {
-    if (isLoading) return;
+  /** Send a direct approval/rejection and return result so the ActionPreviewCard can update its state */
+  const sendDirectApproval = useCallback(async (pendingActionId: string, action: "approve" | "reject", executeTool?: string): Promise<ApprovalResult> => {
+    if (isLoading) return { success: false, error: "Busy" };
     setError(null);
     setIsLoading(true);
     streamStartedRef.current = false;
@@ -251,12 +257,21 @@ export function useDashChat() {
         throw new Error(errBody.error || "Failed to execute approval");
       }
 
-      await processStream(resp);
+      const { structuredEvents } = await processStream(resp);
+
+      // Check if the execution_result event indicates success or failure
+      const execResult = structuredEvents.find(e => e.type === "execution_result");
+      if (execResult?.data?.status === "error") {
+        return { success: false, error: execResult.data.summary || "Execution failed" };
+      }
+
+      return { success: true };
     } catch (err: any) {
-      if (err.name === "AbortError") return;
+      if (err.name === "AbortError") return { success: false, error: "Cancelled" };
       console.error("Dash approval error:", err);
       setError(err.message);
       setMessages(prev => [...prev, { role: "assistant", content: `⚠️ ${err.message}`, timestamp: new Date() }]);
+      return { success: false, error: err.message };
     } finally {
       setIsLoading(false);
       abortRef.current = null;

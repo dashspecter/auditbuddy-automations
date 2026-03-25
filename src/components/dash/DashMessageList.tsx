@@ -2,7 +2,7 @@ import { useRef, useEffect, memo } from "react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Bot, User, Sparkles, Loader2, RotateCcw, Paperclip } from "lucide-react";
 import { cn } from "@/lib/utils";
-import type { DashMessage, DashStructuredEvent } from "@/hooks/useDashChat";
+import type { DashMessage, DashStructuredEvent, ApprovalResult } from "@/hooks/useDashChat";
 import type { DashAttachment } from "@/components/dash/DashInput";
 import { Button } from "@/components/ui/button";
 import ReactMarkdown from "react-markdown";
@@ -19,10 +19,10 @@ interface DashMessageListProps {
   suggestedQuestions: string[];
   onSuggestedClick: (q: string) => void;
   onRetry?: () => void;
-  onDirectApproval?: (pendingActionId: string, action: "approve" | "reject", executeTool?: string) => void;
+  onDirectApproval?: (pendingActionId: string, action: "approve" | "reject", executeTool?: string) => Promise<ApprovalResult>;
 }
 
-function StructuredEventRenderer({ event, onSuggestedClick, onDirectApproval }: { event: DashStructuredEvent; onSuggestedClick: (q: string) => void; onDirectApproval?: (pendingActionId: string, action: "approve" | "reject", executeTool?: string) => void }) {
+function StructuredEventRenderer({ event, onSuggestedClick, onDirectApproval }: { event: DashStructuredEvent; onSuggestedClick: (q: string) => void; onDirectApproval?: (pendingActionId: string, action: "approve" | "reject", executeTool?: string) => Promise<ApprovalResult> }) {
   switch (event.type) {
     case "source_card":
       return <SourceCard module={event.data.module} entity={event.data.entity} id={event.data.id} label={event.data.label} />;
@@ -42,20 +42,19 @@ function StructuredEventRenderer({ event, onSuggestedClick, onDirectApproval }: 
           missing_fields={event.data.missing_fields}
           draft={event.data.draft}
           resolved_status={event.data.resolved_status}
-          onApprove={(pendingActionId) => {
-            // Server-authoritative: no executeTool hint needed, backend resolves from pending action
+          onApprove={async (pendingActionId) => {
             if (onDirectApproval) {
-              onDirectApproval(pendingActionId, "approve");
-            } else {
-              onSuggestedClick(`I approve this action (pending_action_id: ${pendingActionId}). Please execute it now.`);
+              return await onDirectApproval(pendingActionId, "approve");
             }
+            onSuggestedClick(`I approve this action (pending_action_id: ${pendingActionId}). Please execute it now.`);
+            return { success: true };
           }}
-          onReject={(pendingActionId) => {
+          onReject={async (pendingActionId) => {
             if (onDirectApproval) {
-              onDirectApproval(pendingActionId, "reject");
-            } else {
-              onSuggestedClick(`I reject this action (pending_action_id: ${pendingActionId}). Do not execute.`);
+              return await onDirectApproval(pendingActionId, "reject");
             }
+            onSuggestedClick(`I reject this action (pending_action_id: ${pendingActionId}). Do not execute.`);
+            return { success: true };
           }}
         />
       );
@@ -79,7 +78,7 @@ function AttachmentChips({ attachments }: { attachments: DashAttachment[] }) {
   );
 }
 
-const MessageBubble = memo(({ msg, onSuggestedClick, onDirectApproval }: { msg: DashMessage; onSuggestedClick: (q: string) => void; onDirectApproval?: (pendingActionId: string, action: "approve" | "reject", executeTool?: string) => void }) => (
+const MessageBubble = memo(({ msg, onSuggestedClick, onDirectApproval }: { msg: DashMessage; onSuggestedClick: (q: string) => void; onDirectApproval?: (pendingActionId: string, action: "approve" | "reject", executeTool?: string) => Promise<ApprovalResult> }) => (
   <div
     className={cn(
       "flex gap-3 p-3 rounded-xl transition-all",

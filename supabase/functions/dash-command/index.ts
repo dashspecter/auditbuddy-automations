@@ -125,7 +125,10 @@ const ACTION_EXECUTE_MAP: Record<string, string> = {
   update_training_status: "execute_training_status_update",
 };
 
-/** Hydrate execution args from pending action's preview_json based on action_name */
+/** Hydrate execution args from pending action's preview_json based on action_name.
+ *  IMPORTANT: Never return pending_action_id here — the caller already has the
+ *  authoritative value from direct_approval. Returning it from preview_json would
+ *  overwrite the real ID with undefined (preview_json doesn't store it). */
 function hydrateArgsFromDraft(actionName: string, previewJson: any): Record<string, any> {
   if (!previewJson) return {};
   switch (actionName) {
@@ -169,12 +172,6 @@ function hydrateArgsFromDraft(actionName: string, previewJson: any): Record<stri
         new_assigned_name: previewJson.new_assigned_name,
         reason: previewJson.reason,
       };
-    case "update_shift":
-      return { pending_action_id: previewJson.pending_action_id };
-    case "delete_shift":
-      return { pending_action_id: previewJson.pending_action_id };
-    case "swap_shifts":
-      return { pending_action_id: previewJson.pending_action_id };
     case "create_time_off_request":
       return {
         employee_id: previewJson.employee_id,
@@ -189,7 +186,10 @@ function hydrateArgsFromDraft(actionName: string, previewJson: any): Record<stri
         request_id: previewJson.request_id,
         employee_name: previewJson.employee_name,
       };
-    // B2-B7: all use pending_action_id from draft
+    // Actions that only need pending_action_id — return empty since caller already has it
+    case "update_shift":
+    case "delete_shift":
+    case "swap_shifts":
     case "create_corrective_action":
     case "update_ca_status":
     case "update_employee":
@@ -201,7 +201,7 @@ function hydrateArgsFromDraft(actionName: string, previewJson: any): Record<stri
     case "create_task":
     case "create_training_assignment":
     case "update_training_status":
-      return { pending_action_id: previewJson.pending_action_id };
+      return {};
     default:
       return {};
   }
@@ -1040,7 +1040,10 @@ serve(async (req) => {
         // Hydrate execution args from draft preview_json
         if (pendingAction?.action_name && pendingAction?.preview_json) {
           const draftArgs = hydrateArgsFromDraft(pendingAction.action_name, pendingAction.preview_json);
+          // Merge draft args but ALWAYS preserve the authoritative pending_action_id
+          const safePendingActionId = hydratedArgs.pending_action_id;
           hydratedArgs = { ...hydratedArgs, ...draftArgs };
+          hydratedArgs.pending_action_id = safePendingActionId;
         }
       } catch (e) { console.error("[Dash] Failed to resolve pending action for direct approval:", e); }
 
@@ -1078,10 +1081,19 @@ serve(async (req) => {
         } catch (e) { console.error("[Dash] Failed to save session after approval:", e); }
       }
 
-      // Stream result as SSE
+      // Stream result as SSE — always emit a structured execution_result event
       const encoder = new TextEncoder();
       const stream = new ReadableStream({
         start(controller) {
+          // Emit structured execution_result so the frontend card can resolve its state
+          const execResultEvt = makeStructuredEvent("execution_result", {
+            status: toolResult.error ? "error" : "success",
+            title: toolResult.error ? "Execution Failed" : "Action Executed",
+            summary: toolResult.error || toolResult.message || "Action executed successfully.",
+            pending_action_id: direct_approval.pending_action_id,
+          });
+          // Prepend the execution result, then any tool-emitted structured events
+          controller.enqueue(encoder.encode(`data: ${execResultEvt}\n\n`));
           for (const evt of allStructuredEvents) {
             controller.enqueue(encoder.encode(`data: ${evt}\n\n`));
           }
@@ -1120,7 +1132,105 @@ serve(async (req) => {
       return new Response(stream, { headers: { ...corsHeaders, "Content-Type": "text/event-stream", "Cache-Control": "no-cache" } });
     }
 
-    // Get company name
+    // ─── TYPED APPROVAL RESOLVER ───
+    // If the user's last message looks like a plain-text approval/rejection,
+    // and exactly one pending action exists for this session, route it as a direct approval.
+    if (messages && messages.length > 0 && !direct_approval) {
+      const lastUserMsg = [...messages].reverse().find((m: any) => m.role === "user");
+      const lastContent = (lastUserMsg?.content || "").trim().toLowerCase();
+      const APPROVE_PATTERNS = /^(yes|approve|confirm|go ahead|da|aprob[aă]|execut[aă]|ok|do it|proceed)[\s!.]*$/i;
+      const REJECT_PATTERNS = /^(no|reject|cancel|nu|refuz[aă]|anuleaz[aă]|stop|don'?t)[\s!.]*$/i;
+
+      if (APPROVE_PATTERNS.test(lastContent) || REJECT_PATTERNS.test(lastContent)) {
+        const isApprove = APPROVE_PATTERNS.test(lastContent);
+        try {
+          const { data: pendingActions } = await sbService
+            .from("dash_pending_actions")
+            .select("id, action_name, preview_json")
+            .eq("user_id", userId)
+            .eq("company_id", companyId)
+            .eq("status", "pending")
+            .order("created_at", { ascending: false })
+            .limit(2);
+
+          if (pendingActions && pendingActions.length === 1) {
+            const pa = pendingActions[0];
+            if (isApprove) {
+              // Route through direct approval path
+              const { data: modulesData2 } = await sb
+                .from("company_modules").select("module_name")
+                .eq("company_id", companyId).eq("is_active", true);
+              const activeModules2 = (modulesData2 ?? []).map((m: any) => m.module_name);
+
+              let toolName = ACTION_EXECUTE_MAP[pa.action_name] || "execute_shift_creation";
+              let hydratedArgs2: Record<string, any> = { pending_action_id: pa.id };
+              if (pa.action_name && pa.preview_json) {
+                const draftArgs2 = hydrateArgsFromDraft(pa.action_name, pa.preview_json);
+                hydratedArgs2 = { ...hydratedArgs2, ...draftArgs2 };
+                hydratedArgs2.pending_action_id = pa.id;
+              }
+
+              const allStructuredEvents2: string[] = [];
+              const toolResult2 = await executeTool(sb, sbService, toolName, hydratedArgs2, companyId, userId, platformRoles, companyRole, activeModules2, allStructuredEvents2);
+
+              const canonicalModule2 = resolveCanonicalModule(toolName);
+              try {
+                await sbService.from("dash_action_log").insert({
+                  company_id: companyId, user_id: userId, session_id: session_id || null,
+                  action_type: "write", action_name: toolName, risk_level: "medium",
+                  request_json: { pending_action_id: pa.id, typed_approval: true },
+                  result_json: toolResult2, status: toolResult2.error ? "error" : "success",
+                  approval_status: "approved", modules_touched: [canonicalModule2],
+                });
+              } catch (e) { console.error("[Dash] Failed to log typed approval:", e); }
+
+              const encoder = new TextEncoder();
+              const stream = new ReadableStream({
+                start(controller) {
+                  const execEvt = makeStructuredEvent("execution_result", {
+                    status: toolResult2.error ? "error" : "success",
+                    title: toolResult2.error ? "Execution Failed" : "Action Executed",
+                    summary: toolResult2.error || toolResult2.message || "Action executed successfully.",
+                    pending_action_id: pa.id,
+                  });
+                  controller.enqueue(encoder.encode(`data: ${execEvt}\n\n`));
+                  for (const evt of allStructuredEvents2) {
+                    controller.enqueue(encoder.encode(`data: ${evt}\n\n`));
+                  }
+                  const resultText = toolResult2.error ? `⚠️ ${toolResult2.error}` : `✅ ${toolResult2.message || "Action executed successfully."}`;
+                  const sseData = { id: `dash-${Date.now()}`, object: "chat.completion.chunk", created: Math.floor(Date.now() / 1000), model: "dash-command", choices: [{ index: 0, delta: { content: resultText }, finish_reason: null }] };
+                  controller.enqueue(encoder.encode(`data: ${JSON.stringify(sseData)}\n\n`));
+                  controller.enqueue(encoder.encode(`data: ${JSON.stringify({ choices: [{ index: 0, delta: {}, finish_reason: "stop" }] })}\n\n`));
+                  controller.enqueue(encoder.encode("data: [DONE]\n\n"));
+                  controller.close();
+                },
+              });
+              return new Response(stream, { headers: { ...corsHeaders, "Content-Type": "text/event-stream", "Cache-Control": "no-cache" } });
+            } else {
+              // Reject
+              await sbService.from("dash_pending_actions")
+                .update({ status: "rejected", updated_at: new Date().toISOString() })
+                .eq("id", pa.id).eq("company_id", companyId);
+              const encoder = new TextEncoder();
+              const stream = new ReadableStream({
+                start(controller) {
+                  const evt = makeStructuredEvent("execution_result", { status: "info", title: "Action Rejected", summary: "The action has been rejected and will not be executed.", pending_action_id: pa.id });
+                  controller.enqueue(encoder.encode(`data: ${evt}\n\n`));
+                  const sseData = { id: `dash-${Date.now()}`, object: "chat.completion.chunk", created: Math.floor(Date.now() / 1000), model: "dash-command", choices: [{ index: 0, delta: { content: "Action rejected." }, finish_reason: null }] };
+                  controller.enqueue(encoder.encode(`data: ${JSON.stringify(sseData)}\n\n`));
+                  controller.enqueue(encoder.encode(`data: ${JSON.stringify({ choices: [{ index: 0, delta: {}, finish_reason: "stop" }] })}\n\n`));
+                  controller.enqueue(encoder.encode("data: [DONE]\n\n"));
+                  controller.close();
+                },
+              });
+              return new Response(stream, { headers: { ...corsHeaders, "Content-Type": "text/event-stream", "Cache-Control": "no-cache" } });
+            }
+          }
+          // If 0 or 2+ pending actions, fall through to the LLM to handle
+        } catch (e) { console.error("[Dash] Typed approval resolver error:", e); }
+      }
+    }
+
     const { data: companyData } = await sb.from("companies").select("name").eq("id", companyId).single();
     const companyName = companyData?.name ?? "Unknown";
 
