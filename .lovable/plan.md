@@ -1,47 +1,66 @@
 
 
-# Fix P1 Permission Gap + P2 Registry Cleanup
+# Fix 3 Defense-in-Depth Risks → PASS
 
-## Fix 1 — P1: Enforce manager-required on all write-capable modules
+## Problem Summary
 
-**File:** `supabase/functions/dash-command/shared/permissions.ts` (lines 74-83)
+Three read queries lack explicit tenant scoping, relying solely on RLS:
 
-Add three new module checks in the `create` case, matching the registry's `manager_required` declarations:
+| # | Query | File | Issue |
+|---|-------|------|-------|
+| P1-a | `task_completions` | `operations.ts:13` | No `company_id` column on table; no company filter at all |
+| P1-b | `attendance_logs` in cross-module summary | `overview.ts:63-66` | No `company_id` column; when `location_id` is omitted, zero tenant scoping |
+| P2 | `tasks` in location overview | `overview.ts:33` | Has `company_id` but query doesn't use it |
+
+## Fixes
+
+### Fix 1 — `getTaskCompletionSummary` (operations.ts:13-15)
+
+`task_completions` has no `company_id`. It joins to `tasks` which does. Add a sub-query to scope:
 
 ```typescript
-case "create":
-  if (module === "workforce" && !isManagerLevel(ctx)) {
-    return permissionDenied("Only managers or admins can create employees and shifts.");
-  }
-  if (module === "location_audits" && !isManagerLevel(ctx)) {
-    return permissionDenied("Only managers or admins can create audit templates.");
-  }
-  if (module === "corrective_actions" && !isManagerLevel(ctx)) {
-    return permissionDenied("Only managers or admins can create corrective actions.");
-  }
-  if (module === "cmms" && !isManagerLevel(ctx)) {
-    return permissionDenied("Only managers or admins can create work orders.");
-  }
-  if (module === "tasks" && !isManagerLevel(ctx)) {
-    return permissionDenied("Only managers or admins can create tasks.");
-  }
-  // Time-off and other modules: self-service allowed
-  return success(true);
+// Before the main query, get company's task IDs
+const { data: companyTasks } = await sb.from("tasks")
+  .select("id").eq("company_id", companyId);
+const taskIds = (companyTasks ?? []).map((t: any) => t.id);
+if (taskIds.length === 0) return success({ date_range: { from: args.from, to: args.to }, completions_count: 0 });
+
+let q = sb.from("task_completions")
+  .select("id, completed_at, task_id, tasks(title, location_id, locations(name))")
+  .in("task_id", taskIds)
+  .gte("completed_at", args.from)
+  .lte("completed_at", args.to + "T23:59:59Z");
 ```
 
-## Fix 2 — P2: Normalize registry action names
+### Fix 2 — `getCrossModuleSummary` attendance (overview.ts:63-66)
 
-**File:** `supabase/functions/dash-command/registry.ts`
+`attendance_logs` has `location_id` but no `company_id`. When no `locationFilter` is provided, pre-fetch the company's location IDs:
 
-The `actions` arrays mix naming conventions. Normalize to match actual tool function names as defined in `tools.ts` (draft names for write tools, plain names for direct actions):
+```typescript
+let attQ = sb.from("attendance_logs")
+  .select("id, is_late, late_minutes, auto_clocked_out, check_out_at");
+if (ur) attQ = attQ.gte("check_in_at", ur.fromUtc).lt("check_in_at", ur.toUtc);
+if (locationFilter) {
+  attQ = attQ.eq("location_id", locationFilter);
+} else {
+  // Defense-in-depth: scope to company's locations
+  const { data: companyLocs } = await sb.from("locations")
+    .select("id").eq("company_id", companyId);
+  const locIds = (companyLocs ?? []).map((l: any) => l.id);
+  if (locIds.length > 0) attQ = attQ.in("location_id", locIds);
+  else return success({ /* empty attendance section */ });
+}
+```
 
-- **workforce** (line 75): Already uses draft names — correct
-- **corrective_actions** (line 65): Already correct
-- **operations** (line 85): Already correct
+### Fix 3 — `getLocationOverview` tasks (overview.ts:33)
 
-No actual changes needed — the registry action names already match `tools.ts` function names exactly. The earlier audit flagged a perceived inconsistency, but on re-inspection the names are consistent: tools that go through the draft flow use `_draft` suffix, direct actions (like `reassign_corrective_action`) don't.
+Add `.eq("company_id", companyId)` to the tasks query:
 
-**Verdict: P2 is a non-issue. No change needed.**
+```typescript
+sb.from("tasks").select("id", { count: "exact", head: true })
+  .eq("location_id", locationId)
+  .eq("company_id", companyId),
+```
 
 ---
 
@@ -49,7 +68,8 @@ No actual changes needed — the registry action names already match `tools.ts` 
 
 | File | Change |
 |------|--------|
-| `shared/permissions.ts` | Add 3 manager-required checks for `corrective_actions`, `cmms`, `tasks` creates |
+| `capabilities/operations.ts` | Add company-scoped task ID pre-fetch to `getTaskCompletionSummary` |
+| `capabilities/overview.ts` | Add company location pre-fetch for attendance; add `company_id` to tasks query |
 
 ## Deploy
 
