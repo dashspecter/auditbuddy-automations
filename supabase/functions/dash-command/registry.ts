@@ -79,11 +79,11 @@ export const CAPABILITY_REGISTRY: Record<string, CapabilityEntry> = {
 
   operations: {
     module: "operations",
-    entities: ["task", "work_order", "document", "training_assignment"],
-    aliases: ["task", "work order", "document", "training", "sarcina", "comanda"],
-    reads: ["get_task_completion_summary", "get_work_order_status", "get_document_expiries", "get_training_gaps"],
-    actions: [],
-    approvalClass: {},
+    entities: ["task", "work_order", "document"],
+    aliases: ["task", "work order", "document", "sarcina", "comanda", "maintenance", "repair"],
+    reads: ["get_task_completion_summary", "get_work_order_status", "get_document_expiries"],
+    actions: ["create_work_order_draft", "update_wo_status_draft", "create_task_draft"],
+    approvalClass: { create: "manager_required", update: "manager_required" },
     maturity: "stable",
   },
 
