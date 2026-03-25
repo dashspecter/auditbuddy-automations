@@ -19,7 +19,7 @@ interface DashMessageListProps {
   suggestedQuestions: string[];
   onSuggestedClick: (q: string) => void;
   onRetry?: () => void;
-  onDirectApproval?: (pendingActionId: string, action: "approve" | "reject", executeTool?: string) => void;
+  onDirectApproval?: (pendingActionId: string, action: "approve" | "reject", executeTool?: string) => Promise<ApprovalResult>;
 }
 
 function StructuredEventRenderer({ event, onSuggestedClick, onDirectApproval }: { event: DashStructuredEvent; onSuggestedClick: (q: string) => void; onDirectApproval?: (pendingActionId: string, action: "approve" | "reject", executeTool?: string) => void }) {
