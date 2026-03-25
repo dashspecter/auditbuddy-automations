@@ -19,6 +19,25 @@ export type DashStructuredEvent = {
 const DASH_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/dash-command`;
 const STREAM_TIMEOUT_MS = 90_000; // 90 seconds without data → abort
 
+/** Get a fresh access token, refreshing the session if needed */
+async function getFreshToken(): Promise<string> {
+  // First try getSession (cached, fast)
+  const { data: { session } } = await supabase.auth.getSession();
+  if (session?.access_token) {
+    // Check if token expires within 60 seconds — if so, force refresh
+    const expiresAt = session.expires_at ? session.expires_at * 1000 : 0;
+    if (expiresAt - Date.now() > 60_000) {
+      return session.access_token;
+    }
+  }
+  // Force refresh
+  const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
+  if (refreshError || !refreshData.session?.access_token) {
+    throw new Error("Session expired. Please sign in again.");
+  }
+  return refreshData.session.access_token;
+}
+
 function generateSessionId() {
   return crypto.randomUUID();
 }
