@@ -246,18 +246,17 @@ export function useDashChat() {
     streamStartedRef.current = false;
 
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.access_token) throw new Error("You must be logged in");
+      let accessToken = await getFreshToken();
 
       const history = messages.map(m => ({ role: m.role, content: buildTransportText(m.content, m.attachments) }));
 
       abortRef.current = new AbortController();
 
-      const resp = await fetch(DASH_URL, {
+      const makeRequest = async (token: string) => fetch(DASH_URL, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${session.access_token}`,
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
           messages: history,
@@ -268,10 +267,22 @@ export function useDashChat() {
             execute_tool: executeTool,
           },
         }),
-        signal: abortRef.current.signal,
+        signal: abortRef.current!.signal,
       });
 
+      let resp = await makeRequest(accessToken);
+
+      // On 401, try refreshing the session once and retry
+      if (resp.status === 401) {
+        const { data: refreshData } = await supabase.auth.refreshSession();
+        if (refreshData.session?.access_token) {
+          accessToken = refreshData.session.access_token;
+          resp = await makeRequest(accessToken);
+        }
+      }
+
       if (!resp.ok || !resp.body) {
+        if (resp.status === 401) throw new Error("Session expired. Please sign in again.");
         const errBody = await resp.json().catch(() => ({ error: "Connection failed" }));
         throw new Error(errBody.error || "Failed to execute approval");
       }
