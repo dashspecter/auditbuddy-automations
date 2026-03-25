@@ -1,50 +1,39 @@
 
 
-# Generate Branded PDF Presentation for City Hall Mayor (Romanian)
+# Fix: Remove Broken QA Images + Regenerate PDF Properly
 
-This will be a **standalone script-generated PDF** (not a UI feature), written to `/mnt/documents/` for immediate download. The PDF will be in **Romanian**, branded with Dashspect colors and logo, and tailored specifically for a **municipal/city hall audience**.
+## What Went Wrong
 
-## Content Structure (8-9 pages)
+The previous generation placed QA inspection images (`qa_page-*.jpg`) into `public/` — the app's static assets folder. These are binary artifacts that don't belong in the codebase. The PDF itself was generated to `/mnt/documents/` which is correct, but needs to be regenerated fresh with proper QA.
 
-1. **Cover Page** — Dashspect logo, title "Platforma Digitală pentru Primării", subtitle, date
-2. **Problema** — Current pain points in city hall operations (paper-based, no visibility, no accountability)
-3. **Soluția Dashspect** — High-level value proposition with 4-5 key benefits
-4. **Module Relevante pentru Primărie** — Table of applicable modules (Tasks, Audits, Corrective Actions, Training, Attendance, CMMS, Dashboard) with Romanian descriptions tailored to municipal use
-5. **Cum Funcționează** — 4-step visual flow (Define → Assign → Execute → Analyze)
-6. **Beneficii Concrete** — Stat callouts and bullet points (faster resolution, compliance, transparency, cost savings)
-7. **Securitate & Guvernanță** — Roles, permissions, audit trail, data ownership — critical for public sector
-8. **Studiu de Caz / Scenarii** — 2-3 concrete scenarios showing how departments (Urbanism, HR, Tehnic) would use it
-9. **Contact & Următorii Pași** — Contact info, call to action
+## Plan
 
-## Technical Approach
+### Step 1 — Remove 9 broken QA images from `public/`
 
-- Use `reportlab` via `code--exec` to generate a multi-page branded PDF
-- Embed the Dashspect logo from `public/dashspect-logo-512.png`
-- Use brand colors: primary orange `#F97316`, dark text `#1E293B`, muted `#64748B`
-- Output to `/mnt/documents/Dashspect_Prezentare_Primarie.pdf`
-- QA via `pdftoppm` conversion and visual inspection
+Delete `public/qa_page-1.jpg` through `public/qa_page-9.jpg`. These are temporary QA artifacts that should never have been committed to the project.
 
-## Brand Elements
+### Step 2 — Regenerate the PDF with full end-to-end QA
 
-- Logo: `public/dashspect-logo-512.png`
-- Primary: `#F97316` (orange)
-- Dark: `#EA580C`
-- Text: `#1E293B`
-- Light BG: `#FEF7ED`
-- Font: Helvetica (built-in, supports Romanian diacritics with DejaVu fallback)
+Re-run the reportlab script to produce `/mnt/documents/Dashspect_Prezentare_Primarie.pdf` with:
+- Dashspect logo embedded from `public/dashspect-logo-512.png`
+- DejaVuSans font for proper Romanian diacritics (ă, â, î, ș, ț)
+- All 9 pages: Cover, Problema, Soluția, Module, Cum Funcționează, Beneficii, Securitate, Studiu de Caz, Contact
+- Brand colors: `#F97316` orange, `#1E293B` text, `#FEF7ED` light bg
 
-## Key Romanian Content Points
+### Step 3 — QA via `pdftoppm` to `/tmp/` (not public)
 
-- **Transparență** — Real-time visibility for all departments
-- **Responsabilitate** — Every task tracked, every action logged
-- **Eficiență** — Eliminate paper, automate follow-ups
-- **Conformitate** — Audit trails for legal compliance
-- **Control** — Roles & permissions per department/location
+Convert PDF pages to images in `/tmp/qa_*.jpg`, visually inspect each page for:
+- Romanian diacritics rendering (no black boxes)
+- Logo placement and sizing
+- Text overflow / clipping
+- Table alignment
+- Color accuracy
 
-## Files Created
+### Files Modified
 
-| File | Location |
-|------|----------|
-| Generator script | `/tmp/gen_primarie_pdf.py` |
-| Output PDF | `/mnt/documents/Dashspect_Prezentare_Primarie.pdf` |
+| Action | File |
+|--------|------|
+| DELETE | `public/qa_page-1.jpg` through `public/qa_page-9.jpg` (9 files) |
+| CREATE | `/mnt/documents/Dashspect_Prezentare_Primarie.pdf` (regenerated) |
+| CREATE | `/tmp/qa_*.jpg` (temporary QA only, not in repo) |
 
