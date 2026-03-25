@@ -60,10 +60,10 @@ export const CAPABILITY_REGISTRY: Record<string, CapabilityEntry> = {
   corrective_actions: {
     module: "corrective_actions",
     entities: ["corrective_action"],
-    aliases: ["CA", "corrective action", "fix", "remediere", "actiune corectiva"],
+    aliases: ["CA", "corrective action", "fix", "remediere", "actiune corectiva", "finding", "non-conformity"],
     reads: ["get_open_corrective_actions"],
-    actions: ["reassign_corrective_action"],
-    approvalClass: { reassign: "manager_required" },
+    actions: ["reassign_corrective_action", "create_ca_draft", "update_ca_status_draft"],
+    approvalClass: { reassign: "manager_required", create: "manager_required", update_status: "manager_required" },
     maturity: "stable",
   },
 
