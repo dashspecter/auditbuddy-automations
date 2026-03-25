@@ -1,48 +1,50 @@
 
 
-# Fix: Sidebar Tooltips Rendering Behind Page Content
+# Generate Branded PDF Presentation for City Hall Mayor (Romanian)
 
-## Root Cause
+This will be a **standalone script-generated PDF** (not a UI feature), written to `/mnt/documents/` for immediate download. The PDF will be in **Romanian**, branded with Dashspect colors and logo, and tailored specifically for a **municipal/city hall audience**.
 
-The `TooltipContent` component in `src/components/ui/tooltip.tsx` does **not** wrap the content in Radix's `TooltipPrimitive.Portal`. Without the Portal wrapper, the tooltip renders **inline in the DOM tree** — inside the sidebar's `<aside>` element.
+## Content Structure (8-9 pages)
 
-The sidebar's `<aside>` has no explicit `z-index`, and the navigation container at line 715 of `AppSidebar.tsx` has `overflow-y-auto`. This means:
+1. **Cover Page** — Dashspect logo, title "Platforma Digitală pentru Primării", subtitle, date
+2. **Problema** — Current pain points in city hall operations (paper-based, no visibility, no accountability)
+3. **Soluția Dashspect** — High-level value proposition with 4-5 key benefits
+4. **Module Relevante pentru Primărie** — Table of applicable modules (Tasks, Audits, Corrective Actions, Training, Attendance, CMMS, Dashboard) with Romanian descriptions tailored to municipal use
+5. **Cum Funcționează** — 4-step visual flow (Define → Assign → Execute → Analyze)
+6. **Beneficii Concrete** — Stat callouts and bullet points (faster resolution, compliance, transparency, cost savings)
+7. **Securitate & Guvernanță** — Roles, permissions, audit trail, data ownership — critical for public sector
+8. **Studiu de Caz / Scenarii** — 2-3 concrete scenarios showing how departments (Urbanism, HR, Tehnic) would use it
+9. **Contact & Următorii Pași** — Contact info, call to action
 
-1. The tooltip renders as a child of the sidebar DOM
-2. The sidebar sits at the same stacking level as the main content area
-3. The main content's cards overlap the tooltip because they come later in the DOM flow
-4. Even though `TooltipContent` has `z-50`, z-index only works within the same stacking context — and the sidebar creates its own
+## Technical Approach
 
-## Fix
+- Use `reportlab` via `code--exec` to generate a multi-page branded PDF
+- Embed the Dashspect logo from `public/dashspect-logo-512.png`
+- Use brand colors: primary orange `#F97316`, dark text `#1E293B`, muted `#64748B`
+- Output to `/mnt/documents/Dashspect_Prezentare_Primarie.pdf`
+- QA via `pdftoppm` conversion and visual inspection
 
-**File:** `src/components/ui/tooltip.tsx`
+## Brand Elements
 
-Wrap `TooltipPrimitive.Content` in `TooltipPrimitive.Portal` so tooltips render at `document.body` level, escaping all parent overflow and stacking contexts:
+- Logo: `public/dashspect-logo-512.png`
+- Primary: `#F97316` (orange)
+- Dark: `#EA580C`
+- Text: `#1E293B`
+- Light BG: `#FEF7ED`
+- Font: Helvetica (built-in, supports Romanian diacritics with DejaVu fallback)
 
-```typescript
-const TooltipContent = React.forwardRef<
-  React.ElementRef<typeof TooltipPrimitive.Content>,
-  React.ComponentPropsWithoutRef<typeof TooltipPrimitive.Content>
->(({ className, sideOffset = 4, ...props }, ref) => (
-  <TooltipPrimitive.Portal>
-    <TooltipPrimitive.Content
-      ref={ref}
-      sideOffset={sideOffset}
-      className={cn(
-        "z-50 overflow-hidden rounded-md border bg-popover px-3 py-1.5 text-sm text-popover-foreground shadow-md animate-in fade-in-0 zoom-in-95 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2",
-        className,
-      )}
-      {...props}
-    />
-  </TooltipPrimitive.Portal>
-));
-```
+## Key Romanian Content Points
 
-This is a one-line wrapper addition. It fixes **all** tooltips across the entire app — sidebar nav, collapsed sidebar icon tooltips, and any other tooltip usage.
+- **Transparență** — Real-time visibility for all departments
+- **Responsabilitate** — Every task tracked, every action logged
+- **Eficiență** — Eliminate paper, automate follow-ups
+- **Conformitate** — Audit trails for legal compliance
+- **Control** — Roles & permissions per department/location
 
-## Files Modified
+## Files Created
 
-| File | Change |
-|------|--------|
-| `src/components/ui/tooltip.tsx` | Wrap `TooltipPrimitive.Content` in `TooltipPrimitive.Portal` |
+| File | Location |
+|------|----------|
+| Generator script | `/tmp/gen_primarie_pdf.py` |
+| Output PDF | `/mnt/documents/Dashspect_Prezentare_Primarie.pdf` |
 
