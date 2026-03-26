@@ -66,6 +66,7 @@ export const EnhancedShiftDialog = ({
   onOpenChange,
   shift,
   defaultDate,
+  defaultEmployeeId,
   isPeriodLocked = false,
   isGovernanceEnabled = false,
   onLockedChangeRequest,
