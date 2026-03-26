@@ -1,5 +1,7 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useTranslation } from "react-i18next";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import { format, startOfWeek, addDays, addWeeks, subWeeks, isWithinInterval, parseISO, getISOWeek } from "date-fns";
 import { ChevronLeft, ChevronRight, Plus, Palmtree, Calendar as CalendarIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -8,7 +10,6 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { useShifts } from "@/hooks/useShifts";
 import { useTimeOffRequests } from "@/hooks/useTimeOffRequests";
 
 interface EmployeeMultiWeekViewProps {
@@ -31,7 +32,6 @@ export const EmployeeMultiWeekView = ({
   employeeName,
   employeeRole,
   employeeAvatarUrl,
-  locationId,
   initialWeekStart,
   onCreateShift,
   onEditShift,
@@ -40,28 +40,51 @@ export const EmployeeMultiWeekView = ({
   const [weekSpan, setWeekSpan] = useState<2 | 4>(2);
   const [rangeStart, setRangeStart] = useState(() => startOfWeek(initialWeekStart, { weekStartsOn: 1 }));
 
+  // P2-b: Sync rangeStart when sheet reopens
+  useEffect(() => {
+    if (open) {
+      setRangeStart(startOfWeek(initialWeekStart, { weekStartsOn: 1 }));
+    }
+  }, [open, initialWeekStart]);
+
   const rangeEnd = addDays(rangeStart, 7 * weekSpan - 1);
+  const startDateStr = format(rangeStart, "yyyy-MM-dd");
+  const endDateStr = format(rangeEnd, "yyyy-MM-dd");
 
-  const { data: shifts = [] } = useShifts(
-    locationId && locationId !== "all" ? locationId : undefined,
-    format(rangeStart, "yyyy-MM-dd"),
-    format(rangeEnd, "yyyy-MM-dd")
-  );
+  // P1-b: Employee-scoped shift query via shift_assignments join
+  const { data: employeeShifts = [] } = useQuery({
+    queryKey: ["employee-shifts-multiweek", employeeId, startDateStr, endDateStr],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("shift_assignments")
+        .select(`
+          shift_id,
+          shifts!inner(
+            id, shift_date, start_time, end_time, role, notes,
+            locations(name),
+            employee_roles(color),
+            cancelled_at
+          )
+        `)
+        .eq("staff_id", employeeId)
+        .eq("approval_status", "approved")
+        .gte("shifts.shift_date", startDateStr)
+        .lte("shifts.shift_date", endDateStr)
+        .is("shifts.cancelled_at", null);
 
+      if (error) throw error;
+
+      // Flatten: extract the shift object from each assignment
+      return (data || []).map((sa: any) => sa.shifts).filter(Boolean);
+    },
+    enabled: open && !!employeeId,
+  });
+
+  // P2-a: Scoped time-off query with employeeId
   const { data: timeOffRequests = [] } = useTimeOffRequests(
-    format(rangeStart, "yyyy-MM-dd"),
-    format(rangeEnd, "yyyy-MM-dd")
-  );
-
-  // Filter shifts for this employee only
-  const employeeShifts = useMemo(
-    () =>
-      shifts.filter((s) =>
-        s.shift_assignments?.some(
-          (sa: any) => sa.staff_id === employeeId && sa.approval_status === "approved"
-        )
-      ),
-    [shifts, employeeId]
+    startDateStr,
+    endDateStr,
+    employeeId
   );
 
   // Build weeks array
@@ -80,13 +103,12 @@ export const EmployeeMultiWeekView = ({
 
   const getShiftsForDay = (date: Date) => {
     const dateStr = format(date, "yyyy-MM-dd");
-    return employeeShifts.filter((s) => s.shift_date === dateStr);
+    return employeeShifts.filter((s: any) => s.shift_date === dateStr);
   };
 
   const getTimeOffForDay = (date: Date) => {
     return timeOffRequests.find(
       (req) =>
-        req.employee_id === employeeId &&
         req.status === "approved" &&
         isWithinInterval(date, {
           start: parseISO(req.start_date),
@@ -192,12 +214,12 @@ export const EmployeeMultiWeekView = ({
                     </div>
 
                     {timeOff ? (
-                      <div className="bg-red-100 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-[10px] p-1 rounded text-center">
+                      <div className="bg-destructive/10 text-destructive text-[10px] p-1 rounded text-center">
                         <Palmtree className="h-3 w-3 mx-auto mb-0.5" />
                         <span className="capitalize">{timeOff.request_type || "Off"}</span>
                       </div>
                     ) : dayShifts.length > 0 ? (
-                      dayShifts.map((shift) => (
+                      dayShifts.map((shift: any) => (
                         <Tooltip key={shift.id}>
                           <TooltipTrigger asChild>
                             <div
@@ -207,8 +229,8 @@ export const EmployeeMultiWeekView = ({
                               }}
                               className="text-[10px] p-1 rounded border cursor-pointer hover:shadow-sm transition-shadow mb-0.5"
                               style={{
-                                backgroundColor: `${(shift as any).employee_roles?.color || "#6366f1"}20`,
-                                borderColor: (shift as any).employee_roles?.color || "#6366f1",
+                                backgroundColor: `${shift.employee_roles?.color || "hsl(var(--primary))"}20`,
+                                borderColor: shift.employee_roles?.color || "hsl(var(--primary))",
                               }}
                             >
                               <div className="font-medium truncate">{shift.role}</div>
@@ -240,10 +262,10 @@ export const EmployeeMultiWeekView = ({
           <span>
             {employeeShifts.length} shift{employeeShifts.length !== 1 ? "s" : ""} in {weekSpan} weeks
           </span>
-          {timeOffRequests.filter((r) => r.employee_id === employeeId && r.status === "approved").length > 0 && (
+          {timeOffRequests.filter((r) => r.status === "approved").length > 0 && (
             <span className="flex items-center gap-1">
-              <Palmtree className="h-3.5 w-3.5 text-red-500" />
-              {timeOffRequests.filter((r) => r.employee_id === employeeId && r.status === "approved").length} time-off day(s)
+              <Palmtree className="h-3.5 w-3.5 text-destructive" />
+              {timeOffRequests.filter((r) => r.status === "approved").length} time-off day(s)
             </span>
           )}
         </div>

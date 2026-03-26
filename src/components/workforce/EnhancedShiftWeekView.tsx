@@ -100,6 +100,7 @@ export const EnhancedShiftWeekView = () => {
   
   const [selectedAbsence, setSelectedAbsence] = useState<AbsenceData | null>(null);
   const [multiWeekEmployee, setMultiWeekEmployee] = useState<{ id: string; name: string; role?: string; avatarUrl?: string | null } | null>(null);
+  const [defaultEmployeeForShift, setDefaultEmployeeForShift] = useState<string | undefined>(undefined);
   
   const deleteTimeOff = useDeleteTimeOffRequest();
   
@@ -1540,10 +1541,12 @@ export const EnhancedShiftWeekView = () => {
           if (!open) {
             setSelectedShift(null);
             setSelectedDate(undefined);
+            setDefaultEmployeeForShift(undefined);
           }
         }}
         shift={selectedShift}
         defaultDate={selectedDate}
+        defaultEmployeeId={defaultEmployeeForShift}
         isPeriodLocked={isPeriodLocked}
         isGovernanceEnabled={isGovernanceEnabled}
         onLockedChangeRequest={(payload) => {
@@ -1648,6 +1651,7 @@ export const EnhancedShiftWeekView = () => {
           onCreateShift={(date) => {
             setSelectedDate(date);
             setSelectedShift(null);
+            setDefaultEmployeeForShift(multiWeekEmployee.id);
             setShiftDialogOpen(true);
           }}
           onEditShift={(shift) => {

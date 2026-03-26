@@ -53,6 +53,7 @@ interface EnhancedShiftDialogProps {
   onOpenChange: (open: boolean) => void;
   shift?: any;
   defaultDate?: Date;
+  defaultEmployeeId?: string;
   isPeriodLocked?: boolean;
   isGovernanceEnabled?: boolean;
   onLockedChangeRequest?: (payload: LockedChangeRequestPayload) => void;
@@ -65,6 +66,7 @@ export const EnhancedShiftDialog = ({
   onOpenChange,
   shift,
   defaultDate,
+  defaultEmployeeId,
   isPeriodLocked = false,
   isGovernanceEnabled = false,
   onLockedChangeRequest,
@@ -299,7 +301,7 @@ export const EnhancedShiftDialog = ({
       });
       setBreaks([]);
       setApplyToDays([]);
-      setSelectedEmployees([]);
+      setSelectedEmployees(defaultEmployeeId ? [defaultEmployeeId] : []);
       setAllowCrossDepartment(false);
       setBatchMode(false);
       setEmployeeSearch("");
@@ -307,7 +309,7 @@ export const EnhancedShiftDialog = ({
       setSelectedPreset("custom");
       setIndividualPresets({});
     }
-  }, [shift, defaultDate, open]);
+  }, [shift, defaultDate, defaultEmployeeId, open]);
 
   const handleAddBreak = () => {
     setBreaks([...breaks, { start: "12:00", end: "12:30" }]);

@@ -22,9 +22,9 @@ export interface TimeOffRequest {
   };
 }
 
-export const useTimeOffRequests = (startDate?: string, endDate?: string) => {
+export const useTimeOffRequests = (startDate?: string, endDate?: string, employeeId?: string) => {
   return useQuery({
-    queryKey: ["time-off-requests", startDate, endDate],
+    queryKey: ["time-off-requests", startDate, endDate, employeeId],
     queryFn: async () => {
       let query = supabase
         .from("time_off_requests")
@@ -36,6 +36,9 @@ export const useTimeOffRequests = (startDate?: string, endDate?: string) => {
       }
       if (endDate) {
         query = query.lte("end_date", endDate);
+      }
+      if (employeeId) {
+        query = query.eq("employee_id", employeeId);
       }
       
       const { data, error } = await query;
