@@ -1646,7 +1646,6 @@ export const EnhancedShiftWeekView = () => {
           employeeName={multiWeekEmployee.name}
           employeeRole={multiWeekEmployee.role}
           employeeAvatarUrl={multiWeekEmployee.avatarUrl}
-          locationId={selectedLocation}
           initialWeekStart={currentWeekStart}
           onCreateShift={(date) => {
             setSelectedDate(date);
