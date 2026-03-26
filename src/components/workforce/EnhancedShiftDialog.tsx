@@ -53,6 +53,7 @@ interface EnhancedShiftDialogProps {
   onOpenChange: (open: boolean) => void;
   shift?: any;
   defaultDate?: Date;
+  defaultEmployeeId?: string;
   isPeriodLocked?: boolean;
   isGovernanceEnabled?: boolean;
   onLockedChangeRequest?: (payload: LockedChangeRequestPayload) => void;
