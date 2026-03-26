@@ -335,6 +335,7 @@ export const useUpdateShift = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["shifts"], exact: false });
+      queryClient.invalidateQueries({ queryKey: ["employee-shifts-multiweek"] });
       queryClient.invalidateQueries({ queryKey: ["pending-approvals"] });
       toast.success("Shift updated successfully");
     },
