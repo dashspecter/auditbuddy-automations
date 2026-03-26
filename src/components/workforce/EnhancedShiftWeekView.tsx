@@ -1048,7 +1048,21 @@ export const EnhancedShiftWeekView = () => {
                     </Avatar>
                     <div className="min-w-0 flex-1 overflow-visible">
                       <div className="font-medium text-sm flex items-center gap-1 flex-wrap">
-                        <span className="truncate max-w-[120px]" title={employee.full_name}>{employee.full_name}</span>
+                        <span
+                          className="truncate max-w-[120px] cursor-pointer hover:text-primary hover:underline transition-colors"
+                          title={`${employee.full_name} — Click for multi-week view`}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setMultiWeekEmployee({
+                              id: employee.id,
+                              name: employee.full_name,
+                              role: employee.role,
+                              avatarUrl: employee.avatar_url,
+                            });
+                          }}
+                        >
+                          {employee.full_name}
+                        </span>
                         {shiftIndicator && (
                           <Tooltip>
                             <TooltipTrigger asChild>
