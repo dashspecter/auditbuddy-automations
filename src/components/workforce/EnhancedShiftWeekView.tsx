@@ -1650,6 +1650,7 @@ export const EnhancedShiftWeekView = () => {
           onCreateShift={(date) => {
             setSelectedDate(date);
             setSelectedShift(null);
+            setDefaultEmployeeForShift(multiWeekEmployee.id);
             setShiftDialogOpen(true);
           }}
           onEditShift={(shift) => {
