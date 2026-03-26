@@ -301,7 +301,7 @@ export const EnhancedShiftDialog = ({
       });
       setBreaks([]);
       setApplyToDays([]);
-      setSelectedEmployees([]);
+      setSelectedEmployees(defaultEmployeeId ? [defaultEmployeeId] : []);
       setAllowCrossDepartment(false);
       setBatchMode(false);
       setEmployeeSearch("");
