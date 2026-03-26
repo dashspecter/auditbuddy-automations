@@ -31,6 +31,7 @@ import { useCompany } from "@/hooks/useCompany";
 import { useCompanyContext } from "@/contexts/CompanyContext";
 import { useAbsences, type AbsenceData } from "@/hooks/useAbsences";
 import { RecordAbsenceDialog } from "@/components/staff/RecordAbsenceDialog";
+import { EmployeeMultiWeekView } from "./EmployeeMultiWeekView";
 import { useTerminology } from "@/hooks/useTerminology";
 import {
   Select,
@@ -98,6 +99,7 @@ export const EnhancedShiftWeekView = () => {
   } | null>(null);
   
   const [selectedAbsence, setSelectedAbsence] = useState<AbsenceData | null>(null);
+  const [multiWeekEmployee, setMultiWeekEmployee] = useState<{ id: string; name: string; role?: string; avatarUrl?: string | null } | null>(null);
   
   const deleteTimeOff = useDeleteTimeOffRequest();
   
@@ -1046,7 +1048,21 @@ export const EnhancedShiftWeekView = () => {
                     </Avatar>
                     <div className="min-w-0 flex-1 overflow-visible">
                       <div className="font-medium text-sm flex items-center gap-1 flex-wrap">
-                        <span className="truncate max-w-[120px]" title={employee.full_name}>{employee.full_name}</span>
+                        <span
+                          className="truncate max-w-[120px] cursor-pointer hover:text-primary hover:underline transition-colors"
+                          title={`${employee.full_name} — Click for multi-week view`}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setMultiWeekEmployee({
+                              id: employee.id,
+                              name: employee.full_name,
+                              role: employee.role,
+                              avatarUrl: employee.avatar_url,
+                            });
+                          }}
+                        >
+                          {employee.full_name}
+                        </span>
                         {shiftIndicator && (
                           <Tooltip>
                             <TooltipTrigger asChild>
@@ -1617,6 +1633,29 @@ export const EnhancedShiftWeekView = () => {
         onClose={() => setSelectedAbsence(null)}
         onRecorded={refreshAbsences}
       />
+
+      {/* Multi-Week Employee View */}
+      {multiWeekEmployee && (
+        <EmployeeMultiWeekView
+          open={!!multiWeekEmployee}
+          onOpenChange={(open) => { if (!open) setMultiWeekEmployee(null); }}
+          employeeId={multiWeekEmployee.id}
+          employeeName={multiWeekEmployee.name}
+          employeeRole={multiWeekEmployee.role}
+          employeeAvatarUrl={multiWeekEmployee.avatarUrl}
+          locationId={selectedLocation}
+          initialWeekStart={currentWeekStart}
+          onCreateShift={(date) => {
+            setSelectedDate(date);
+            setSelectedShift(null);
+            setShiftDialogOpen(true);
+          }}
+          onEditShift={(shift) => {
+            setSelectedShift(shift);
+            setShiftDialogOpen(true);
+          }}
+        />
+      )}
     </div>
   );
 };
