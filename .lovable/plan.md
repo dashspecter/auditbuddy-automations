@@ -1,69 +1,82 @@
 
 
-# Multi-Week Employee Schedule View
+# Fix All 4 Audit Issues — Multi-Week Employee View
 
-## Concept
+## Issues to Fix
 
-A **per-employee** multi-week view — not expanding the full team grid. When a manager clicks on an employee row (or selects from a dropdown), a dedicated panel/dialog opens showing that single employee's schedule across 2 or 4 weeks, with the ability to create/edit/delete shifts directly in that view.
+| # | Severity | Problem | Fix |
+|---|----------|---------|-----|
+| P1-a | P1 | Employee not pre-filled when creating shift from multi-week view | Add `defaultEmployeeId` prop to `EnhancedShiftDialog`; pass it from parent |
+| P1-b | P1 | "All locations" query risks 1000-row truncation | No `company_id` filter when locationId is undefined |
+| P2-a | P2 | `useTimeOffRequests` fetches entire company, filters client-side | Add optional `employeeId` param |
+| P2-b | P2 | `rangeStart` doesn't sync when sheet reopens | Add `useEffect` to reset on open |
 
-## UX Flow
+---
 
-```text
-Team Grid (existing)
-  └─ Click employee name/avatar → Opens EmployeeMultiWeekView
-      ┌─────────────────────────────────────────────────┐
-      │ [◀] Maria Popescu — 4 Weeks [▶]  [2W] [4W]     │
-      ├─────────────────────────────────────────────────┤
-      │       Mon  Tue  Wed  Thu  Fri  Sat  Sun         │
-      │ W13 │ 8-16 ·   8-16  ·  8-16  ·    ·           │
-      │ W14 │ 8-16 ·   8-16  ·  8-16  ·    ·           │
-      │ W15 │  ·   ·    ·    ·   ·    ·    ·   ← empty  │
-      │ W16 │  ·   ·    ·    ·   ·    ·    ·            │
-      └─────────────────────────────────────────────────┘
-      Click any cell → opens EnhancedShiftDialog (create/edit)
-      Existing shifts show role badge + time
-      Time-off days highlighted
-```
+## Fix 1 — P1-a: Employee Pre-fill
 
-## Implementation
+### `EnhancedShiftDialog.tsx`
+- Add `defaultEmployeeId?: string` to `EnhancedShiftDialogProps`
+- In the existing reset `useEffect` (around line 283), when `!shift` (new shift mode) and `defaultEmployeeId` is provided, set `setSelectedEmployees([defaultEmployeeId])` instead of `[]`
 
-### 1. New Component: `EmployeeMultiWeekView.tsx`
+### `EnhancedShiftWeekView.tsx`
+- Add state: `defaultEmployeeForShift: string | undefined`
+- In the multi-week `onCreateShift` callback (line 1648), also set `defaultEmployeeForShift` to `multiWeekEmployee.id`
+- Pass `defaultEmployeeId={defaultEmployeeForShift}` to `EnhancedShiftDialog`
+- Clear it when dialog closes (in `onOpenChange` at line 1538)
 
-A dialog/sheet component that receives an `employeeId` and renders:
-- **Header**: Employee name, avatar, role, week-span toggle (2W / 4W)
-- **Grid**: Rows = weeks (W13, W14...), Columns = Mon–Sun
-- **Cells**: Show existing shifts (role badge + time), time-off indicators, click-to-create
-- **Navigation**: Forward/back arrows to shift the window
-- Uses existing `useShifts` hook with the employee's location + expanded date range
-- Filters shifts client-side by `staff_id` matching the selected employee
-- Also queries `useTimeOffRequests` for the same range to show unavailability
+---
 
-### 2. Entry Point in `EnhancedShiftWeekView.tsx`
+## Fix 2 — P1-b: Query Scope for "All Locations"
 
-- Add a click handler on employee name/avatar in the grid rows
-- Opens `EmployeeMultiWeekView` as a `Sheet` (slide-in panel from right)
-- Passes `employeeId`, `employeeName`, `currentWeekStart` as starting point
+### `EmployeeMultiWeekView.tsx`
+- When `locationId` is undefined or `"all"`, we still need all shifts for this employee across all locations. The current approach fetches everything and filters client-side, risking the 1000-row limit.
+- **Fix**: Query `shift_assignments` directly filtered by `staff_id`, then join to `shifts`. This guarantees only this employee's shifts are returned regardless of location count.
+- Alternative (simpler): Add `.limit(5000)` to the `useShifts` call specifically for the multi-week view, and add a secondary direct query:
+  ```
+  supabase.from("shift_assignments")
+    .select("shift_id, shifts(*)")
+    .eq("staff_id", employeeId)
+    .eq("approval_status", "approved")
+  ```
+- **Chosen approach**: Add a dedicated `useEmployeeShifts(employeeId, startDate, endDate)` query inside `EmployeeMultiWeekView` that queries via `shift_assignments` → `shifts` join, bypassing the location-based query entirely. This is more efficient and eliminates the truncation risk.
 
-### 3. Shift Creation from Multi-Week View
+### Implementation in `EmployeeMultiWeekView.tsx`
+- Replace `useShifts` with an inline `useQuery` that:
+  1. Queries `shift_assignments` filtered by `staff_id = employeeId` and `approval_status = approved`
+  2. Joins `shifts(*, locations(name), employee_roles(color))` with date range filter and `cancelled_at IS NULL`
+  3. Returns only this employee's shifts — no client-side filtering needed
+- Remove the `employeeShifts` useMemo filter (no longer needed)
 
-- Clicking an empty cell opens the existing `EnhancedShiftDialog` pre-filled with:
-  - The employee (pre-selected, locked)
-  - The date (from the cell's week-row + day-column)
-  - Location (from context or employee's default)
-- On shift creation, the multi-week view auto-refreshes via query invalidation
+---
 
-### 4. Data Fetching
+## Fix 3 — P2-a: Scoped Time-Off Query
 
-- Reuse `useShifts(locationId, startDate, endDate)` with a wider date range (14 or 28 days)
-- Filter returned shifts by `staff_id === employeeId` on the client
-- Reuse `useTimeOffRequests(startDate, endDate)` filtered by employee
+### `useTimeOffRequests.ts`
+- Add optional third parameter `employeeId?: string`
+- When provided, add `.eq("employee_id", employeeId)` to query
+- Add `employeeId` to `queryKey`: `["time-off-requests", startDate, endDate, employeeId]`
 
-## Files to Create/Modify
+### `EmployeeMultiWeekView.tsx`
+- Pass `employeeId` to `useTimeOffRequests(startDate, endDate, employeeId)`
+- Remove the client-side `req.employee_id === employeeId` filter in `getTimeOffForDay`
 
-| File | Change |
-|------|--------|
-| `src/components/workforce/EmployeeMultiWeekView.tsx` | **NEW** — per-employee multi-week grid sheet |
-| `src/components/workforce/EnhancedShiftWeekView.tsx` | Add click handler on employee rows to open the new sheet |
+---
 
-No backend changes, no new hooks, no schema changes. All data already available via existing queries.
+## Fix 4 — P2-b: Sync rangeStart on Reopen
+
+### `EmployeeMultiWeekView.tsx`
+- Add `useEffect` that resets `rangeStart` to `startOfWeek(initialWeekStart, { weekStartsOn: 1 })` when `open` transitions to `true`
+- Add `useEffect` import (already imported: `useState, useMemo` → add `useEffect`)
+
+---
+
+## Files Modified
+
+| File | Changes |
+|------|---------|
+| `src/components/workforce/EnhancedShiftDialog.tsx` | Add `defaultEmployeeId` prop; pre-select employee in reset effect |
+| `src/components/workforce/EnhancedShiftWeekView.tsx` | Track `defaultEmployeeForShift` state; pass to dialog; clear on close |
+| `src/components/workforce/EmployeeMultiWeekView.tsx` | Replace `useShifts` with employee-scoped query; pass `employeeId` to time-off hook; add `useEffect` for rangeStart sync |
+| `src/hooks/useTimeOffRequests.ts` | Add optional `employeeId` param with server-side filter |
 
