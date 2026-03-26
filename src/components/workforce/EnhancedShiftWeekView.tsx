@@ -99,6 +99,7 @@ export const EnhancedShiftWeekView = () => {
   } | null>(null);
   
   const [selectedAbsence, setSelectedAbsence] = useState<AbsenceData | null>(null);
+  const [multiWeekEmployee, setMultiWeekEmployee] = useState<{ id: string; name: string; role?: string; avatarUrl?: string | null } | null>(null);
   
   const deleteTimeOff = useDeleteTimeOffRequest();
   
