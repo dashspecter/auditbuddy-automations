@@ -1,82 +1,51 @@
 
 
-# Fix All 4 Audit Issues — Multi-Week Employee View
+# Fix P0 + P2: Multi-Week Employee View — Final Fixes
 
-## Issues to Fix
+## What's broken
 
-| # | Severity | Problem | Fix |
-|---|----------|---------|-----|
-| P1-a | P1 | Employee not pre-filled when creating shift from multi-week view | Add `defaultEmployeeId` prop to `EnhancedShiftDialog`; pass it from parent |
-| P1-b | P1 | "All locations" query risks 1000-row truncation | No `company_id` filter when locationId is undefined |
-| P2-a | P2 | `useTimeOffRequests` fetches entire company, filters client-side | Add optional `employeeId` param |
-| P2-b | P2 | `rangeStart` doesn't sync when sheet reopens | Add `useEffect` to reset on open |
+**P0 — Edit shift sends incomplete data to dialog**: The query at line 60-67 of `EmployeeMultiWeekView.tsx` only selects `id, shift_date, start_time, end_time, role, notes, locations(name), employee_roles(color), cancelled_at`. When a user clicks an existing shift to edit, this incomplete object is passed to `EnhancedShiftDialog` which expects `location_id`, `required_count`, `is_open_shift`, `is_published`, `close_duty`, `break_duration_minutes`, `shift_type`, `status`, `breaks`, and `shift_assignments`. Missing fields default to empty/false, silently **corrupting shift data on save**.
 
----
+**P2 — Dead `locationId` prop**: Accepted in the interface (line 22) but never used after the P1-b fix. Dead code.
 
-## Fix 1 — P1-a: Employee Pre-fill
+## Fixes
 
-### `EnhancedShiftDialog.tsx`
-- Add `defaultEmployeeId?: string` to `EnhancedShiftDialogProps`
-- In the existing reset `useEffect` (around line 283), when `!shift` (new shift mode) and `defaultEmployeeId` is provided, set `setSelectedEmployees([defaultEmployeeId])` instead of `[]`
+### File 1: `src/components/workforce/EmployeeMultiWeekView.tsx`
 
-### `EnhancedShiftWeekView.tsx`
-- Add state: `defaultEmployeeForShift: string | undefined`
-- In the multi-week `onCreateShift` callback (line 1648), also set `defaultEmployeeForShift` to `multiWeekEmployee.id`
-- Pass `defaultEmployeeId={defaultEmployeeForShift}` to `EnhancedShiftDialog`
-- Clear it when dialog closes (in `onOpenChange` at line 1538)
+**Expand query select** (lines 60-67) to include all fields `EnhancedShiftDialog` needs:
 
----
+```typescript
+.select(`
+  shift_id,
+  shifts!inner(
+    id, shift_date, start_time, end_time, role, notes,
+    location_id, required_count, is_open_shift, is_published,
+    close_duty, break_duration_minutes, shift_type, status,
+    breaks, cancelled_at,
+    locations(name),
+    employee_roles(color),
+    shift_assignments(id, staff_id, approval_status)
+  )
+`)
+```
 
-## Fix 2 — P1-b: Query Scope for "All Locations"
+**Remove dead `locationId`** from the interface (line 22) and destructuring (line 28-38).
 
-### `EmployeeMultiWeekView.tsx`
-- When `locationId` is undefined or `"all"`, we still need all shifts for this employee across all locations. The current approach fetches everything and filters client-side, risking the 1000-row limit.
-- **Fix**: Query `shift_assignments` directly filtered by `staff_id`, then join to `shifts`. This guarantees only this employee's shifts are returned regardless of location count.
-- Alternative (simpler): Add `.limit(5000)` to the `useShifts` call specifically for the multi-week view, and add a secondary direct query:
-  ```
-  supabase.from("shift_assignments")
-    .select("shift_id, shifts(*)")
-    .eq("staff_id", employeeId)
-    .eq("approval_status", "approved")
-  ```
-- **Chosen approach**: Add a dedicated `useEmployeeShifts(employeeId, startDate, endDate)` query inside `EmployeeMultiWeekView` that queries via `shift_assignments` → `shifts` join, bypassing the location-based query entirely. This is more efficient and eliminates the truncation risk.
+### File 2: `src/components/workforce/EnhancedShiftWeekView.tsx`
 
-### Implementation in `EmployeeMultiWeekView.tsx`
-- Replace `useShifts` with an inline `useQuery` that:
-  1. Queries `shift_assignments` filtered by `staff_id = employeeId` and `approval_status = approved`
-  2. Joins `shifts(*, locations(name), employee_roles(color))` with date range filter and `cancelled_at IS NULL`
-  3. Returns only this employee's shifts — no client-side filtering needed
-- Remove the `employeeShifts` useMemo filter (no longer needed)
+Remove `locationId={selectedLocation}` from the `EmployeeMultiWeekView` JSX (line 1649).
 
----
+## Verification
 
-## Fix 3 — P2-a: Scoped Time-Off Query
-
-### `useTimeOffRequests.ts`
-- Add optional third parameter `employeeId?: string`
-- When provided, add `.eq("employee_id", employeeId)` to query
-- Add `employeeId` to `queryKey`: `["time-off-requests", startDate, endDate, employeeId]`
-
-### `EmployeeMultiWeekView.tsx`
-- Pass `employeeId` to `useTimeOffRequests(startDate, endDate, employeeId)`
-- Remove the client-side `req.employee_id === employeeId` filter in `getTimeOffForDay`
-
----
-
-## Fix 4 — P2-b: Sync rangeStart on Reopen
-
-### `EmployeeMultiWeekView.tsx`
-- Add `useEffect` that resets `rangeStart` to `startOfWeek(initialWeekStart, { weekStartsOn: 1 })` when `open` transitions to `true`
-- Add `useEffect` import (already imported: `useState, useMemo` → add `useEffect`)
-
----
+1. Open multi-week view → click existing shift → confirm dialog shows correct location, required count, shift type, assigned employees
+2. Save without changes → confirm DB data unchanged (no corruption)
+3. Click empty cell → confirm employee pre-selected, shift creates correctly
+4. Navigate weeks, toggle 2W/4W — all functional
 
 ## Files Modified
 
-| File | Changes |
-|------|---------|
-| `src/components/workforce/EnhancedShiftDialog.tsx` | Add `defaultEmployeeId` prop; pre-select employee in reset effect |
-| `src/components/workforce/EnhancedShiftWeekView.tsx` | Track `defaultEmployeeForShift` state; pass to dialog; clear on close |
-| `src/components/workforce/EmployeeMultiWeekView.tsx` | Replace `useShifts` with employee-scoped query; pass `employeeId` to time-off hook; add `useEffect` for rangeStart sync |
-| `src/hooks/useTimeOffRequests.ts` | Add optional `employeeId` param with server-side filter |
+| File | Change |
+|------|--------|
+| `src/components/workforce/EmployeeMultiWeekView.tsx` | Expand query select; remove dead `locationId` prop |
+| `src/components/workforce/EnhancedShiftWeekView.tsx` | Remove `locationId` prop from JSX |
 
