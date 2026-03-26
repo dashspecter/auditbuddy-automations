@@ -387,6 +387,7 @@ export const useBulkPublishShifts = () => {
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ["shifts"], exact: false });
+      queryClient.invalidateQueries({ queryKey: ["employee-shifts-multiweek"] });
       queryClient.invalidateQueries({ queryKey: ["pending-approvals"] });
       const action = variables.publish ? "published" : "unpublished";
       toast.success(`${variables.shiftIds.length} shift(s) ${action} successfully`);

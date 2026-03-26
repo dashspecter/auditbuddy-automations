@@ -48,6 +48,7 @@ export const useRealtimeShifts = () => {
           
           // Invalidate queries to refresh data
           queryClient.invalidateQueries({ queryKey: ["shifts"] });
+          queryClient.invalidateQueries({ queryKey: ["employee-shifts-multiweek"] });
         }
       )
       .on(
@@ -62,6 +63,7 @@ export const useRealtimeShifts = () => {
           
           // Invalidate shifts to refresh assignments
           queryClient.invalidateQueries({ queryKey: ["shifts"] });
+          queryClient.invalidateQueries({ queryKey: ["employee-shifts-multiweek"] });
         }
       )
       .subscribe((status) => {
