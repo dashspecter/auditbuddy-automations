@@ -1,27 +1,69 @@
 
 
-# Fix: Cancelled shifts still showing on schedule grid
+# Multi-Week Employee Schedule View
 
-## Problem
-When Dash deletes/cancels a shift, `executeShiftDeletion` does two things:
-1. Deletes the shift assignment (employee link)
-2. Soft-cancels the shift record (`status: "cancelled"`, `cancelled_at: now()`)
+## Concept
 
-But the `useShifts` hook fetches ALL shifts without filtering out cancelled ones. So the shift remains visible on the grid as "Unassigned".
+A **per-employee** multi-week view — not expanding the full team grid. When a manager clicks on an employee row (or selects from a dropdown), a dedicated panel/dialog opens showing that single employee's schedule across 2 or 4 weeks, with the ability to create/edit/delete shifts directly in that view.
 
-## Fix (two-pronged)
+## UX Flow
 
-### 1. Filter cancelled shifts from the grid query
-In `src/hooks/useShifts.ts`, add `.is("cancelled_at", null)` to the base query so cancelled shifts never appear on the scheduling grid.
+```text
+Team Grid (existing)
+  └─ Click employee name/avatar → Opens EmployeeMultiWeekView
+      ┌─────────────────────────────────────────────────┐
+      │ [◀] Maria Popescu — 4 Weeks [▶]  [2W] [4W]     │
+      ├─────────────────────────────────────────────────┤
+      │       Mon  Tue  Wed  Thu  Fri  Sat  Sun         │
+      │ W13 │ 8-16 ·   8-16  ·  8-16  ·    ·           │
+      │ W14 │ 8-16 ·   8-16  ·  8-16  ·    ·           │
+      │ W15 │  ·   ·    ·    ·   ·    ·    ·   ← empty  │
+      │ W16 │  ·   ·    ·    ·   ·    ·    ·            │
+      └─────────────────────────────────────────────────┘
+      Click any cell → opens EnhancedShiftDialog (create/edit)
+      Existing shifts show role badge + time
+      Time-off days highlighted
+```
 
-### 2. Actually delete the shift record (preferred behavior)
-Since the user's intent is to **remove** the shift entirely (not just mark it cancelled), update `executeShiftDeletion` in `supabase/functions/dash-command/capabilities/workforce.ts` to **hard-delete** the shift record instead of soft-cancelling it. This is consistent with the UI messaging ("Shift cancelled", "Assignment removed") and the user's expectation.
+## Implementation
 
-Both changes will be applied:
-- **Frontend filter** (defensive — ensures no cancelled shift ever leaks into the grid regardless of source)
-- **Backend hard-delete** (correct behavior — the shift is truly removed, not lingering in the DB)
+### 1. New Component: `EmployeeMultiWeekView.tsx`
 
-### Files to change
-- `src/hooks/useShifts.ts` — add `cancelled_at` null filter
-- `supabase/functions/dash-command/capabilities/workforce.ts` — change soft-cancel to hard-delete in `executeShiftDeletion`
+A dialog/sheet component that receives an `employeeId` and renders:
+- **Header**: Employee name, avatar, role, week-span toggle (2W / 4W)
+- **Grid**: Rows = weeks (W13, W14...), Columns = Mon–Sun
+- **Cells**: Show existing shifts (role badge + time), time-off indicators, click-to-create
+- **Navigation**: Forward/back arrows to shift the window
+- Uses existing `useShifts` hook with the employee's location + expanded date range
+- Filters shifts client-side by `staff_id` matching the selected employee
+- Also queries `useTimeOffRequests` for the same range to show unavailability
+
+### 2. Entry Point in `EnhancedShiftWeekView.tsx`
+
+- Add a click handler on employee name/avatar in the grid rows
+- Opens `EmployeeMultiWeekView` as a `Sheet` (slide-in panel from right)
+- Passes `employeeId`, `employeeName`, `currentWeekStart` as starting point
+
+### 3. Shift Creation from Multi-Week View
+
+- Clicking an empty cell opens the existing `EnhancedShiftDialog` pre-filled with:
+  - The employee (pre-selected, locked)
+  - The date (from the cell's week-row + day-column)
+  - Location (from context or employee's default)
+- On shift creation, the multi-week view auto-refreshes via query invalidation
+
+### 4. Data Fetching
+
+- Reuse `useShifts(locationId, startDate, endDate)` with a wider date range (14 or 28 days)
+- Filter returned shifts by `staff_id === employeeId` on the client
+- Reuse `useTimeOffRequests(startDate, endDate)` filtered by employee
+
+## Files to Create/Modify
+
+| File | Change |
+|------|--------|
+| `src/components/workforce/EmployeeMultiWeekView.tsx` | **NEW** — per-employee multi-week grid sheet |
+| `src/components/workforce/EnhancedShiftWeekView.tsx` | Add click handler on employee rows to open the new sheet |
+
+No backend changes, no new hooks, no schema changes. All data already available via existing queries.
 
