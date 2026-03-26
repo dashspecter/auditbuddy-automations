@@ -1633,6 +1633,29 @@ export const EnhancedShiftWeekView = () => {
         onClose={() => setSelectedAbsence(null)}
         onRecorded={refreshAbsences}
       />
+
+      {/* Multi-Week Employee View */}
+      {multiWeekEmployee && (
+        <EmployeeMultiWeekView
+          open={!!multiWeekEmployee}
+          onOpenChange={(open) => { if (!open) setMultiWeekEmployee(null); }}
+          employeeId={multiWeekEmployee.id}
+          employeeName={multiWeekEmployee.name}
+          employeeRole={multiWeekEmployee.role}
+          employeeAvatarUrl={multiWeekEmployee.avatarUrl}
+          locationId={selectedLocation}
+          initialWeekStart={currentWeekStart}
+          onCreateShift={(date) => {
+            setSelectedDate(date);
+            setSelectedShift(null);
+            setShiftDialogOpen(true);
+          }}
+          onEditShift={(shift) => {
+            setSelectedShift(shift);
+            setShiftDialogOpen(true);
+          }}
+        />
+      )}
     </div>
   );
 };
