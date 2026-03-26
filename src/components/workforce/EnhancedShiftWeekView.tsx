@@ -31,6 +31,7 @@ import { useCompany } from "@/hooks/useCompany";
 import { useCompanyContext } from "@/contexts/CompanyContext";
 import { useAbsences, type AbsenceData } from "@/hooks/useAbsences";
 import { RecordAbsenceDialog } from "@/components/staff/RecordAbsenceDialog";
+import { EmployeeMultiWeekView } from "./EmployeeMultiWeekView";
 import { useTerminology } from "@/hooks/useTerminology";
 import {
   Select,
