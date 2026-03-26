@@ -19,7 +19,6 @@ interface EmployeeMultiWeekViewProps {
   employeeName: string;
   employeeRole?: string;
   employeeAvatarUrl?: string | null;
-  locationId?: string;
   initialWeekStart: Date;
   onCreateShift: (date: Date) => void;
   onEditShift: (shift: any) => void;
