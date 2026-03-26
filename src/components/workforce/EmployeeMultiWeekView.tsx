@@ -60,9 +60,12 @@ export const EmployeeMultiWeekView = ({
           shift_id,
           shifts!inner(
             id, shift_date, start_time, end_time, role, notes,
+            location_id, required_count, is_open_shift, is_published,
+            close_duty, break_duration_minutes, shift_type, status,
+            breaks, cancelled_at,
             locations(name),
             employee_roles(color),
-            cancelled_at
+            shift_assignments(id, staff_id, approval_status)
           )
         `)
         .eq("staff_id", employeeId)
