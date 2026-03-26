@@ -1540,10 +1540,12 @@ export const EnhancedShiftWeekView = () => {
           if (!open) {
             setSelectedShift(null);
             setSelectedDate(undefined);
+            setDefaultEmployeeForShift(undefined);
           }
         }}
         shift={selectedShift}
         defaultDate={selectedDate}
+        defaultEmployeeId={defaultEmployeeForShift}
         isPeriodLocked={isPeriodLocked}
         isGovernanceEnabled={isGovernanceEnabled}
         onLockedChangeRequest={(payload) => {
