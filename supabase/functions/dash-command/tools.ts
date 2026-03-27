@@ -57,11 +57,12 @@ export const tools = [
     type: "function",
     function: {
       name: "get_audit_results",
-      description: "Get recent audit results (scores, templates used, locations) within a date range.",
+      description: "Get recent audit results (scores, templates used, locations) within a date range. Accepts location_name for automatic resolution.",
       parameters: {
         type: "object",
         properties: {
-          location_id: { type: "string", description: "Optional location filter" },
+          location_id: { type: "string", description: "Optional location UUID filter" },
+          location_name: { type: "string", description: "Optional location name (partial match, auto-resolved to ID)" },
           template_id: { type: "string", description: "Optional template filter" },
           from: { type: "string", description: "Start date YYYY-MM-DD" },
           to: { type: "string", description: "End date YYYY-MM-DD" },
