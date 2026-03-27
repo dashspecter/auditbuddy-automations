@@ -1,54 +1,62 @@
 
 
-# Fix: Dash Can't Find Audits by Location Name
+# Fix: Dash Can't Answer "Who is Working Today?"
 
 ## Problem
 
-The screenshots show a clear contradiction:
-- The Audits page shows **3 audits for LBFC Mosilor** completed on 2026-03-25 (82%, 94%, 100%)
-- Dash says **"I couldn't find any audits for LBFC Mosilor in the last 30 days"**
+The user asks *"how many employees are working today at LBFC Amzei?"* — Dash says "no attendance logs" despite 2 employees checked in at LBFC Amzei (Thayab Abdullah 09:51, Zack Adeyanju 09:42).
 
-**Root cause**: The `get_audit_results` tool only accepts `location_id` (UUID), not `location_name`. The LLM should call `search_locations` first to resolve "Mosilor" → UUID, then pass the UUID to `get_audit_results`. But the system prompt gives no instruction to do this, so the LLM either skips the location filter entirely (returning all audits) or refuses saying it can't search by location.
+**Root cause**: Dash only has `get_attendance_exceptions` which filters for `is_late = true OR check_out_at IS NULL` (exceptions only). There is **no tool** to retrieve general attendance data — who checked in, who is currently working, total check-ins. The LLM has no way to answer "who is working today?" or "how many people checked in?"
 
-The same gap exists in `compare_location_performance`, `get_open_corrective_actions`, `get_task_completion_summary`, `get_work_order_status`, and `get_cross_module_summary` — all accept `location_id` but not `location_name`.
+Additionally, `get_attendance_exceptions` only accepts `location_id` (UUID), not `location_name` — same gap we just fixed for audits.
 
-## Fix — Two-pronged approach
+## Fix
 
-### 1. Add `location_name` resolution directly into `getAuditResults` (backend)
+### 1. Add new tool: `get_attendance_summary`
 
-Instead of depending on the LLM to chain two tool calls (which it frequently fails to do), add a `location_name` parameter to the tool and resolve it server-side — the same pattern already used by `getLocationOverview`.
+A read-only tool that returns all attendance logs for a date range, optionally filtered by location name or ID. Returns: employee name, check-in/out times, status (working/completed), location, late info.
 
-**File: `supabase/functions/dash-command/capabilities/audits.ts`**
-- In `getAuditResults`: if `args.location_name` is provided and `args.location_id` is not, resolve it via `ilike` query on `locations` table filtered by `company_id`
-- If no match found, return a clear error: `No location matching "X"`
+**File: `supabase/functions/dash-command/capabilities/workforce.ts`**
+- Add `getAttendanceSummary` function
+- Accept `from`, `to`, `location_name`, `location_id`, `limit`
+- Resolve `location_name` → ID via `ilike` (same pattern as audits)
+- Scope to company via location IDs (attendance_logs has no company_id)
+- Return all logs, not just exceptions
+- Include computed `status`: "working" (no check_out) vs "completed"
+
+### 2. Add `location_name` to `get_attendance_exceptions`
+
+**File: `supabase/functions/dash-command/capabilities/workforce.ts`**
+- In `getAttendanceExceptions`: resolve `location_name` → `location_id` if provided
+
+### 3. Register the new tool
 
 **File: `supabase/functions/dash-command/tools.ts`**
-- Add `location_name: { type: "string", description: "Location name (partial match, resolved to ID automatically)" }` to `get_audit_results` parameters
+- Add `get_attendance_summary` tool definition with `from`, `to`, `location_name`, `location_id`, `limit`
+- Add `location_name` param to `get_attendance_exceptions`
 
-### 2. Add the same pattern to `compareLocationPerformance`
+### 4. Wire up routing + permissions
 
-**File: `supabase/functions/dash-command/capabilities/audits.ts`**
-- In `compareLocationPerformance`: accept `location_names` (array of strings) as an alternative to `location_ids`, resolve each name server-side
+**File: `supabase/functions/dash-command/index.ts`**
+- Add case for `get_attendance_summary` → call `getAttendanceSummary`
+- Add to tool-module mapping: `get_attendance_summary: "workforce"`
+- Update system prompt: mention this tool for "who is working", "attendance today", "how many checked in"
 
-**File: `supabase/functions/dash-command/tools.ts`**
-- Add `location_names` parameter to `compare_location_performance`
-
-### 3. Add a system prompt hint for chained resolution
-
-**File: `supabase/functions/dash-command/index.ts`** — in `buildSystemPrompt`
-- Add a short instruction: "When any tool needs a location_id and the user provides a name, you can pass location_name directly — the tool resolves it automatically. You can also call search_locations first if you need to disambiguate."
+**File: `supabase/functions/dash-command/registry.ts`**
+- Add `get_attendance_summary` to workforce reads
 
 ## Files to change
 
 | File | Change |
 |------|--------|
-| `supabase/functions/dash-command/capabilities/audits.ts` | Add `location_name` resolution in `getAuditResults` and `compareLocationPerformance` |
-| `supabase/functions/dash-command/tools.ts` | Add `location_name` param to `get_audit_results` and `location_names` to `compare_location_performance` |
-| `supabase/functions/dash-command/index.ts` | Add system prompt hint about location name auto-resolution |
+| `supabase/functions/dash-command/capabilities/workforce.ts` | Add `getAttendanceSummary`; add `location_name` resolution to `getAttendanceExceptions` |
+| `supabase/functions/dash-command/tools.ts` | Add `get_attendance_summary` tool; add `location_name` to exceptions tool |
+| `supabase/functions/dash-command/index.ts` | Route new tool; update module map and system prompt |
+| `supabase/functions/dash-command/registry.ts` | Add to workforce reads |
 
 ## Validation
 
-- Ask Dash: "when was the last audit on Mosilor location?" → should return the Mar 25 audits
-- Ask Dash: "show me audits for Amzei this week" → should return the 3 Amzei audits from Mar 24
-- Ask Dash: "compare Mosilor vs Amzei last 7 days" → should work with names, not require UUIDs
+- Ask Dash: "how many employees are working today at LBFC Amzei?" → should return 2 (Thayab, Zack)
+- Ask Dash: "who checked in today?" → should return all 4 check-ins
+- Ask Dash: "attendance exceptions today" → should still work (late/missing checkout only)
 
