@@ -1,4 +1,5 @@
 import { useState, useRef, useCallback, useEffect, useMemo } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import type { DashAttachment } from "@/components/dash/DashInput";
@@ -70,6 +71,7 @@ export function useDashChat() {
   const abortRef = useRef<AbortController | null>(null);
   const streamStartedRef = useRef(false);
   const { user } = useAuth();
+  const queryClient = useQueryClient();
 
   // Load last active session on mount
   useEffect(() => {
@@ -295,6 +297,15 @@ export function useDashChat() {
         return { success: false, error: execResult.data.summary || "Execution failed" };
       }
 
+      // Invalidate all relevant caches so the UI reflects the change immediately
+      queryClient.invalidateQueries({ queryKey: ["shifts"], exact: false });
+      queryClient.invalidateQueries({ queryKey: ["shift-assignments"], exact: false });
+      queryClient.invalidateQueries({ queryKey: ["employee-shifts-multiweek"], exact: false });
+      queryClient.invalidateQueries({ queryKey: ["pending-approvals"], exact: false });
+      queryClient.invalidateQueries({ queryKey: ["today-working-staff"], exact: false });
+      queryClient.invalidateQueries({ queryKey: ["employees"], exact: false });
+      queryClient.invalidateQueries({ queryKey: ["time-off-requests"], exact: false });
+
       return { success: true };
     } catch (err: any) {
       if (err.name === "AbortError") return { success: false, error: "Cancelled" };
@@ -306,7 +317,7 @@ export function useDashChat() {
       setIsLoading(false);
       abortRef.current = null;
     }
-  }, [messages, isLoading, sessionId]);
+  }, [messages, isLoading, sessionId, queryClient]);
 
   const sendMessage = useCallback(async (text: string, attachments?: DashAttachment[]) => {
     if (!text.trim() || isLoading) return;

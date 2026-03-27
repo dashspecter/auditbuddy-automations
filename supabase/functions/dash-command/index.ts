@@ -1571,11 +1571,16 @@ serve(async (req) => {
       // Tool calls
       if (msg.tool_calls?.length) {
         conversationMessages.push(msg);
+        // Pre-scan entire batch: if ANY draft tool is present, block ALL execute tools regardless of order
+        const batchHasDraft = msg.tool_calls.some((tc: any) => {
+          const n = tc.function?.name || "";
+          return n.endsWith("_draft") || n === "reassign_corrective_action";
+        });
         let draftCalled = false;
         for (const tc of msg.tool_calls) {
           const toolName = tc.function.name;
-          // Guard: if a draft tool was already called in this batch, skip execute tools
-          if (draftCalled && (toolName.startsWith("execute_") || toolName === "execute_ca_reassignment")) {
+          // Guard: block execute tools if batch contains a draft (order-independent) or if draft was already called
+          if ((batchHasDraft || draftCalled) && (toolName.startsWith("execute_") || toolName === "execute_ca_reassignment")) {
             console.warn(`[Dash] Blocked same-turn execute after draft: ${toolName}`);
             conversationMessages.push({ role: "tool", tool_call_id: tc.id, content: JSON.stringify({ skipped: true, reason: "Waiting for user approval before executing." }) });
             continue;
