@@ -1,73 +1,54 @@
 
-Fix the multi-week employee view end-to-end in this order:
 
-1. Root cause to fix first
-- The multi-week sheet is not just “cached”; its main query is failing.
-- Evidence from network logs: the `shift_assignments -> shifts!inner(...)` request returns `400 PGRST200` because `EmployeeMultiWeekView.tsx` selects `employee_roles(color)` from `shifts`, but `shifts` has no relationship to `employee_roles`.
-- Result: the sheet silently ends up with no rows, so newly created shifts exist in the database but never render.
+# Fix: Dash Can't Find Audits by Location Name
 
-2. Frontend fixes
-- Update `src/components/workforce/EmployeeMultiWeekView.tsx`
-  - Remove the invalid `employee_roles(color)` join from the multi-week query.
-  - Keep the query employee-scoped via `shift_assignments` and `approval_status = 'approved'`.
-  - Replace color usage with a safe fallback derived from existing shift fields/UI tokens so the cards still render consistently.
-  - Add explicit loading / error / empty states inside the sheet so query failures are visible instead of looking like “0 shifts”.
-- Update the query result shaping defensively
-  - Deduplicate by `shift.id` before rendering.
-  - Ensure only non-cancelled shifts are shown.
-- Verify `onCreateShift` / `onEditShift` path still passes the full shift object required by `EnhancedShiftDialog`.
+## Problem
 
-3. Assignment validation fixes
-- Update `src/hooks/useShiftAssignments.ts`
-  - Normalize overlap checks so they only compare against active assignments on non-cancelled shifts.
-  - Exclude the current shift consistently.
-  - Also ignore duplicate/self records safely if multiple assignment rows are returned.
-- Cross-check the date-level helper query in `EnhancedShiftDialog.tsx`
-  - It currently fetches same-day assignments for warnings but does not filter cancelled shifts.
-  - Add the same cancelled-shift exclusion there so warnings match mutation behavior.
+The screenshots show a clear contradiction:
+- The Audits page shows **3 audits for LBFC Mosilor** completed on 2026-03-25 (82%, 94%, 100%)
+- Dash says **"I couldn't find any audits for LBFC Mosilor in the last 30 days"**
 
-4. UX consistency fixes
-- In `src/components/workforce/EnhancedShiftDialog.tsx`
-  - Make the employee conflict warning logic use the same overlap rules as the actual assignment mutation.
-  - Surface clearer feedback when a conflict is real vs when the multi-week view data failed to load.
-- In `src/hooks/useRealtimeShifts.ts` and `src/hooks/useShifts.ts`
-  - Keep the existing `employee-shifts-multiweek` invalidation.
-  - Ensure assignment mutations also invalidate the multi-week key wherever assignment create/delete affects the employee sheet.
+**Root cause**: The `get_audit_results` tool only accepts `location_id` (UUID), not `location_name`. The LLM should call `search_locations` first to resolve "Mosilor" → UUID, then pass the UUID to `get_audit_results`. But the system prompt gives no instruction to do this, so the LLM either skips the location filter entirely (returning all audits) or refuses saying it can't search by location.
 
-5. Backend/data verification to re-test after implementation
-- Confirm the existing shifts for Grecea Alexandru on 2026-03-27 and 2026-03-28 are returned by the fixed employee-scoped query.
-- Confirm the multi-week sheet shows them immediately after open and after create.
-- Confirm creating a truly overlapping shift still blocks.
-- Confirm creating a non-overlapping shift succeeds and appears in the sheet without reopening.
-- Confirm editing an existing shift does not self-block.
-- Confirm cancelled/deleted shifts no longer count for warnings or assignment validation.
+The same gap exists in `compare_location_performance`, `get_open_corrective_actions`, `get_task_completion_summary`, `get_work_order_status`, and `get_cross_module_summary` — all accept `location_id` but not `location_name`.
 
-6. Files to change
-- `src/components/workforce/EmployeeMultiWeekView.tsx`
-- `src/hooks/useShiftAssignments.ts`
-- `src/components/workforce/EnhancedShiftDialog.tsx`
-- Possibly `src/hooks/useRealtimeShifts.ts` if assignment-side invalidation is incomplete
+## Fix — Two-pronged approach
 
-7. Technical notes
-```text
-Current confirmed failure:
-EmployeeMultiWeekView
-  -> query shift_assignments + shifts!inner(...)
-  -> includes invalid relation employee_roles(color)
-  -> backend returns 400
-  -> UI shows 0 shifts
+### 1. Add `location_name` resolution directly into `getAuditResults` (backend)
 
-Separate but related risk:
-EnhancedShiftDialog warning query
-  -> same-day assignment scan
-  -> does not exclude cancelled shifts
-  -> warning logic can disagree with mutation logic
-```
+Instead of depending on the LLM to chain two tool calls (which it frequently fails to do), add a `location_name` parameter to the tool and resolve it server-side — the same pattern already used by `getLocationOverview`.
 
-8. Validation checklist after fix
-- Open employee multi-week sheet for Grecea Alexandru -> existing 27/28 Mar shifts visible
-- Create shift from multi-week sheet -> appears immediately
-- Reopen sheet after hard refresh -> still visible
-- Create overlapping shift -> blocked with correct error
-- Edit existing shift with same employee -> no false conflict
-- Remove/cancel shift -> disappears from sheet and no longer blocks assignment
+**File: `supabase/functions/dash-command/capabilities/audits.ts`**
+- In `getAuditResults`: if `args.location_name` is provided and `args.location_id` is not, resolve it via `ilike` query on `locations` table filtered by `company_id`
+- If no match found, return a clear error: `No location matching "X"`
+
+**File: `supabase/functions/dash-command/tools.ts`**
+- Add `location_name: { type: "string", description: "Location name (partial match, resolved to ID automatically)" }` to `get_audit_results` parameters
+
+### 2. Add the same pattern to `compareLocationPerformance`
+
+**File: `supabase/functions/dash-command/capabilities/audits.ts`**
+- In `compareLocationPerformance`: accept `location_names` (array of strings) as an alternative to `location_ids`, resolve each name server-side
+
+**File: `supabase/functions/dash-command/tools.ts`**
+- Add `location_names` parameter to `compare_location_performance`
+
+### 3. Add a system prompt hint for chained resolution
+
+**File: `supabase/functions/dash-command/index.ts`** — in `buildSystemPrompt`
+- Add a short instruction: "When any tool needs a location_id and the user provides a name, you can pass location_name directly — the tool resolves it automatically. You can also call search_locations first if you need to disambiguate."
+
+## Files to change
+
+| File | Change |
+|------|--------|
+| `supabase/functions/dash-command/capabilities/audits.ts` | Add `location_name` resolution in `getAuditResults` and `compareLocationPerformance` |
+| `supabase/functions/dash-command/tools.ts` | Add `location_name` param to `get_audit_results` and `location_names` to `compare_location_performance` |
+| `supabase/functions/dash-command/index.ts` | Add system prompt hint about location name auto-resolution |
+
+## Validation
+
+- Ask Dash: "when was the last audit on Mosilor location?" → should return the Mar 25 audits
+- Ask Dash: "show me audits for Amzei this week" → should return the 3 Amzei audits from Mar 24
+- Ask Dash: "compare Mosilor vs Amzei last 7 days" → should work with names, not require UUIDs
+
