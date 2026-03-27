@@ -67,6 +67,11 @@ export async function compareLocationPerformance(
   sb: any, companyId: string, args: any, structuredEvents: string[]
 ): Promise<CapabilityResult<any>> {
   let locationIds: string[] = args.location_ids ?? [];
+  // Resolve location_names → location_ids if provided
+  if (locationIds.length === 0 && args.location_names?.length > 0) {
+    locationIds = await resolveLocationIds(sb, companyId, args.location_names);
+    if (locationIds.length === 0) return capabilityError(`No locations matching "${args.location_names.join(", ")}" found.`);
+  }
   if (locationIds.length === 0) {
     const { data: allLocs } = await sb.from("locations").select("id").eq("status", "active").eq("company_id", companyId).limit(100);
     locationIds = (allLocs ?? []).map((l: any) => l.id);

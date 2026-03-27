@@ -76,11 +76,12 @@ export const tools = [
     type: "function",
     function: {
       name: "compare_location_performance",
-      description: "Compare audit performance across locations for a date range. If location_ids is omitted, compares ALL active company locations.",
+      description: "Compare audit performance across locations for a date range. Accepts location_names for automatic resolution. If both omitted, compares ALL active locations.",
       parameters: {
         type: "object",
         properties: {
-          location_ids: { type: "array", items: { type: "string" }, description: "Location UUIDs to compare. If omitted, all active company locations are compared." },
+          location_ids: { type: "array", items: { type: "string" }, description: "Location UUIDs to compare." },
+          location_names: { type: "array", items: { type: "string" }, description: "Location names (partial match, auto-resolved to IDs)" },
           from: { type: "string", description: "Start date YYYY-MM-DD" },
           to: { type: "string", description: "End date YYYY-MM-DD" },
         },
