@@ -19,11 +19,13 @@ import {
 } from "./capabilities/time-off.ts";
 
 // ─── Domain Capability Imports ───
-import { getAuditResults, compareLocationPerformance, createAuditTemplateDraft, executeAuditTemplateCreation } from "./capabilities/audits.ts";
+import { getAuditResults, compareLocationPerformance, createAuditTemplateDraft, executeAuditTemplateCreation, listScheduledAudits, scheduleAuditDraft, executeAuditScheduling, cancelScheduledAuditDraft, executeCancelScheduledAudit } from "./capabilities/audits.ts";
 import { getOpenCorrectiveActions, reassignCorrectiveAction, executeCaReassignment, createCaDraft, executeCaCreation, updateCaStatusDraft, executeCaStatusUpdate } from "./capabilities/corrective-actions.ts";
 import { searchEmployees, getAttendanceExceptions, createEmployeeDraft, createShiftDraft, executeEmployeeCreation, executeShiftCreation, updateShiftDraft, executeShiftUpdate, deleteShiftDraft, executeShiftDeletion, swapShiftDraft, executeShiftSwap } from "./capabilities/workforce.ts";
-import { getTaskCompletionSummary, getWorkOrderStatus, getDocumentExpiries, getTrainingGaps, updateEmployeeDraft, executeEmployeeUpdate, deactivateEmployeeDraft, executeEmployeeDeactivation, correctAttendanceDraft, executeAttendanceCorrection, excuseLateDraft, executeExcuseLate, createWorkOrderDraft, executeWorkOrderCreation, updateWoStatusDraft, executeWoStatusUpdate, createTaskDraft, executeTaskCreation, createTrainingAssignmentDraft, executeTrainingAssignment, updateTrainingStatusDraft, executeTrainingStatusUpdate } from "./capabilities/operations.ts";
+import { getTaskCompletionSummary, getWorkOrderStatus, getDocumentExpiries, getTrainingGaps, updateEmployeeDraft, executeEmployeeUpdate, deactivateEmployeeDraft, executeEmployeeDeactivation, correctAttendanceDraft, executeAttendanceCorrection, excuseLateDraft, executeExcuseLate, createWorkOrderDraft, executeWorkOrderCreation, updateWoStatusDraft, executeWoStatusUpdate, createTaskDraft, executeTaskCreation, createTrainingAssignmentDraft, executeTrainingAssignment, updateTrainingStatusDraft, executeTrainingStatusUpdate, listDepartments, createDepartmentDraft, executeCreateDepartment, updateDepartmentDraft, executeUpdateDepartment, deleteDepartmentDraft, executeDeleteDepartment, listTasks, updateTaskDraft, executeTaskUpdate, deleteTaskDraft, executeTaskDeletion, completeTaskDraft, executeTaskCompletion, listDocuments, linkDocumentDraft, executeDocumentLink, createDocumentCategoryDraft, executeDocumentCategoryCreation, deleteDocumentDraft, executeDocumentDeletion, listAlerts, resolveAlertDraft, executeAlertResolution, listTrainingPrograms, createTrainingProgramDraft, executeTrainingProgramCreation } from "./capabilities/operations.ts";
 import { searchLocations, getLocationOverview, getCrossModuleSummary } from "./capabilities/overview.ts";
+import { listLocations, getLocationDetails, createLocationDraft, executeLocationCreation, updateLocationDraft, executeLocationUpdate, deactivateLocationDraft, executeLocationDeactivation } from "./capabilities/locations.ts";
+import { listNotifications, sendNotificationDraft, executeNotificationSend } from "./capabilities/notifications.ts";
 import { saveUserPreference, getUserPreferences, saveOrgMemory, getOrgMemory, saveWorkflow, listSavedWorkflows } from "./capabilities/memory.ts";
 import { downloadFileAsBase64 as dlFileBase64, transformSpreadsheetToSchedule, transformSopToTraining, parseUploadedFile } from "./capabilities/file-processing.ts";
 import { CAPABILITY_REGISTRY } from "./registry.ts";
@@ -85,6 +87,57 @@ const TOOL_MODULE_MAP: Record<string, string> = {
   execute_training_assignment: "workforce",
   update_training_status_draft: "workforce",
   execute_training_status_update: "workforce",
+  // Audit Scheduling
+  list_scheduled_audits: "location_audits",
+  schedule_audit_draft: "location_audits",
+  execute_audit_scheduling: "location_audits",
+  cancel_scheduled_audit_draft: "location_audits",
+  execute_cancel_scheduled_audit: "location_audits",
+  // Locations
+  list_locations: "workforce",
+  get_location_details: "workforce",
+  create_location_draft: "workforce",
+  execute_location_creation: "workforce",
+  update_location_draft: "workforce",
+  execute_location_update: "workforce",
+  deactivate_location_draft: "workforce",
+  execute_location_deactivation: "workforce",
+  // Notifications
+  list_notifications: "notifications",
+  send_notification_draft: "notifications",
+  execute_notification_send: "notifications",
+  // Departments
+  list_departments: "workforce",
+  create_department_draft: "workforce",
+  execute_create_department: "workforce",
+  update_department_draft: "workforce",
+  execute_update_department: "workforce",
+  delete_department_draft: "workforce",
+  execute_delete_department: "workforce",
+  // Tasks Extended
+  list_tasks: "tasks",
+  update_task_draft: "tasks",
+  execute_task_update: "tasks",
+  delete_task_draft: "tasks",
+  execute_task_deletion: "tasks",
+  complete_task_draft: "tasks",
+  execute_task_completion: "tasks",
+  // Documents
+  list_documents: "documents",
+  link_document_draft: "documents",
+  execute_document_link: "documents",
+  create_document_category_draft: "documents",
+  execute_document_category_creation: "documents",
+  delete_document_draft: "documents",
+  execute_document_deletion: "documents",
+  // Alerts
+  list_alerts: "workforce",
+  resolve_alert_draft: "workforce",
+  execute_alert_resolution: "workforce",
+  // Training Programs
+  list_training_programs: "testing_training",
+  create_training_program_draft: "testing_training",
+  execute_training_program_creation: "testing_training",
   // Time-Off capability tools
   get_time_off_balance: "workforce",
   list_time_off_requests: "workforce",
@@ -123,6 +176,31 @@ const ACTION_EXECUTE_MAP: Record<string, string> = {
   create_task: "execute_task_creation",
   create_training_assignment: "execute_training_assignment",
   update_training_status: "execute_training_status_update",
+  // Audit Scheduling
+  schedule_audit: "execute_audit_scheduling",
+  cancel_scheduled_audit: "execute_cancel_scheduled_audit",
+  // Locations
+  create_location: "execute_location_creation",
+  update_location: "execute_location_update",
+  deactivate_location: "execute_location_deactivation",
+  // Notifications
+  send_notification: "execute_notification_send",
+  // Departments
+  create_department: "execute_create_department",
+  update_department: "execute_update_department",
+  delete_department: "execute_delete_department",
+  // Tasks
+  update_task: "execute_task_update",
+  delete_task: "execute_task_deletion",
+  complete_task: "execute_task_completion",
+  // Documents
+  link_document: "execute_document_link",
+  create_document_category: "execute_document_category_creation",
+  delete_document: "execute_document_deletion",
+  // Alerts
+  resolve_alert: "execute_alert_resolution",
+  // Training Programs
+  create_training_program: "execute_training_program_creation",
 };
 
 /** Hydrate execution args from pending action's preview_json based on action_name.
@@ -519,6 +597,185 @@ async function executeToolInner(
     case "execute_training_status_update": {
       const ctx = buildPermCtx(companyId, userId, platformRoles, companyRole, activeModules);
       return resultToToolResponse(await executeTrainingStatusUpdate(sbService, companyId, userId, args, structuredEvents, ctx));
+    }
+
+    // ────────── AUDIT SCHEDULING ──────────
+    case "list_scheduled_audits":
+      return resultToToolResponse(await listScheduledAudits(sb, companyId, args, structuredEvents));
+
+    case "schedule_audit_draft": {
+      const ctx = buildPermCtx(companyId, userId, platformRoles, companyRole, activeModules);
+      return resultToToolResponse(await scheduleAuditDraft(sb, sbService, companyId, userId, args, structuredEvents, ctx));
+    }
+    case "execute_audit_scheduling": {
+      const ctx = buildPermCtx(companyId, userId, platformRoles, companyRole, activeModules);
+      return resultToToolResponse(await executeAuditScheduling(sbService, companyId, userId, args, structuredEvents, ctx));
+    }
+    case "cancel_scheduled_audit_draft": {
+      const ctx = buildPermCtx(companyId, userId, platformRoles, companyRole, activeModules);
+      return resultToToolResponse(await cancelScheduledAuditDraft(sb, sbService, companyId, userId, args, structuredEvents, ctx));
+    }
+    case "execute_cancel_scheduled_audit": {
+      const ctx = buildPermCtx(companyId, userId, platformRoles, companyRole, activeModules);
+      return resultToToolResponse(await executeCancelScheduledAudit(sbService, companyId, userId, args, structuredEvents, ctx));
+    }
+
+    // ────────── LOCATION MANAGEMENT ──────────
+    case "list_locations":
+      return resultToToolResponse(await listLocations(sb, companyId, args, structuredEvents));
+
+    case "get_location_details":
+      return resultToToolResponse(await getLocationDetails(sb, companyId, args));
+
+    case "create_location_draft": {
+      const ctx = buildPermCtx(companyId, userId, platformRoles, companyRole, activeModules);
+      return resultToToolResponse(await createLocationDraft(sb, sbService, companyId, userId, args, structuredEvents, ctx));
+    }
+    case "execute_location_creation": {
+      const ctx = buildPermCtx(companyId, userId, platformRoles, companyRole, activeModules);
+      return resultToToolResponse(await executeLocationCreation(sbService, companyId, userId, args, structuredEvents, ctx));
+    }
+    case "update_location_draft": {
+      const ctx = buildPermCtx(companyId, userId, platformRoles, companyRole, activeModules);
+      return resultToToolResponse(await updateLocationDraft(sb, sbService, companyId, userId, args, structuredEvents, ctx));
+    }
+    case "execute_location_update": {
+      const ctx = buildPermCtx(companyId, userId, platformRoles, companyRole, activeModules);
+      return resultToToolResponse(await executeLocationUpdate(sbService, companyId, userId, args, structuredEvents, ctx));
+    }
+    case "deactivate_location_draft": {
+      const ctx = buildPermCtx(companyId, userId, platformRoles, companyRole, activeModules);
+      return resultToToolResponse(await deactivateLocationDraft(sb, sbService, companyId, userId, args, structuredEvents, ctx));
+    }
+    case "execute_location_deactivation": {
+      const ctx = buildPermCtx(companyId, userId, platformRoles, companyRole, activeModules);
+      return resultToToolResponse(await executeLocationDeactivation(sbService, companyId, userId, args, structuredEvents, ctx));
+    }
+
+    // ────────── NOTIFICATIONS ──────────
+    case "list_notifications":
+      return resultToToolResponse(await listNotifications(sb, companyId, args, structuredEvents));
+
+    case "send_notification_draft": {
+      const ctx = buildPermCtx(companyId, userId, platformRoles, companyRole, activeModules);
+      return resultToToolResponse(await sendNotificationDraft(sb, sbService, companyId, userId, args, structuredEvents, ctx));
+    }
+    case "execute_notification_send": {
+      const ctx = buildPermCtx(companyId, userId, platformRoles, companyRole, activeModules);
+      return resultToToolResponse(await executeNotificationSend(sbService, companyId, userId, args, structuredEvents, ctx));
+    }
+
+    // ────────── DEPARTMENTS ──────────
+    case "list_departments":
+      return resultToToolResponse(await listDepartments(sb, companyId, args, structuredEvents));
+
+    case "create_department_draft": {
+      const ctx = buildPermCtx(companyId, userId, platformRoles, companyRole, activeModules);
+      return resultToToolResponse(await createDepartmentDraft(sb, sbService, companyId, userId, args, structuredEvents, ctx));
+    }
+    case "execute_create_department": {
+      const ctx = buildPermCtx(companyId, userId, platformRoles, companyRole, activeModules);
+      return resultToToolResponse(await executeCreateDepartment(sbService, companyId, userId, args, structuredEvents, ctx));
+    }
+    case "update_department_draft": {
+      const ctx = buildPermCtx(companyId, userId, platformRoles, companyRole, activeModules);
+      return resultToToolResponse(await updateDepartmentDraft(sb, sbService, companyId, userId, args, structuredEvents, ctx));
+    }
+    case "execute_update_department": {
+      const ctx = buildPermCtx(companyId, userId, platformRoles, companyRole, activeModules);
+      return resultToToolResponse(await executeUpdateDepartment(sbService, companyId, userId, args, structuredEvents, ctx));
+    }
+    case "delete_department_draft": {
+      const ctx = buildPermCtx(companyId, userId, platformRoles, companyRole, activeModules);
+      return resultToToolResponse(await deleteDepartmentDraft(sb, sbService, companyId, userId, args, structuredEvents, ctx));
+    }
+    case "execute_delete_department": {
+      const ctx = buildPermCtx(companyId, userId, platformRoles, companyRole, activeModules);
+      return resultToToolResponse(await executeDeleteDepartment(sbService, companyId, userId, args, structuredEvents, ctx));
+    }
+
+    // ────────── TASKS EXTENDED ──────────
+    case "list_tasks":
+      return resultToToolResponse(await listTasks(sb, companyId, args, structuredEvents));
+
+    case "update_task_draft": {
+      const ctx = buildPermCtx(companyId, userId, platformRoles, companyRole, activeModules);
+      return resultToToolResponse(await updateTaskDraft(sb, sbService, companyId, userId, args, structuredEvents, ctx));
+    }
+    case "execute_task_update": {
+      const ctx = buildPermCtx(companyId, userId, platformRoles, companyRole, activeModules);
+      return resultToToolResponse(await executeTaskUpdate(sbService, companyId, userId, args, structuredEvents, ctx));
+    }
+    case "delete_task_draft": {
+      const ctx = buildPermCtx(companyId, userId, platformRoles, companyRole, activeModules);
+      return resultToToolResponse(await deleteTaskDraft(sb, sbService, companyId, userId, args, structuredEvents, ctx));
+    }
+    case "execute_task_deletion": {
+      const ctx = buildPermCtx(companyId, userId, platformRoles, companyRole, activeModules);
+      return resultToToolResponse(await executeTaskDeletion(sbService, companyId, userId, args, structuredEvents, ctx));
+    }
+    case "complete_task_draft": {
+      const ctx = buildPermCtx(companyId, userId, platformRoles, companyRole, activeModules);
+      return resultToToolResponse(await completeTaskDraft(sb, sbService, companyId, userId, args, structuredEvents, ctx));
+    }
+    case "execute_task_completion": {
+      const ctx = buildPermCtx(companyId, userId, platformRoles, companyRole, activeModules);
+      return resultToToolResponse(await executeTaskCompletion(sbService, companyId, userId, args, structuredEvents, ctx));
+    }
+
+    // ────────── DOCUMENTS ──────────
+    case "list_documents":
+      return resultToToolResponse(await listDocuments(sb, companyId, args, structuredEvents));
+
+    case "link_document_draft": {
+      const ctx = buildPermCtx(companyId, userId, platformRoles, companyRole, activeModules);
+      return resultToToolResponse(await linkDocumentDraft(sb, sbService, companyId, userId, args, structuredEvents, ctx));
+    }
+    case "execute_document_link": {
+      const ctx = buildPermCtx(companyId, userId, platformRoles, companyRole, activeModules);
+      return resultToToolResponse(await executeDocumentLink(sbService, companyId, userId, args, structuredEvents, ctx));
+    }
+    case "create_document_category_draft": {
+      const ctx = buildPermCtx(companyId, userId, platformRoles, companyRole, activeModules);
+      return resultToToolResponse(await createDocumentCategoryDraft(sb, sbService, companyId, userId, args, structuredEvents, ctx));
+    }
+    case "execute_document_category_creation": {
+      const ctx = buildPermCtx(companyId, userId, platformRoles, companyRole, activeModules);
+      return resultToToolResponse(await executeDocumentCategoryCreation(sbService, companyId, userId, args, structuredEvents, ctx));
+    }
+    case "delete_document_draft": {
+      const ctx = buildPermCtx(companyId, userId, platformRoles, companyRole, activeModules);
+      return resultToToolResponse(await deleteDocumentDraft(sb, sbService, companyId, userId, args, structuredEvents, ctx));
+    }
+    case "execute_document_deletion": {
+      const ctx = buildPermCtx(companyId, userId, platformRoles, companyRole, activeModules);
+      return resultToToolResponse(await executeDocumentDeletion(sbService, companyId, userId, args, structuredEvents, ctx));
+    }
+
+    // ────────── ALERTS ──────────
+    case "list_alerts":
+      return resultToToolResponse(await listAlerts(sb, companyId, args, structuredEvents));
+
+    case "resolve_alert_draft": {
+      const ctx = buildPermCtx(companyId, userId, platformRoles, companyRole, activeModules);
+      return resultToToolResponse(await resolveAlertDraft(sb, sbService, companyId, userId, args, structuredEvents, ctx));
+    }
+    case "execute_alert_resolution": {
+      const ctx = buildPermCtx(companyId, userId, platformRoles, companyRole, activeModules);
+      return resultToToolResponse(await executeAlertResolution(sbService, companyId, userId, args, structuredEvents, ctx));
+    }
+
+    // ────────── TRAINING PROGRAMS ──────────
+    case "list_training_programs":
+      return resultToToolResponse(await listTrainingPrograms(sb, companyId, args, structuredEvents));
+
+    case "create_training_program_draft": {
+      const ctx = buildPermCtx(companyId, userId, platformRoles, companyRole, activeModules);
+      return resultToToolResponse(await createTrainingProgramDraft(sb, sbService, companyId, userId, args, structuredEvents, ctx));
+    }
+    case "execute_training_program_creation": {
+      const ctx = buildPermCtx(companyId, userId, platformRoles, companyRole, activeModules);
+      return resultToToolResponse(await executeTrainingProgramCreation(sbService, companyId, userId, args, structuredEvents, ctx));
     }
 
     case "save_user_preference":
