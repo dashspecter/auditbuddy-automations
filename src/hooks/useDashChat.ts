@@ -297,6 +297,10 @@ export function useDashChat() {
         return { success: false, error: execResult.data.summary || "Execution failed" };
       }
 
+      // Invalidate all domain queries so UI reflects the approved action
+      const keys = ["shifts", "employee-shifts-multiweek", "pending-approvals", "shift-assignments", "today-working-staff", "team-stats", "time-off-requests", "employees", "corrective-actions", "work-orders", "attendance", "tasks", "training"];
+      keys.forEach(k => queryClient.invalidateQueries({ queryKey: [k] }));
+
       return { success: true };
     } catch (err: any) {
       if (err.name === "AbortError") return { success: false, error: "Cancelled" };
