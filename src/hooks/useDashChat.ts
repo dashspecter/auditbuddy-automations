@@ -1,4 +1,5 @@
-import { useState, useRef, useCallback, useEffect, useMemo } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import type { DashAttachment } from "@/components/dash/DashInput";
@@ -70,6 +71,7 @@ export function useDashChat() {
   const abortRef = useRef<AbortController | null>(null);
   const streamStartedRef = useRef(false);
   const { user } = useAuth();
+  const queryClient = useQueryClient();
 
   // Load last active session on mount
   useEffect(() => {
@@ -294,6 +296,10 @@ export function useDashChat() {
       if (execResult?.data?.status === "error") {
         return { success: false, error: execResult.data.summary || "Execution failed" };
       }
+
+      // Invalidate all domain queries so UI reflects the approved action
+      const keys = ["shifts", "employee-shifts-multiweek", "pending-approvals", "shift-assignments", "today-working-staff", "team-stats", "time-off-requests", "employees", "corrective-actions", "work-orders", "attendance", "tasks", "training"];
+      keys.forEach(k => queryClient.invalidateQueries({ queryKey: [k] }));
 
       return { success: true };
     } catch (err: any) {
