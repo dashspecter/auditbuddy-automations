@@ -180,6 +180,7 @@ export const useRejectShiftAssignment = () => {
       }
       
       console.log("[Reject] Rejection complete");
+      return assignmentData;
     },
     onSuccess: () => {
       console.log("[Reject] onSuccess - resetting and invalidating queries");
