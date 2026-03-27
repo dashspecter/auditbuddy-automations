@@ -120,9 +120,10 @@ export const EnhancedShiftDialog = ({
         .select(`
           staff_id,
           shift_id,
-          shifts!inner(id, shift_date, start_time, end_time)
+          shifts!inner(id, shift_date, start_time, end_time, cancelled_at)
         `)
         .eq("shifts.shift_date", formData.shift_date)
+        .is("shifts.cancelled_at", null)
         .neq("approval_status", "rejected");
       
       // When editing an existing shift, exclude assignments for THIS shift

@@ -246,8 +246,8 @@ export const EmployeeMultiWeekView = ({
                               }}
                               className="text-[10px] p-1 rounded border cursor-pointer hover:shadow-sm transition-shadow mb-0.5"
                               style={{
-                                backgroundColor: `${shift.employee_roles?.color || "hsl(var(--primary))"}20`,
-                                borderColor: shift.employee_roles?.color || "hsl(var(--primary))",
+                                backgroundColor: "hsl(var(--primary) / 0.12)",
+                                borderColor: "hsl(var(--primary))",
                               }}
                             >
                               <div className="font-medium truncate">{shift.role}</div>
