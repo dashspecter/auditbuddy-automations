@@ -1,62 +1,20 @@
 
 
-# Fix: Dash Can't Answer "Who is Working Today?"
+# Fix: Dash Still Can't Answer Attendance Questions — Deployment Issue
 
-## Problem
+## Root Cause
 
-The user asks *"how many employees are working today at LBFC Amzei?"* — Dash says "no attendance logs" despite 2 employees checked in at LBFC Amzei (Thayab Abdullah 09:51, Zack Adeyanju 09:42).
-
-**Root cause**: Dash only has `get_attendance_exceptions` which filters for `is_late = true OR check_out_at IS NULL` (exceptions only). There is **no tool** to retrieve general attendance data — who checked in, who is currently working, total check-ins. The LLM has no way to answer "who is working today?" or "how many people checked in?"
-
-Additionally, `get_attendance_exceptions` only accepts `location_id` (UUID), not `location_name` — same gap we just fixed for audits.
+The code for `get_attendance_summary` is correct in the repository — the tool is defined in `tools.ts`, implemented in `workforce.ts`, routed in `index.ts`, and registered in `registry.ts`. However, the **edge function running in production is stale**. The edge function logs show the last invocation at 10:28 with no attendance-related tool calls, confirming the deployed version predates the attendance summary changes.
 
 ## Fix
 
-### 1. Add new tool: `get_attendance_summary`
+**Redeploy the `dash-command` edge function.** No code changes needed — the implementation is complete and correct. The function just needs to be pushed to the live environment.
 
-A read-only tool that returns all attendance logs for a date range, optionally filtered by location name or ID. Returns: employee name, check-in/out times, status (working/completed), location, late info.
+This is a single deployment action, not a code fix.
 
-**File: `supabase/functions/dash-command/capabilities/workforce.ts`**
-- Add `getAttendanceSummary` function
-- Accept `from`, `to`, `location_name`, `location_id`, `limit`
-- Resolve `location_name` → ID via `ilike` (same pattern as audits)
-- Scope to company via location IDs (attendance_logs has no company_id)
-- Return all logs, not just exceptions
-- Include computed `status`: "working" (no check_out) vs "completed"
+## Validation After Deploy
 
-### 2. Add `location_name` to `get_attendance_exceptions`
-
-**File: `supabase/functions/dash-command/capabilities/workforce.ts`**
-- In `getAttendanceExceptions`: resolve `location_name` → `location_id` if provided
-
-### 3. Register the new tool
-
-**File: `supabase/functions/dash-command/tools.ts`**
-- Add `get_attendance_summary` tool definition with `from`, `to`, `location_name`, `location_id`, `limit`
-- Add `location_name` param to `get_attendance_exceptions`
-
-### 4. Wire up routing + permissions
-
-**File: `supabase/functions/dash-command/index.ts`**
-- Add case for `get_attendance_summary` → call `getAttendanceSummary`
-- Add to tool-module mapping: `get_attendance_summary: "workforce"`
-- Update system prompt: mention this tool for "who is working", "attendance today", "how many checked in"
-
-**File: `supabase/functions/dash-command/registry.ts`**
-- Add `get_attendance_summary` to workforce reads
-
-## Files to change
-
-| File | Change |
-|------|--------|
-| `supabase/functions/dash-command/capabilities/workforce.ts` | Add `getAttendanceSummary`; add `location_name` resolution to `getAttendanceExceptions` |
-| `supabase/functions/dash-command/tools.ts` | Add `get_attendance_summary` tool; add `location_name` to exceptions tool |
-| `supabase/functions/dash-command/index.ts` | Route new tool; update module map and system prompt |
-| `supabase/functions/dash-command/registry.ts` | Add to workforce reads |
-
-## Validation
-
-- Ask Dash: "how many employees are working today at LBFC Amzei?" → should return 2 (Thayab, Zack)
-- Ask Dash: "who checked in today?" → should return all 4 check-ins
-- Ask Dash: "attendance exceptions today" → should still work (late/missing checkout only)
+1. Ask Dash: "who is working today at LBFC Amzei?" → should return checked-in employees
+2. Ask Dash: "how many employees checked in today?" → should return attendance summary
+3. Ask Dash: "attendance exceptions today" → should still return only late/missing checkout
 
