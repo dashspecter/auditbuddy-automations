@@ -10,15 +10,44 @@ import { logCapabilityAction } from "../shared/logging.ts";
 import { cap, makeStructuredEvent } from "../shared/utils.ts";
 
 
+// ─── Helpers ───
+
+async function resolveLocationId(
+  sb: any, companyId: string, locationName: string
+): Promise<{ id: string; name: string } | null> {
+  const { data } = await sb.from("locations").select("id, name")
+    .eq("company_id", companyId).ilike("name", `%${locationName}%`).limit(1).maybeSingle();
+  return data ?? null;
+}
+
+async function resolveLocationIds(
+  sb: any, companyId: string, locationNames: string[]
+): Promise<string[]> {
+  const ids: string[] = [];
+  for (const name of locationNames) {
+    const loc = await resolveLocationId(sb, companyId, name);
+    if (loc) ids.push(loc.id);
+  }
+  return ids;
+}
+
 // ─── Read Tools ───
 
 export async function getAuditResults(
   sb: any, companyId: string, args: any, structuredEvents: string[]
 ): Promise<CapabilityResult<any>> {
+  // Resolve location_name → location_id if needed
+  let locationId = args.location_id;
+  if (!locationId && args.location_name) {
+    const loc = await resolveLocationId(sb, companyId, args.location_name);
+    if (!loc) return capabilityError(`No location matching "${args.location_name}" found.`);
+    locationId = loc.id;
+  }
+
   const limit = Math.min(args.limit || 20, 200);
   let q = sb.from("location_audits").select("id, overall_score, status, audit_date, location_id, locations(name), template_id, audit_templates(name)")
     .eq("company_id", companyId).in("status", AUDIT_FINISHED_STATUSES).gte("audit_date", args.from).lte("audit_date", args.to).order("audit_date", { ascending: false }).limit(limit);
-  if (args.location_id) q = q.eq("location_id", args.location_id);
+  if (locationId) q = q.eq("location_id", locationId);
   if (args.template_id) q = q.eq("template_id", args.template_id);
   const { data, error } = await q;
   if (error) return capabilityError(error.message);
@@ -38,6 +67,11 @@ export async function compareLocationPerformance(
   sb: any, companyId: string, args: any, structuredEvents: string[]
 ): Promise<CapabilityResult<any>> {
   let locationIds: string[] = args.location_ids ?? [];
+  // Resolve location_names → location_ids if provided
+  if (locationIds.length === 0 && args.location_names?.length > 0) {
+    locationIds = await resolveLocationIds(sb, companyId, args.location_names);
+    if (locationIds.length === 0) return capabilityError(`No locations matching "${args.location_names.join(", ")}" found.`);
+  }
   if (locationIds.length === 0) {
     const { data: allLocs } = await sb.from("locations").select("id").eq("status", "active").eq("company_id", companyId).limit(100);
     locationIds = (allLocs ?? []).map((l: any) => l.id);

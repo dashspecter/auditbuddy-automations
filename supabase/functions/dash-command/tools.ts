@@ -57,11 +57,12 @@ export const tools = [
     type: "function",
     function: {
       name: "get_audit_results",
-      description: "Get recent audit results (scores, templates used, locations) within a date range.",
+      description: "Get recent audit results (scores, templates used, locations) within a date range. Accepts location_name for automatic resolution.",
       parameters: {
         type: "object",
         properties: {
-          location_id: { type: "string", description: "Optional location filter" },
+          location_id: { type: "string", description: "Optional location UUID filter" },
+          location_name: { type: "string", description: "Optional location name (partial match, auto-resolved to ID)" },
           template_id: { type: "string", description: "Optional template filter" },
           from: { type: "string", description: "Start date YYYY-MM-DD" },
           to: { type: "string", description: "End date YYYY-MM-DD" },
@@ -75,11 +76,12 @@ export const tools = [
     type: "function",
     function: {
       name: "compare_location_performance",
-      description: "Compare audit performance across locations for a date range. If location_ids is omitted, compares ALL active company locations.",
+      description: "Compare audit performance across locations for a date range. Accepts location_names for automatic resolution. If both omitted, compares ALL active locations.",
       parameters: {
         type: "object",
         properties: {
-          location_ids: { type: "array", items: { type: "string" }, description: "Location UUIDs to compare. If omitted, all active company locations are compared." },
+          location_ids: { type: "array", items: { type: "string" }, description: "Location UUIDs to compare." },
+          location_names: { type: "array", items: { type: "string" }, description: "Location names (partial match, auto-resolved to IDs)" },
           from: { type: "string", description: "Start date YYYY-MM-DD" },
           to: { type: "string", description: "End date YYYY-MM-DD" },
         },
@@ -124,12 +126,31 @@ export const tools = [
   {
     type: "function",
     function: {
-      name: "get_attendance_exceptions",
-      description: "Get attendance exceptions (late arrivals, missed checkouts, no-shows) for a date range.",
+      name: "get_attendance_summary",
+      description: "Get all attendance check-ins for a date range. Shows who checked in, who is currently working, total count. Use for 'who is working today?', 'how many checked in?', 'attendance today'.",
       parameters: {
         type: "object",
         properties: {
-          location_id: { type: "string" },
+          location_id: { type: "string", description: "Optional location UUID filter" },
+          location_name: { type: "string", description: "Optional location name (partial match, auto-resolved to ID)" },
+          from: { type: "string", description: "Start date YYYY-MM-DD" },
+          to: { type: "string", description: "End date YYYY-MM-DD" },
+          limit: { type: "number", description: "Max results (default 100)" },
+        },
+        required: ["from", "to"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "get_attendance_exceptions",
+      description: "Get attendance exceptions ONLY (late arrivals, missed checkouts, no-shows) for a date range. For general attendance data, use get_attendance_summary instead.",
+      parameters: {
+        type: "object",
+        properties: {
+          location_id: { type: "string", description: "Optional location UUID filter" },
+          location_name: { type: "string", description: "Optional location name (partial match, auto-resolved to ID)" },
           from: { type: "string", description: "Start date YYYY-MM-DD" },
           to: { type: "string", description: "End date YYYY-MM-DD" },
           limit: { type: "number", description: "Max results (default 50)" },
