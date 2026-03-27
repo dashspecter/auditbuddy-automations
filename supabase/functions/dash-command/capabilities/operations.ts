@@ -66,10 +66,6 @@ export async function getTrainingGaps(
 
 // ─── B3: Employee Management ───
 
-import { type PermissionContext, checkCapabilityPermission } from "../shared/permissions.ts";
-import { logCapabilityAction } from "../shared/logging.ts";
-import { makeStructuredEvent } from "../shared/utils.ts";
-
 export async function updateEmployeeDraft(
   sb: any, sbService: any, companyId: string, userId: string, args: any, structuredEvents: string[],
   ctx: PermissionContext
@@ -765,7 +761,7 @@ export async function executeCreateDepartment(
     return capabilityError(`Failed: ${error.message}`);
   }
   await sbService.from("dash_pending_actions").update({ status: "executed", approved_by: userId, approved_at: new Date().toISOString(), execution_result: { id: data.id } }).eq("id", args.pending_action_id);
-  await logCapabilityAction(sbService, { company_id: companyId, user_id: userId, action_type: "write", action_name: "create_department", risk_level: "low", status: "success", approval_status: "approved", modules_touched: ["workforce"], result_json: { id: data.id } });
+  await logCapabilityAction(sbService, { companyId, userId, capability: "create_department", actionType: "write", riskLevel: "low", module: "workforce", request: d, result: { id: data.id }, entitiesAffected: [data.id] });
   structuredEvents.push(makeStructuredEvent("execution_result", { status: "success", title: "Department Created", summary: `Department "${d.name}" created.`, changes: [`Created: ${d.name}`] }));
   return success({ id: data.id });
 }
@@ -817,7 +813,7 @@ export async function executeUpdateDepartment(
     return capabilityError(`Failed: ${error.message}`);
   }
   await sbService.from("dash_pending_actions").update({ status: "executed", approved_by: userId, approved_at: new Date().toISOString(), execution_result: { success: true } }).eq("id", args.pending_action_id);
-  await logCapabilityAction(sbService, { company_id: companyId, user_id: userId, action_type: "write", action_name: "update_department", risk_level: "low", status: "success", approval_status: "approved", modules_touched: ["workforce"], result_json: { id: d.department_id } });
+  await logCapabilityAction(sbService, { companyId, userId, capability: "update_department", actionType: "write", riskLevel: "low", module: "workforce", request: d, result: { id: d.department_id }, entitiesAffected: [d.department_id] });
   structuredEvents.push(makeStructuredEvent("execution_result", { status: "success", title: "Department Updated", summary: `Department "${d.name}" updated.`, changes: [`Updated: ${d.name}`] }));
   return success({ id: d.department_id });
 }
@@ -870,7 +866,7 @@ export async function executeDeleteDepartment(
     return capabilityError(`Failed: ${error.message}`);
   }
   await sbService.from("dash_pending_actions").update({ status: "executed", approved_by: userId, approved_at: new Date().toISOString(), execution_result: { success: true } }).eq("id", args.pending_action_id);
-  await logCapabilityAction(sbService, { company_id: companyId, user_id: userId, action_type: "write", action_name: "delete_department", risk_level: "high", status: "success", approval_status: "approved", modules_touched: ["workforce"], result_json: { id: d.department_id } });
+  await logCapabilityAction(sbService, { companyId, userId, capability: "delete_department", actionType: "write", riskLevel: "high", module: "workforce", request: d, result: { id: d.department_id }, entitiesAffected: [d.department_id] });
   structuredEvents.push(makeStructuredEvent("execution_result", { status: "success", title: "Department Deleted", summary: `Department "${d.department_name}" deleted.`, changes: [`Deleted: ${d.department_name}`] }));
   return success({ id: d.department_id });
 }
@@ -939,7 +935,7 @@ export async function executeTaskUpdate(
     return capabilityError(`Failed: ${error.message}`);
   }
   await sbService.from("dash_pending_actions").update({ status: "executed", approved_by: userId, approved_at: new Date().toISOString(), execution_result: { success: true } }).eq("id", args.pending_action_id);
-  await logCapabilityAction(sbService, { company_id: companyId, user_id: userId, action_type: "write", action_name: "update_task", risk_level: "medium", status: "success", approval_status: "approved", modules_touched: ["tasks"], result_json: { id: d.task_id } });
+  await logCapabilityAction(sbService, { companyId, userId, capability: "update_task", actionType: "write", riskLevel: "medium", module: "tasks", request: d, result: { id: d.task_id }, entitiesAffected: [d.task_id] });
   structuredEvents.push(makeStructuredEvent("execution_result", { status: "success", title: "Task Updated", summary: `Task "${d.title}" updated.`, changes: [`Status: ${d.status}`, `Priority: ${d.priority}`] }));
   return success({ id: d.task_id });
 }
@@ -983,7 +979,7 @@ export async function executeTaskDeletion(
     return capabilityError(`Failed: ${error.message}`);
   }
   await sbService.from("dash_pending_actions").update({ status: "executed", approved_by: userId, approved_at: new Date().toISOString(), execution_result: { success: true } }).eq("id", args.pending_action_id);
-  await logCapabilityAction(sbService, { company_id: companyId, user_id: userId, action_type: "write", action_name: "delete_task", risk_level: "high", status: "success", approval_status: "approved", modules_touched: ["tasks"], result_json: { id: d.task_id } });
+  await logCapabilityAction(sbService, { companyId, userId, capability: "delete_task", actionType: "write", riskLevel: "high", module: "tasks", request: d, result: { id: d.task_id }, entitiesAffected: [d.task_id] });
   structuredEvents.push(makeStructuredEvent("execution_result", { status: "success", title: "Task Deleted", summary: `Task "${d.title}" deleted.`, changes: [`Deleted: ${d.title}`] }));
   return success({ id: d.task_id });
 }
@@ -1028,7 +1024,7 @@ export async function executeTaskCompletion(
     return capabilityError(`Failed: ${error.message}`);
   }
   await sbService.from("dash_pending_actions").update({ status: "executed", approved_by: userId, approved_at: new Date().toISOString(), execution_result: { success: true } }).eq("id", args.pending_action_id);
-  await logCapabilityAction(sbService, { company_id: companyId, user_id: userId, action_type: "write", action_name: "complete_task", risk_level: "low", status: "success", approval_status: "approved", modules_touched: ["tasks"], result_json: { id: d.task_id } });
+  await logCapabilityAction(sbService, { companyId, userId, capability: "complete_task", actionType: "write", riskLevel: "low", module: "tasks", request: d, result: { id: d.task_id }, entitiesAffected: [d.task_id] });
   structuredEvents.push(makeStructuredEvent("execution_result", { status: "success", title: "Task Completed", summary: `Task "${d.title}" marked as completed.`, changes: [`Completed: ${d.title}`] }));
   return success({ id: d.task_id });
 }
@@ -1098,7 +1094,7 @@ export async function executeDocumentLink(
     return capabilityError(`Failed: ${error.message}`);
   }
   await sbService.from("dash_pending_actions").update({ status: "executed", approved_by: userId, approved_at: new Date().toISOString(), execution_result: { id: data.id } }).eq("id", args.pending_action_id);
-  await logCapabilityAction(sbService, { company_id: companyId, user_id: userId, action_type: "write", action_name: "link_document", risk_level: "medium", status: "success", approval_status: "approved", modules_touched: ["documents"], result_json: { id: data.id } });
+  await logCapabilityAction(sbService, { companyId, userId, capability: "link_document", actionType: "write", riskLevel: "medium", module: "documents", request: d, result: { id: data.id }, entitiesAffected: [data.id] });
   structuredEvents.push(makeStructuredEvent("execution_result", { status: "success", title: "Document Linked", summary: `Document "${d.title}" linked successfully.`, changes: [`Linked: ${d.title}`] }));
   return success({ id: data.id });
 }
@@ -1140,7 +1136,7 @@ export async function executeDocumentCategoryCreation(
     return capabilityError(`Failed: ${error.message}`);
   }
   await sbService.from("dash_pending_actions").update({ status: "executed", approved_by: userId, approved_at: new Date().toISOString(), execution_result: { id: data.id } }).eq("id", args.pending_action_id);
-  await logCapabilityAction(sbService, { company_id: companyId, user_id: userId, action_type: "write", action_name: "create_document_category", risk_level: "low", status: "success", approval_status: "approved", modules_touched: ["documents"], result_json: { id: data.id } });
+  await logCapabilityAction(sbService, { companyId, userId, capability: "create_document_category", actionType: "write", riskLevel: "low", module: "documents", request: d, result: { id: data.id }, entitiesAffected: [data.id] });
   structuredEvents.push(makeStructuredEvent("execution_result", { status: "success", title: "Document Category Created", summary: `Category "${d.name}" created.`, changes: [`Created: ${d.name}`] }));
   return success({ id: data.id });
 }
@@ -1184,7 +1180,7 @@ export async function executeDocumentDeletion(
     return capabilityError(`Failed: ${error.message}`);
   }
   await sbService.from("dash_pending_actions").update({ status: "executed", approved_by: userId, approved_at: new Date().toISOString(), execution_result: { success: true } }).eq("id", args.pending_action_id);
-  await logCapabilityAction(sbService, { company_id: companyId, user_id: userId, action_type: "write", action_name: "delete_document", risk_level: "high", status: "success", approval_status: "approved", modules_touched: ["documents"], result_json: { id: d.document_id } });
+  await logCapabilityAction(sbService, { companyId, userId, capability: "delete_document", actionType: "write", riskLevel: "high", module: "documents", request: d, result: { id: d.document_id }, entitiesAffected: [d.document_id] });
   structuredEvents.push(makeStructuredEvent("execution_result", { status: "success", title: "Document Deleted", summary: `Document "${d.title}" deleted.`, changes: [`Deleted: ${d.title}`] }));
   return success({ id: d.document_id });
 }
@@ -1257,7 +1253,7 @@ export async function executeAlertResolution(
     return capabilityError(`Failed: ${error.message}`);
   }
   await sbService.from("dash_pending_actions").update({ status: "executed", approved_by: userId, approved_at: new Date().toISOString(), execution_result: { success: true } }).eq("id", args.pending_action_id);
-  await logCapabilityAction(sbService, { company_id: companyId, user_id: userId, action_type: "write", action_name: "resolve_alert", risk_level: "medium", status: "success", approval_status: "approved", modules_touched: ["workforce"], result_json: { id: d.alert_id } });
+  await logCapabilityAction(sbService, { companyId, userId, capability: "resolve_alert", actionType: "write", riskLevel: "medium", module: "workforce", request: d, result: { id: d.alert_id }, entitiesAffected: [d.alert_id] });
   structuredEvents.push(makeStructuredEvent("execution_result", { status: "success", title: "Alert Resolved", summary: `Alert "${d.title}" has been resolved.`, changes: [`Resolved: ${d.title}`] }));
   return success({ id: d.alert_id });
 }
@@ -1324,7 +1320,7 @@ export async function executeTrainingProgramCreation(
     return capabilityError(`Failed: ${error.message}`);
   }
   await sbService.from("dash_pending_actions").update({ status: "executed", approved_by: userId, approved_at: new Date().toISOString(), execution_result: { id: data.id } }).eq("id", args.pending_action_id);
-  await logCapabilityAction(sbService, { company_id: companyId, user_id: userId, action_type: "write", action_name: "create_training_program", risk_level: "medium", status: "success", approval_status: "approved", modules_touched: ["testing_training"], result_json: { id: data.id } });
+  await logCapabilityAction(sbService, { companyId, userId, capability: "create_training_program", actionType: "write", riskLevel: "medium", module: "testing_training", request: d, result: { id: data.id }, entitiesAffected: [data.id] });
   structuredEvents.push(makeStructuredEvent("execution_result", { status: "success", title: "Training Program Created", summary: `Training program "${d.name}" created.`, changes: [`Created: ${d.name}`] }));
   return success({ id: data.id });
 }

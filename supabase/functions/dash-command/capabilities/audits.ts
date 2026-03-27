@@ -379,9 +379,9 @@ export async function executeAuditScheduling(
   }).eq("id", args.pending_action_id);
 
   await logCapabilityAction(sbService, {
-    company_id: companyId, user_id: userId, action_type: "write",
-    action_name: "schedule_audit", risk_level: "medium", status: "success",
-    approval_status: "approved", modules_touched: ["location_audits"], result_json: { id: data.id },
+    companyId, userId, capability: "schedule_audit",
+    actionType: "write", riskLevel: "medium", module: "location_audits",
+    request: d, result: { id: data.id }, entitiesAffected: [data.id],
   });
 
   structuredEvents.push(makeStructuredEvent("execution_result", {
@@ -470,9 +470,9 @@ export async function executeCancelScheduledAudit(
   }).eq("id", args.pending_action_id);
 
   await logCapabilityAction(sbService, {
-    company_id: companyId, user_id: userId, action_type: "write",
-    action_name: "cancel_scheduled_audit", risk_level: "medium", status: "success",
-    approval_status: "approved", modules_touched: ["location_audits"], result_json: { id: d.scheduled_audit_id },
+    companyId, userId, capability: "cancel_scheduled_audit",
+    actionType: "write", riskLevel: "medium", module: "location_audits",
+    request: d, result: { id: d.scheduled_audit_id }, entitiesAffected: [d.scheduled_audit_id],
   });
 
   structuredEvents.push(makeStructuredEvent("execution_result", {
