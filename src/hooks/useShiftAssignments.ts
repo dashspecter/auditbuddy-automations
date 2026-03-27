@@ -246,10 +246,13 @@ export const useCreateShiftAssignment = () => {
         .from("shift_assignments")
         .select(`
           id,
-          shifts!inner(shift_date, start_time, end_time)
+          shift_id,
+          shifts!inner(shift_date, start_time, end_time, cancelled_at)
         `)
         .eq("staff_id", employee_id)
         .eq("shifts.shift_date", shiftData.shift_date)
+        .is("shifts.cancelled_at", null)
+        .neq("shift_id", shift_id)
         .neq("approval_status", "rejected");
       
       if (checkError) throw checkError;
