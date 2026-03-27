@@ -21,6 +21,12 @@ export async function searchEmployees(
   return success({ count: data?.length ?? 0, employees: data?.map((e: any) => ({ id: e.id, name: e.full_name, role: e.role, status: e.status, location: e.locations?.name })) });
 }
 
+// ─── Location Name Resolution (shared) ───
+async function resolveLocationIdForWorkforce(sb: any, companyId: string, locationName: string): Promise<{ id: string; name: string } | null> {
+  const { data } = await sb.from("locations").select("id, name").eq("company_id", companyId).ilike("name", `%${locationName}%`).limit(1).maybeSingle();
+  return data ?? null;
+}
+
 export async function getAttendanceExceptions(
   sb: any, companyId: string, args: any,
   utcRange: (sb: any, from: string, to: string) => Promise<{ fromUtc: string; toUtc: string } | null>
@@ -28,15 +34,87 @@ export async function getAttendanceExceptions(
   const limit = Math.min(args.limit || 50, 200);
   const ur = await utcRange(sb, args.from, args.to);
   if (!ur) return capabilityError("Failed to convert date range");
+
+  // Resolve location_name → location_id
+  let locationId = args.location_id || null;
+  if (!locationId && args.location_name) {
+    const loc = await resolveLocationIdForWorkforce(sb, companyId, args.location_name);
+    if (!loc) return capabilityError(`No location matching "${args.location_name}"`);
+    locationId = loc.id;
+  }
+
   let q = sb.from("attendance_logs").select("id, staff_id, employees(full_name), check_in_at, check_out_at, is_late, late_minutes, auto_clocked_out, location_id, locations(name)")
     .gte("check_in_at", ur.fromUtc).lt("check_in_at", ur.toUtc)
     .or("is_late.eq.true,check_out_at.is.null").order("check_in_at", { ascending: false }).limit(limit);
-  if (args.location_id) q = q.eq("location_id", args.location_id);
+  if (locationId) q = q.eq("location_id", locationId);
   const { data, error } = await q;
   if (error) return capabilityError(error.message);
   const c = cap(data, limit);
   return success({
     exceptions: c.items.map((l: any) => ({ id: l.id, employee: l.employees?.full_name, check_in: l.check_in_at, check_out: l.check_out_at, is_late: l.is_late, late_minutes: l.late_minutes, auto_clocked_out: l.auto_clocked_out, location: l.locations?.name })),
+    total: c.total, returned: c.returned, truncated: c.truncated,
+  });
+}
+
+export async function getAttendanceSummary(
+  sb: any, companyId: string, args: any,
+  utcRange: (sb: any, from: string, to: string) => Promise<{ fromUtc: string; toUtc: string } | null>
+): Promise<CapabilityResult<any>> {
+  const limit = Math.min(args.limit || 100, 200);
+  const ur = await utcRange(sb, args.from, args.to);
+  if (!ur) return capabilityError("Failed to convert date range");
+
+  // Resolve location_name → location_id
+  let locationId = args.location_id || null;
+  let resolvedLocationName: string | null = null;
+  if (!locationId && args.location_name) {
+    const loc = await resolveLocationIdForWorkforce(sb, companyId, args.location_name);
+    if (!loc) return capabilityError(`No location matching "${args.location_name}"`);
+    locationId = loc.id;
+    resolvedLocationName = loc.name;
+  }
+
+  // Scope to company locations if no specific location
+  if (!locationId) {
+    const { data: compLocs } = await sb.from("locations").select("id").eq("company_id", companyId).eq("status", "active");
+    if (!compLocs || compLocs.length === 0) return success({ logs: [], total: 0, returned: 0, truncated: false });
+    const locIds = compLocs.map((l: any) => l.id);
+
+    let q = sb.from("attendance_logs").select("id, staff_id, employees(full_name), check_in_at, check_out_at, is_late, late_minutes, auto_clocked_out, location_id, locations(name)")
+      .in("location_id", locIds)
+      .gte("check_in_at", ur.fromUtc).lt("check_in_at", ur.toUtc)
+      .order("check_in_at", { ascending: false }).limit(limit);
+    const { data, error } = await q;
+    if (error) return capabilityError(error.message);
+    const c = cap(data, limit);
+    return success({
+      logs: c.items.map((l: any) => ({
+        employee: l.employees?.full_name, check_in: l.check_in_at, check_out: l.check_out_at,
+        status: l.check_out_at ? "completed" : "working", is_late: l.is_late, late_minutes: l.late_minutes,
+        location: l.locations?.name,
+      })),
+      total_checked_in: c.items.length,
+      currently_working: c.items.filter((l: any) => !l.check_out_at).length,
+      total: c.total, returned: c.returned, truncated: c.truncated,
+    });
+  }
+
+  let q = sb.from("attendance_logs").select("id, staff_id, employees(full_name), check_in_at, check_out_at, is_late, late_minutes, auto_clocked_out, location_id, locations(name)")
+    .eq("location_id", locationId)
+    .gte("check_in_at", ur.fromUtc).lt("check_in_at", ur.toUtc)
+    .order("check_in_at", { ascending: false }).limit(limit);
+  const { data, error } = await q;
+  if (error) return capabilityError(error.message);
+  const c = cap(data, limit);
+  return success({
+    location: resolvedLocationName || null,
+    logs: c.items.map((l: any) => ({
+      employee: l.employees?.full_name, check_in: l.check_in_at, check_out: l.check_out_at,
+      status: l.check_out_at ? "completed" : "working", is_late: l.is_late, late_minutes: l.late_minutes,
+      location: l.locations?.name,
+    })),
+    total_checked_in: c.items.length,
+    currently_working: c.items.filter((l: any) => !l.check_out_at).length,
     total: c.total, returned: c.returned, truncated: c.truncated,
   });
 }

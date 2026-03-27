@@ -21,7 +21,7 @@ import {
 // ─── Domain Capability Imports ───
 import { getAuditResults, compareLocationPerformance, createAuditTemplateDraft, executeAuditTemplateCreation } from "./capabilities/audits.ts";
 import { getOpenCorrectiveActions, reassignCorrectiveAction, executeCaReassignment, createCaDraft, executeCaCreation, updateCaStatusDraft, executeCaStatusUpdate } from "./capabilities/corrective-actions.ts";
-import { searchEmployees, getAttendanceExceptions, createEmployeeDraft, createShiftDraft, executeEmployeeCreation, executeShiftCreation, updateShiftDraft, executeShiftUpdate, deleteShiftDraft, executeShiftDeletion, swapShiftDraft, executeShiftSwap } from "./capabilities/workforce.ts";
+import { searchEmployees, getAttendanceExceptions, getAttendanceSummary, createEmployeeDraft, createShiftDraft, executeEmployeeCreation, executeShiftCreation, updateShiftDraft, executeShiftUpdate, deleteShiftDraft, executeShiftDeletion, swapShiftDraft, executeShiftSwap } from "./capabilities/workforce.ts";
 import { getTaskCompletionSummary, getWorkOrderStatus, getDocumentExpiries, getTrainingGaps, updateEmployeeDraft, executeEmployeeUpdate, deactivateEmployeeDraft, executeEmployeeDeactivation, correctAttendanceDraft, executeAttendanceCorrection, excuseLateDraft, executeExcuseLate, createWorkOrderDraft, executeWorkOrderCreation, updateWoStatusDraft, executeWoStatusUpdate, createTaskDraft, executeTaskCreation, createTrainingAssignmentDraft, executeTrainingAssignment, updateTrainingStatusDraft, executeTrainingStatusUpdate } from "./capabilities/operations.ts";
 import { searchLocations, getLocationOverview, getCrossModuleSummary } from "./capabilities/overview.ts";
 import { saveUserPreference, getUserPreferences, saveOrgMemory, getOrgMemory, saveWorkflow, listSavedWorkflows } from "./capabilities/memory.ts";
@@ -39,6 +39,7 @@ const TOOL_MODULE_MAP: Record<string, string> = {
   compare_location_performance: "location_audits",
   get_open_corrective_actions: "corrective_actions",
   get_attendance_exceptions: "workforce",
+  get_attendance_summary: "workforce",
   get_work_order_status: "cmms",
   get_document_expiries: "documents",
   get_training_gaps: "workforce",
@@ -340,6 +341,9 @@ async function executeToolInner(
 
     case "get_attendance_exceptions":
       return resultToToolResponse(await getAttendanceExceptions(sb, companyId, args, utcRange));
+
+    case "get_attendance_summary":
+      return resultToToolResponse(await getAttendanceSummary(sb, companyId, args, utcRange));
 
     case "get_work_order_status":
       return resultToToolResponse(await getWorkOrderStatus(sb, companyId, args));
@@ -872,7 +876,8 @@ function buildSystemPrompt(ctx: { role: string; companyName: string; modules: st
 - **Today**: ${ctx.today} (${ctx.todayLabel})
 - **Timezone**: Europe/Bucharest
 - **CRITICAL DATE RULE**: When the user says "this week", "last week", "this month", "last 30 days", "today", "yesterday", or ANY relative date expression, you MUST auto-resolve it to concrete YYYY-MM-DD dates using the Today value above. NEVER ask the user to specify dates. Examples: "this week" = Monday of current week to today. "last 30 days" = today minus 30 to today. "last month" = first to last day of previous month.
-- **LOCATION NAME RULE**: When any tool accepts both \`location_id\` and \`location_name\`, you can pass the location name directly — the tool resolves it to a UUID automatically. No need to call \`search_locations\` first for audit, CA, task, or comparison tools.
+- **LOCATION NAME RULE**: When any tool accepts both \`location_id\` and \`location_name\`, you can pass the location name directly — the tool resolves it to a UUID automatically. No need to call \`search_locations\` first for audit, attendance, CA, task, or comparison tools.
+- **ATTENDANCE RULE**: For "who is working?", "how many checked in?", "attendance today", or any general attendance query, use \`get_attendance_summary\`. Only use \`get_attendance_exceptions\` for late arrivals or missed checkouts specifically.
 
 ## Your Capabilities (auto-generated from registry)
 
