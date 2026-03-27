@@ -49,11 +49,11 @@ export const CAPABILITY_REGISTRY: Record<string, CapabilityEntry> = {
   // ─── Migrated to capability modules ───
   audits: {
     module: "location_audits",
-    entities: ["location_audit", "audit_template", "audit_section"],
-    aliases: ["audit", "inspection", "check", "verificare"],
-    reads: ["get_audit_results", "compare_location_performance"],
-    actions: ["create_audit_template"],
-    approvalClass: { create: "manager_required" },
+    entities: ["location_audit", "audit_template", "audit_section", "scheduled_audit"],
+    aliases: ["audit", "inspection", "check", "verificare", "schedule audit", "planned audit"],
+    reads: ["get_audit_results", "compare_location_performance", "list_scheduled_audits"],
+    actions: ["create_audit_template", "schedule_audit_draft", "execute_audit_scheduling", "cancel_scheduled_audit_draft", "execute_cancel_scheduled_audit"],
+    approvalClass: { create: "manager_required", schedule: "manager_required", cancel: "manager_required" },
     maturity: "stable",
   },
 
@@ -72,18 +72,58 @@ export const CAPABILITY_REGISTRY: Record<string, CapabilityEntry> = {
     entities: ["employee", "shift", "attendance_log", "training_assignment"],
     aliases: ["employee", "staff", "angajat", "personal", "shift", "tura", "schedule", "program", "swap", "schimb", "attendance", "prezenta", "training", "instruire"],
     reads: ["search_employees", "get_attendance_exceptions", "get_attendance_summary", "get_training_gaps"],
-    actions: ["create_employee", "create_shift", "update_shift", "delete_shift", "swap_shifts", "update_employee_draft", "deactivate_employee_draft", "correct_attendance_draft", "excuse_late_draft", "create_training_assignment_draft", "update_training_status_draft"],
+    actions: ["create_employee", "create_shift", "update_shift", "delete_shift", "swap_shifts", "update_employee_draft", "deactivate_employee_draft", "correct_attendance_draft", "excuse_late_draft", "create_training_assignment_draft", "execute_training_assignment", "update_training_status_draft", "execute_training_status_update"],
     approvalClass: { create: "manager_required", update: "manager_required", delete: "manager_required", swap: "manager_required", deactivate: "manager_required" },
     maturity: "stable",
   },
 
   operations: {
     module: "operations",
-    entities: ["task", "work_order", "document"],
-    aliases: ["task", "work order", "document", "sarcina", "comanda", "maintenance", "repair"],
-    reads: ["get_task_completion_summary", "get_work_order_status", "get_document_expiries"],
-    actions: ["create_work_order_draft", "update_wo_status_draft", "create_task_draft"],
-    approvalClass: { create: "manager_required", update: "manager_required" },
+    entities: ["task", "work_order", "document", "alert"],
+    aliases: ["task", "work order", "document", "sarcina", "comanda", "maintenance", "repair", "alert", "notification"],
+    reads: ["get_task_completion_summary", "get_work_order_status", "get_document_expiries", "list_tasks", "list_documents", "list_alerts"],
+    actions: ["create_work_order_draft", "update_wo_status_draft", "create_task_draft", "update_task_draft", "execute_task_update", "delete_task_draft", "execute_task_deletion", "complete_task_draft", "execute_task_completion", "link_document_draft", "execute_document_link", "create_document_category_draft", "execute_document_category_creation", "delete_document_draft", "execute_document_deletion", "resolve_alert_draft", "execute_alert_resolution"],
+    approvalClass: { create: "manager_required", update: "manager_required", delete: "manager_required", resolve: "manager_required" },
+    maturity: "stable",
+  },
+
+  locations: {
+    module: "workforce",
+    entities: ["location"],
+    aliases: ["location", "store", "branch", "site", "locatie", "magazin"],
+    reads: ["list_locations", "get_location_details"],
+    actions: ["create_location_draft", "execute_location_creation", "update_location_draft", "execute_location_update", "deactivate_location_draft", "execute_location_deactivation"],
+    approvalClass: { create: "manager_required", update: "manager_required", deactivate: "manager_required" },
+    maturity: "stable",
+  },
+
+  departments: {
+    module: "workforce",
+    entities: ["department"],
+    aliases: ["department", "team", "departament", "echipa"],
+    reads: ["list_departments"],
+    actions: ["create_department_draft", "execute_create_department", "update_department_draft", "execute_update_department", "delete_department_draft", "execute_delete_department"],
+    approvalClass: { create: "manager_required", update: "manager_required", delete: "manager_required" },
+    maturity: "stable",
+  },
+
+  notifications: {
+    module: "notifications",
+    entities: ["notification"],
+    aliases: ["notification", "announcement", "alert", "message", "notificare", "anunt"],
+    reads: ["list_notifications"],
+    actions: ["send_notification_draft", "execute_notification_send"],
+    approvalClass: { send: "manager_required" },
+    maturity: "stable",
+  },
+
+  training_programs: {
+    module: "testing_training",
+    entities: ["training_program"],
+    aliases: ["training program", "training module", "course", "program formare", "instruire"],
+    reads: ["list_training_programs"],
+    actions: ["create_training_program_draft", "execute_training_program_creation"],
+    approvalClass: { create: "manager_required" },
     maturity: "stable",
   },
 

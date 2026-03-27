@@ -91,7 +91,8 @@ export const EmployeeMultiWeekView = ({
   const { data: timeOffRequests = [] } = useTimeOffRequests(
     startDateStr,
     endDateStr,
-    employeeId
+    employeeId,
+    open && !!employeeId
   );
 
   // Build weeks array

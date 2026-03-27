@@ -1110,4 +1110,665 @@ export const tools = [
       },
     },
   },
+
+  // ─── Audit Scheduling ───
+  {
+    type: "function",
+    function: {
+      name: "list_scheduled_audits",
+      description: "List scheduled audits for the company, with optional filters for status, date range, or location.",
+      parameters: {
+        type: "object",
+        properties: {
+          status: { type: "string", enum: ["scheduled", "in_progress", "completed", "cancelled"], description: "Filter by status" },
+          from: { type: "string", description: "Start date filter (YYYY-MM-DD)" },
+          to: { type: "string", description: "End date filter (YYYY-MM-DD)" },
+          location_name: { type: "string", description: "Filter by location name" },
+          limit: { type: "number", description: "Max results (default 20)" },
+        },
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "schedule_audit_draft",
+      description: "Draft a new scheduled audit for a specific location and template. Shows a preview before creating.",
+      parameters: {
+        type: "object",
+        properties: {
+          template_name: { type: "string", description: "Audit template name (fuzzy matched)" },
+          template_id: { type: "string", description: "Audit template UUID" },
+          location_name: { type: "string", description: "Location name (fuzzy matched)" },
+          location_id: { type: "string", description: "Location UUID" },
+          scheduled_for: { type: "string", description: "Scheduled date (YYYY-MM-DD)" },
+          frequency: { type: "string", enum: ["once", "daily", "weekly", "monthly"], description: "Recurrence frequency" },
+          assignee_name: { type: "string", description: "Name of person to assign the audit to" },
+        },
+        required: ["scheduled_for"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_audit_scheduling",
+      description: "Execute a previously drafted audit scheduling action.",
+      parameters: {
+        type: "object",
+        properties: {
+          pending_action_id: { type: "string", description: "Pending action UUID from schedule_audit_draft" },
+        },
+        required: ["pending_action_id"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "cancel_scheduled_audit_draft",
+      description: "Draft a cancellation for a scheduled audit. Shows a preview before cancelling.",
+      parameters: {
+        type: "object",
+        properties: {
+          scheduled_audit_id: { type: "string", description: "Scheduled audit UUID" },
+          reason: { type: "string", description: "Reason for cancellation" },
+        },
+        required: ["scheduled_audit_id"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_cancel_scheduled_audit",
+      description: "Execute a drafted audit cancellation.",
+      parameters: {
+        type: "object",
+        properties: {
+          pending_action_id: { type: "string", description: "Pending action UUID from cancel_scheduled_audit_draft" },
+        },
+        required: ["pending_action_id"],
+      },
+    },
+  },
+
+  // ─── Location Management ───
+  {
+    type: "function",
+    function: {
+      name: "list_locations",
+      description: "List all locations for the company. Optionally filter by status or type.",
+      parameters: {
+        type: "object",
+        properties: {
+          status: { type: "string", enum: ["active", "inactive"], description: "Filter by status" },
+          type: { type: "string", description: "Filter by location type" },
+          limit: { type: "number", description: "Max results (default 50)" },
+        },
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "get_location_details",
+      description: "Get detailed information about a specific location including employee count.",
+      parameters: {
+        type: "object",
+        properties: {
+          location_id: { type: "string", description: "Location UUID" },
+          location_name: { type: "string", description: "Location name (fuzzy matched)" },
+        },
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "create_location_draft",
+      description: "Draft a new location. Shows a preview before creating.",
+      parameters: {
+        type: "object",
+        properties: {
+          name: { type: "string", description: "Location name" },
+          address: { type: "string", description: "Street address" },
+          city: { type: "string", description: "City" },
+          type: { type: "string", description: "Location type (e.g. store, warehouse, office)" },
+        },
+        required: ["name"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_location_creation",
+      description: "Execute a drafted location creation.",
+      parameters: {
+        type: "object",
+        properties: {
+          pending_action_id: { type: "string", description: "Pending action UUID from create_location_draft" },
+        },
+        required: ["pending_action_id"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "update_location_draft",
+      description: "Draft an update to an existing location. Shows a preview before applying.",
+      parameters: {
+        type: "object",
+        properties: {
+          location_id: { type: "string", description: "Location UUID" },
+          location_name: { type: "string", description: "Current location name (fuzzy matched)" },
+          name: { type: "string", description: "New name" },
+          address: { type: "string", description: "New address" },
+          city: { type: "string", description: "New city" },
+          type: { type: "string", description: "New type" },
+        },
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_location_update",
+      description: "Execute a drafted location update.",
+      parameters: {
+        type: "object",
+        properties: {
+          pending_action_id: { type: "string", description: "Pending action UUID from update_location_draft" },
+        },
+        required: ["pending_action_id"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "deactivate_location_draft",
+      description: "Draft a location deactivation. Shows active employee count warning before deactivating.",
+      parameters: {
+        type: "object",
+        properties: {
+          location_id: { type: "string", description: "Location UUID" },
+          location_name: { type: "string", description: "Location name (fuzzy matched)" },
+          reason: { type: "string", description: "Reason for deactivation" },
+        },
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_location_deactivation",
+      description: "Execute a drafted location deactivation.",
+      parameters: {
+        type: "object",
+        properties: {
+          pending_action_id: { type: "string", description: "Pending action UUID from deactivate_location_draft" },
+        },
+        required: ["pending_action_id"],
+      },
+    },
+  },
+
+  // ─── Notifications ───
+  {
+    type: "function",
+    function: {
+      name: "list_notifications",
+      description: "List notifications that have been sent or scheduled for the company.",
+      parameters: {
+        type: "object",
+        properties: {
+          limit: { type: "number", description: "Max results (default 20)" },
+        },
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "send_notification_draft",
+      description: "Draft a notification to send to employees by role. Shows a preview before sending.",
+      parameters: {
+        type: "object",
+        properties: {
+          title: { type: "string", description: "Notification title" },
+          message: { type: "string", description: "Notification body message" },
+          target_roles: { type: "array", items: { type: "string" }, description: "Roles to target (e.g. ['staff', 'manager'])" },
+          type: { type: "string", enum: ["info", "warning", "urgent"], description: "Notification type" },
+          scheduled_for: { type: "string", description: "Optional scheduled send time (ISO 8601)" },
+        },
+        required: ["title", "message"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_notification_send",
+      description: "Execute a drafted notification send.",
+      parameters: {
+        type: "object",
+        properties: {
+          pending_action_id: { type: "string", description: "Pending action UUID from send_notification_draft" },
+        },
+        required: ["pending_action_id"],
+      },
+    },
+  },
+
+  // ─── Departments ───
+  {
+    type: "function",
+    function: {
+      name: "list_departments",
+      description: "List all departments in the company.",
+      parameters: {
+        type: "object",
+        properties: {
+          limit: { type: "number", description: "Max results (default 100)" },
+        },
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "create_department_draft",
+      description: "Draft a new department. Shows a preview before creating.",
+      parameters: {
+        type: "object",
+        properties: {
+          name: { type: "string", description: "Department name" },
+          description: { type: "string", description: "Department description" },
+          color: { type: "string", description: "Color hex code (e.g. #FF5733)" },
+        },
+        required: ["name"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_create_department",
+      description: "Execute a drafted department creation.",
+      parameters: {
+        type: "object",
+        properties: {
+          pending_action_id: { type: "string", description: "Pending action UUID from create_department_draft" },
+        },
+        required: ["pending_action_id"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "update_department_draft",
+      description: "Draft an update to an existing department.",
+      parameters: {
+        type: "object",
+        properties: {
+          department_id: { type: "string", description: "Department UUID" },
+          department_name: { type: "string", description: "Current department name (fuzzy matched)" },
+          name: { type: "string", description: "New name" },
+          description: { type: "string", description: "New description" },
+          color: { type: "string", description: "New color hex code" },
+        },
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_update_department",
+      description: "Execute a drafted department update.",
+      parameters: {
+        type: "object",
+        properties: {
+          pending_action_id: { type: "string", description: "Pending action UUID from update_department_draft" },
+        },
+        required: ["pending_action_id"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "delete_department_draft",
+      description: "Draft a department deletion. Shows employee count before allowing deletion.",
+      parameters: {
+        type: "object",
+        properties: {
+          department_id: { type: "string", description: "Department UUID" },
+          department_name: { type: "string", description: "Department name (fuzzy matched)" },
+        },
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_delete_department",
+      description: "Execute a drafted department deletion.",
+      parameters: {
+        type: "object",
+        properties: {
+          pending_action_id: { type: "string", description: "Pending action UUID from delete_department_draft" },
+        },
+        required: ["pending_action_id"],
+      },
+    },
+  },
+
+  // ─── Tasks Extended ───
+  {
+    type: "function",
+    function: {
+      name: "list_tasks",
+      description: "List tasks for the company. Optionally filter by status or priority.",
+      parameters: {
+        type: "object",
+        properties: {
+          status: { type: "string", enum: ["open", "in_progress", "completed", "cancelled"], description: "Filter by status" },
+          priority: { type: "string", enum: ["low", "medium", "high", "urgent"], description: "Filter by priority" },
+          limit: { type: "number", description: "Max results (default 50)" },
+        },
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "update_task_draft",
+      description: "Draft an update to an existing task (title, status, priority, due date).",
+      parameters: {
+        type: "object",
+        properties: {
+          task_id: { type: "string", description: "Task UUID" },
+          title: { type: "string", description: "New title" },
+          status: { type: "string", enum: ["open", "in_progress", "completed", "cancelled"], description: "New status" },
+          priority: { type: "string", enum: ["low", "medium", "high", "urgent"], description: "New priority" },
+          due_date: { type: "string", description: "New due date (YYYY-MM-DD)" },
+        },
+        required: ["task_id"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_task_update",
+      description: "Execute a drafted task update.",
+      parameters: {
+        type: "object",
+        properties: {
+          pending_action_id: { type: "string", description: "Pending action UUID from update_task_draft" },
+        },
+        required: ["pending_action_id"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "delete_task_draft",
+      description: "Draft a task deletion. Shows preview before deleting.",
+      parameters: {
+        type: "object",
+        properties: {
+          task_id: { type: "string", description: "Task UUID" },
+        },
+        required: ["task_id"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_task_deletion",
+      description: "Execute a drafted task deletion.",
+      parameters: {
+        type: "object",
+        properties: {
+          pending_action_id: { type: "string", description: "Pending action UUID from delete_task_draft" },
+        },
+        required: ["pending_action_id"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "complete_task_draft",
+      description: "Draft marking a task as completed.",
+      parameters: {
+        type: "object",
+        properties: {
+          task_id: { type: "string", description: "Task UUID" },
+          notes: { type: "string", description: "Optional completion notes" },
+        },
+        required: ["task_id"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_task_completion",
+      description: "Execute a drafted task completion.",
+      parameters: {
+        type: "object",
+        properties: {
+          pending_action_id: { type: "string", description: "Pending action UUID from complete_task_draft" },
+        },
+        required: ["pending_action_id"],
+      },
+    },
+  },
+
+  // ─── Documents ───
+  {
+    type: "function",
+    function: {
+      name: "list_documents",
+      description: "List documents in the company library. Optionally filter by category.",
+      parameters: {
+        type: "object",
+        properties: {
+          category_name: { type: "string", description: "Filter by document category name" },
+          limit: { type: "number", description: "Max results (default 50)" },
+        },
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "link_document_draft",
+      description: "Draft linking a pre-existing document URL to the company document library.",
+      parameters: {
+        type: "object",
+        properties: {
+          title: { type: "string", description: "Document title" },
+          file_url: { type: "string", description: "Existing file URL (must be a valid URL)" },
+          file_type: { type: "string", description: "File type (e.g. pdf, docx)" },
+          category_id: { type: "string", description: "Document category UUID" },
+          expiry_date: { type: "string", description: "Expiry date (YYYY-MM-DD)" },
+          description: { type: "string", description: "Document description" },
+        },
+        required: ["title", "file_url"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_document_link",
+      description: "Execute a drafted document link.",
+      parameters: {
+        type: "object",
+        properties: {
+          pending_action_id: { type: "string", description: "Pending action UUID from link_document_draft" },
+        },
+        required: ["pending_action_id"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "create_document_category_draft",
+      description: "Draft creating a new document category.",
+      parameters: {
+        type: "object",
+        properties: {
+          name: { type: "string", description: "Category name" },
+          description: { type: "string", description: "Category description" },
+        },
+        required: ["name"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_document_category_creation",
+      description: "Execute a drafted document category creation.",
+      parameters: {
+        type: "object",
+        properties: {
+          pending_action_id: { type: "string", description: "Pending action UUID from create_document_category_draft" },
+        },
+        required: ["pending_action_id"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "delete_document_draft",
+      description: "Draft a document deletion.",
+      parameters: {
+        type: "object",
+        properties: {
+          document_id: { type: "string", description: "Document UUID" },
+        },
+        required: ["document_id"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_document_deletion",
+      description: "Execute a drafted document deletion.",
+      parameters: {
+        type: "object",
+        properties: {
+          pending_action_id: { type: "string", description: "Pending action UUID from delete_document_draft" },
+        },
+        required: ["pending_action_id"],
+      },
+    },
+  },
+
+  // ─── Alerts ───
+  {
+    type: "function",
+    function: {
+      name: "list_alerts",
+      description: "List open or resolved alerts for the company. Defaults to unresolved alerts.",
+      parameters: {
+        type: "object",
+        properties: {
+          severity: { type: "string", enum: ["info", "warning", "critical"], description: "Filter by severity" },
+          category: { type: "string", description: "Filter by category (e.g. staff, audit, maintenance)" },
+          resolved: { type: "boolean", description: "true=resolved, false=open (default false)" },
+          limit: { type: "number", description: "Max results (default 50)" },
+        },
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "resolve_alert_draft",
+      description: "Draft a resolution for an open alert. Shows preview before resolving.",
+      parameters: {
+        type: "object",
+        properties: {
+          alert_id: { type: "string", description: "Alert UUID" },
+          resolution_note: { type: "string", description: "Optional resolution note" },
+        },
+        required: ["alert_id"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_alert_resolution",
+      description: "Execute a drafted alert resolution.",
+      parameters: {
+        type: "object",
+        properties: {
+          pending_action_id: { type: "string", description: "Pending action UUID from resolve_alert_draft" },
+        },
+        required: ["pending_action_id"],
+      },
+    },
+  },
+
+  // ─── Training Programs ───
+  {
+    type: "function",
+    function: {
+      name: "list_training_programs",
+      description: "List all training programs available in the company.",
+      parameters: {
+        type: "object",
+        properties: {
+          limit: { type: "number", description: "Max results (default 50)" },
+        },
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "create_training_program_draft",
+      description: "Draft a new training program (module). Shows preview before creating.",
+      parameters: {
+        type: "object",
+        properties: {
+          name: { type: "string", description: "Program name" },
+          description: { type: "string", description: "Program description" },
+          duration_hours: { type: "number", description: "Duration in hours" },
+          is_mandatory: { type: "boolean", description: "Whether the program is mandatory (default false)" },
+        },
+        required: ["name"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_training_program_creation",
+      description: "Execute a drafted training program creation.",
+      parameters: {
+        type: "object",
+        properties: {
+          pending_action_id: { type: "string", description: "Pending action UUID from create_training_program_draft" },
+        },
+        required: ["pending_action_id"],
+      },
+    },
+  },
 ];
