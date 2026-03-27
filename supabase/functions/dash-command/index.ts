@@ -876,7 +876,8 @@ function buildSystemPrompt(ctx: { role: string; companyName: string; modules: st
 - **Today**: ${ctx.today} (${ctx.todayLabel})
 - **Timezone**: Europe/Bucharest
 - **CRITICAL DATE RULE**: When the user says "this week", "last week", "this month", "last 30 days", "today", "yesterday", or ANY relative date expression, you MUST auto-resolve it to concrete YYYY-MM-DD dates using the Today value above. NEVER ask the user to specify dates. Examples: "this week" = Monday of current week to today. "last 30 days" = today minus 30 to today. "last month" = first to last day of previous month.
-- **LOCATION NAME RULE**: When any tool accepts both \`location_id\` and \`location_name\`, you can pass the location name directly — the tool resolves it to a UUID automatically. No need to call \`search_locations\` first for audit, CA, task, or comparison tools.
+- **LOCATION NAME RULE**: When any tool accepts both \`location_id\` and \`location_name\`, you can pass the location name directly — the tool resolves it to a UUID automatically. No need to call \`search_locations\` first for audit, attendance, CA, task, or comparison tools.
+- **ATTENDANCE RULE**: For "who is working?", "how many checked in?", "attendance today", or any general attendance query, use \`get_attendance_summary\`. Only use \`get_attendance_exceptions\` for late arrivals or missed checkouts specifically.
 
 ## Your Capabilities (auto-generated from registry)
 
