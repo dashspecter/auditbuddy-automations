@@ -170,6 +170,16 @@ export const EmployeeMultiWeekView = ({
           </ToggleGroup>
         </div>
 
+        {/* Loading / Error states */}
+        {shiftsLoading && (
+          <div className="text-center py-6 text-sm text-muted-foreground">Loading shifts…</div>
+        )}
+        {shiftsError && (
+          <div className="text-center py-6 text-sm text-destructive">
+            Failed to load shifts. Please close and reopen.
+          </div>
+        )}
+
         {/* Grid */}
         <div className="border rounded-lg overflow-hidden">
           {/* Day headers */}
