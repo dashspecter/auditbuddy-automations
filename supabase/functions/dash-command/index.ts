@@ -39,6 +39,7 @@ const TOOL_MODULE_MAP: Record<string, string> = {
   compare_location_performance: "location_audits",
   get_open_corrective_actions: "corrective_actions",
   get_attendance_exceptions: "workforce",
+  get_attendance_summary: "workforce",
   get_work_order_status: "cmms",
   get_document_expiries: "documents",
   get_training_gaps: "workforce",
