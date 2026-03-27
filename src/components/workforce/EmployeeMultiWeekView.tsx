@@ -51,7 +51,7 @@ export const EmployeeMultiWeekView = ({
   const endDateStr = format(rangeEnd, "yyyy-MM-dd");
 
   // P1-b: Employee-scoped shift query via shift_assignments join
-  const { data: employeeShifts = [] } = useQuery({
+  const { data: employeeShifts = [], isLoading: shiftsLoading, error: shiftsError } = useQuery({
     queryKey: ["employee-shifts-multiweek", employeeId, startDateStr, endDateStr],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -64,7 +64,6 @@ export const EmployeeMultiWeekView = ({
             close_duty, break_duration_minutes, shift_type, status,
             breaks, cancelled_at,
             locations(name),
-            employee_roles(color),
             shift_assignments(id, staff_id, approval_status)
           )
         `)
@@ -76,8 +75,14 @@ export const EmployeeMultiWeekView = ({
 
       if (error) throw error;
 
-      // Flatten: extract the shift object from each assignment
-      return (data || []).map((sa: any) => sa.shifts).filter(Boolean);
+      // Flatten and deduplicate by shift id
+      const shifts = (data || []).map((sa: any) => sa.shifts).filter(Boolean);
+      const seen = new Set<string>();
+      return shifts.filter((s: any) => {
+        if (seen.has(s.id)) return false;
+        seen.add(s.id);
+        return true;
+      });
     },
     enabled: open && !!employeeId,
   });
