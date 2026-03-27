@@ -126,12 +126,31 @@ export const tools = [
   {
     type: "function",
     function: {
-      name: "get_attendance_exceptions",
-      description: "Get attendance exceptions (late arrivals, missed checkouts, no-shows) for a date range.",
+      name: "get_attendance_summary",
+      description: "Get all attendance check-ins for a date range. Shows who checked in, who is currently working, total count. Use for 'who is working today?', 'how many checked in?', 'attendance today'.",
       parameters: {
         type: "object",
         properties: {
-          location_id: { type: "string" },
+          location_id: { type: "string", description: "Optional location UUID filter" },
+          location_name: { type: "string", description: "Optional location name (partial match, auto-resolved to ID)" },
+          from: { type: "string", description: "Start date YYYY-MM-DD" },
+          to: { type: "string", description: "End date YYYY-MM-DD" },
+          limit: { type: "number", description: "Max results (default 100)" },
+        },
+        required: ["from", "to"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "get_attendance_exceptions",
+      description: "Get attendance exceptions ONLY (late arrivals, missed checkouts, no-shows) for a date range. For general attendance data, use get_attendance_summary instead.",
+      parameters: {
+        type: "object",
+        properties: {
+          location_id: { type: "string", description: "Optional location UUID filter" },
+          location_name: { type: "string", description: "Optional location name (partial match, auto-resolved to ID)" },
           from: { type: "string", description: "Start date YYYY-MM-DD" },
           to: { type: "string", description: "End date YYYY-MM-DD" },
           limit: { type: "number", description: "Max results (default 50)" },
