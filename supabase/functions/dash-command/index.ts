@@ -342,6 +342,9 @@ async function executeToolInner(
     case "get_attendance_exceptions":
       return resultToToolResponse(await getAttendanceExceptions(sb, companyId, args, utcRange));
 
+    case "get_attendance_summary":
+      return resultToToolResponse(await getAttendanceSummary(sb, companyId, args, utcRange));
+
     case "get_work_order_status":
       return resultToToolResponse(await getWorkOrderStatus(sb, companyId, args));
 
