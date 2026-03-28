@@ -954,15 +954,19 @@ export async function updateTaskDraft(
   const { data: task } = await sb.from("tasks").select("id, title, status, priority, due_date, company_id").eq("id", args.task_id).maybeSingle();
   if (!task || task.company_id !== companyId) return capabilityError("Task not found.");
   const draft = { task_id: task.id, title: args.title ?? task.title, status: args.status ?? task.status, priority: args.priority ?? task.priority, due_date: args.due_date ?? task.due_date };
-  const { data: paData } = await sbService.from("dash_pending_actions").insert({
+  const { data: paData, error: paError } = await sbService.from("dash_pending_actions").insert({
     company_id: companyId, user_id: userId, action_name: "update_task",
     action_type: "write", risk_level: "medium", preview_json: draft, status: "pending",
   }).select("id").single();
+  if (paError || !paData?.id) {
+    console.error("[Dash] pending action insert failed:", paError?.message);
+    return capabilityError(`Failed to create draft: ${paError?.message || "database error"}. Please try again.`);
+  }
   structuredEvents.push(makeStructuredEvent("action_preview", {
     action: "Update Task", summary: `Update task "${task.title}"`,
-    risk: "medium", affected: [task.title], pending_action_id: paData?.id, draft, missing_fields: [], can_approve: true,
+    risk: "medium", affected: [task.title], pending_action_id: paData.id, draft, missing_fields: [], can_approve: true,
   }));
-  return success({ type: "update_task_draft", draft, pending_action_id: paData?.id, requires_approval: true, risk_level: "medium", message: `Task update draft ready.` });
+  return success({ type: "update_task_draft", draft, pending_action_id: paData.id, requires_approval: true, risk_level: "medium", message: `Task update draft ready.` });
 }
 
 export async function executeTaskUpdate(
@@ -998,15 +1002,19 @@ export async function deleteTaskDraft(
   const { data: task } = await sb.from("tasks").select("id, title, company_id").eq("id", args.task_id).maybeSingle();
   if (!task || task.company_id !== companyId) return capabilityError("Task not found.");
   const draft = { task_id: task.id, title: task.title };
-  const { data: paData } = await sbService.from("dash_pending_actions").insert({
+  const { data: paData, error: paError } = await sbService.from("dash_pending_actions").insert({
     company_id: companyId, user_id: userId, action_name: "delete_task",
     action_type: "write", risk_level: "high", preview_json: draft, status: "pending",
   }).select("id").single();
+  if (paError || !paData?.id) {
+    console.error("[Dash] pending action insert failed:", paError?.message);
+    return capabilityError(`Failed to create draft: ${paError?.message || "database error"}. Please try again.`);
+  }
   structuredEvents.push(makeStructuredEvent("action_preview", {
     action: "Delete Task", summary: `Delete task "${task.title}"`,
-    risk: "high", affected: [task.title], pending_action_id: paData?.id, draft, missing_fields: [], can_approve: true,
+    risk: "high", affected: [task.title], pending_action_id: paData.id, draft, missing_fields: [], can_approve: true,
   }));
-  return success({ type: "delete_task_draft", draft, pending_action_id: paData?.id, requires_approval: true, risk_level: "high", message: `Delete draft ready for task "${task.title}".` });
+  return success({ type: "delete_task_draft", draft, pending_action_id: paData.id, requires_approval: true, risk_level: "high", message: `Delete draft ready for task "${task.title}".` });
 }
 
 export async function executeTaskDeletion(
@@ -1043,15 +1051,19 @@ export async function completeTaskDraft(
   if (!task || task.company_id !== companyId) return capabilityError("Task not found.");
   if (task.status === "completed") return capabilityError("Task is already completed.");
   const draft = { task_id: task.id, title: task.title, completion_notes: args.notes || null };
-  const { data: paData } = await sbService.from("dash_pending_actions").insert({
+  const { data: paData, error: paError } = await sbService.from("dash_pending_actions").insert({
     company_id: companyId, user_id: userId, action_name: "complete_task",
     action_type: "write", risk_level: "low", preview_json: draft, status: "pending",
   }).select("id").single();
+  if (paError || !paData?.id) {
+    console.error("[Dash] pending action insert failed:", paError?.message);
+    return capabilityError(`Failed to create draft: ${paError?.message || "database error"}. Please try again.`);
+  }
   structuredEvents.push(makeStructuredEvent("action_preview", {
     action: "Complete Task", summary: `Mark task "${task.title}" as completed`,
-    risk: "low", affected: [task.title], pending_action_id: paData?.id, draft, missing_fields: [], can_approve: true,
+    risk: "low", affected: [task.title], pending_action_id: paData.id, draft, missing_fields: [], can_approve: true,
   }));
-  return success({ type: "complete_task_draft", draft, pending_action_id: paData?.id, requires_approval: true, risk_level: "low", message: `Complete draft ready for "${task.title}".` });
+  return success({ type: "complete_task_draft", draft, pending_action_id: paData.id, requires_approval: true, risk_level: "low", message: `Complete draft ready for "${task.title}".` });
 }
 
 export async function executeTaskCompletion(
@@ -1110,15 +1122,19 @@ export async function linkDocumentDraft(
   if (!permCheck.ok) return permCheck;
   if (!args.title || !args.file_url) return capabilityError("title and file_url are required.");
   const draft = { title: args.title, file_url: args.file_url, file_type: args.file_type || null, category_id: args.category_id || null, expiry_date: args.expiry_date || null, description: args.description || null };
-  const { data: paData } = await sbService.from("dash_pending_actions").insert({
+  const { data: paData, error: paError } = await sbService.from("dash_pending_actions").insert({
     company_id: companyId, user_id: userId, action_name: "link_document",
     action_type: "write", risk_level: "medium", preview_json: draft, status: "pending",
   }).select("id").single();
+  if (paError || !paData?.id) {
+    console.error("[Dash] pending action insert failed:", paError?.message);
+    return capabilityError(`Failed to create draft: ${paError?.message || "database error"}. Please try again.`);
+  }
   structuredEvents.push(makeStructuredEvent("action_preview", {
     action: "Link Document", summary: `Link document "${args.title}"`,
-    risk: "medium", affected: [args.title], pending_action_id: paData?.id, draft, missing_fields: [], can_approve: true,
+    risk: "medium", affected: [args.title], pending_action_id: paData.id, draft, missing_fields: [], can_approve: true,
   }));
-  return success({ type: "link_document_draft", draft, pending_action_id: paData?.id, requires_approval: true, risk_level: "medium", message: `Document link draft ready.` });
+  return success({ type: "link_document_draft", draft, pending_action_id: paData.id, requires_approval: true, risk_level: "medium", message: `Document link draft ready.` });
 }
 
 export async function executeDocumentLink(
@@ -1155,15 +1171,19 @@ export async function createDocumentCategoryDraft(
   if (!permCheck.ok) return permCheck;
   if (!args.name) return capabilityError("Category name is required.");
   const draft = { name: args.name, description: args.description || null };
-  const { data: paData } = await sbService.from("dash_pending_actions").insert({
+  const { data: paData, error: paError } = await sbService.from("dash_pending_actions").insert({
     company_id: companyId, user_id: userId, action_name: "create_document_category",
     action_type: "write", risk_level: "low", preview_json: draft, status: "pending",
   }).select("id").single();
+  if (paError || !paData?.id) {
+    console.error("[Dash] pending action insert failed:", paError?.message);
+    return capabilityError(`Failed to create draft: ${paError?.message || "database error"}. Please try again.`);
+  }
   structuredEvents.push(makeStructuredEvent("action_preview", {
     action: "Create Document Category", summary: `Create document category "${args.name}"`,
-    risk: "low", affected: [args.name], pending_action_id: paData?.id, draft, missing_fields: [], can_approve: true,
+    risk: "low", affected: [args.name], pending_action_id: paData.id, draft, missing_fields: [], can_approve: true,
   }));
-  return success({ type: "create_document_category_draft", draft, pending_action_id: paData?.id, requires_approval: true, risk_level: "low", message: `Category draft ready.` });
+  return success({ type: "create_document_category_draft", draft, pending_action_id: paData.id, requires_approval: true, risk_level: "low", message: `Category draft ready.` });
 }
 
 export async function executeDocumentCategoryCreation(
@@ -1199,15 +1219,19 @@ export async function deleteDocumentDraft(
   const { data: doc } = await sb.from("documents").select("id, title, company_id").eq("id", args.document_id).maybeSingle();
   if (!doc || doc.company_id !== companyId) return capabilityError("Document not found.");
   const draft = { document_id: doc.id, title: doc.title };
-  const { data: paData } = await sbService.from("dash_pending_actions").insert({
+  const { data: paData, error: paError } = await sbService.from("dash_pending_actions").insert({
     company_id: companyId, user_id: userId, action_name: "delete_document",
     action_type: "write", risk_level: "high", preview_json: draft, status: "pending",
   }).select("id").single();
+  if (paError || !paData?.id) {
+    console.error("[Dash] pending action insert failed:", paError?.message);
+    return capabilityError(`Failed to create draft: ${paError?.message || "database error"}. Please try again.`);
+  }
   structuredEvents.push(makeStructuredEvent("action_preview", {
     action: "Delete Document", summary: `Delete document "${doc.title}"`,
-    risk: "high", affected: [doc.title], pending_action_id: paData?.id, draft, missing_fields: [], can_approve: true,
+    risk: "high", affected: [doc.title], pending_action_id: paData.id, draft, missing_fields: [], can_approve: true,
   }));
-  return success({ type: "delete_document_draft", draft, pending_action_id: paData?.id, requires_approval: true, risk_level: "high", message: `Delete draft ready for "${doc.title}".` });
+  return success({ type: "delete_document_draft", draft, pending_action_id: paData.id, requires_approval: true, risk_level: "high", message: `Delete draft ready for "${doc.title}".` });
 }
 
 export async function executeDocumentDeletion(
@@ -1272,15 +1296,19 @@ export async function resolveAlertDraft(
   if (!alert || alert.company_id !== companyId) return capabilityError("Alert not found.");
   if (alert.resolved) return capabilityError("Alert is already resolved.");
   const draft = { alert_id: alert.id, title: alert.title, severity: alert.severity, resolution_note: args.resolution_note || null };
-  const { data: paData } = await sbService.from("dash_pending_actions").insert({
+  const { data: paData, error: paError } = await sbService.from("dash_pending_actions").insert({
     company_id: companyId, user_id: userId, action_name: "resolve_alert",
     action_type: "write", risk_level: "medium", preview_json: draft, status: "pending",
   }).select("id").single();
+  if (paError || !paData?.id) {
+    console.error("[Dash] pending action insert failed:", paError?.message);
+    return capabilityError(`Failed to create draft: ${paError?.message || "database error"}. Please try again.`);
+  }
   structuredEvents.push(makeStructuredEvent("action_preview", {
     action: "Resolve Alert", summary: `Resolve alert "${alert.title}"${args.resolution_note ? ` — ${args.resolution_note}` : ""}`,
-    risk: "medium", affected: [alert.title], pending_action_id: paData?.id, draft, missing_fields: [], can_approve: true,
+    risk: "medium", affected: [alert.title], pending_action_id: paData.id, draft, missing_fields: [], can_approve: true,
   }));
-  return success({ type: "resolve_alert_draft", draft, pending_action_id: paData?.id, requires_approval: true, risk_level: "medium", message: `Resolve draft ready for "${alert.title}".` });
+  return success({ type: "resolve_alert_draft", draft, pending_action_id: paData.id, requires_approval: true, risk_level: "medium", message: `Resolve draft ready for "${alert.title}".` });
 }
 
 export async function executeAlertResolution(
@@ -1337,15 +1365,19 @@ export async function createTrainingProgramDraft(
   if (!permCheck.ok) return permCheck;
   if (!args.name) return capabilityError("Program name is required.");
   const draft = { name: args.name, description: args.description || null, duration_hours: args.duration_hours || null, is_mandatory: args.is_mandatory ?? false };
-  const { data: paData } = await sbService.from("dash_pending_actions").insert({
+  const { data: paData, error: paError } = await sbService.from("dash_pending_actions").insert({
     company_id: companyId, user_id: userId, action_name: "create_training_program",
     action_type: "write", risk_level: "medium", preview_json: draft, status: "pending",
   }).select("id").single();
+  if (paError || !paData?.id) {
+    console.error("[Dash] pending action insert failed:", paError?.message);
+    return capabilityError(`Failed to create draft: ${paError?.message || "database error"}. Please try again.`);
+  }
   structuredEvents.push(makeStructuredEvent("action_preview", {
     action: "Create Training Program", summary: `Create training program "${args.name}"${args.duration_hours ? ` (${args.duration_hours}h)` : ""}`,
-    risk: "medium", affected: [args.name], pending_action_id: paData?.id, draft, missing_fields: [], can_approve: true,
+    risk: "medium", affected: [args.name], pending_action_id: paData.id, draft, missing_fields: [], can_approve: true,
   }));
-  return success({ type: "create_training_program_draft", draft, pending_action_id: paData?.id, requires_approval: true, risk_level: "medium", message: `Training program draft ready.` });
+  return success({ type: "create_training_program_draft", draft, pending_action_id: paData.id, requires_approval: true, risk_level: "medium", message: `Training program draft ready.` });
 }
 
 export async function executeTrainingProgramCreation(

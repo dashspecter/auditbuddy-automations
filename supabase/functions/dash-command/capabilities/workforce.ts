@@ -836,8 +836,9 @@ export async function executeShiftUpdate(
     if (preview.old_assignment_id) {
       const { error: delAssignError } = await sbService.from("shift_assignments").delete().eq("id", preview.old_assignment_id);
       if (delAssignError) {
-        console.error("[Dash] executeShiftUpdate: failed to remove old assignment:", delAssignError.message);
-        // Continue — old assignment removal failure is non-fatal; new assignment will still be attempted
+        await sbService.from("dash_pending_actions").update({ status: "failed", execution_result: { error: delAssignError.message }, updated_at: new Date().toISOString() }).eq("id", pa.id);
+        structuredEvents.push(makeStructuredEvent("execution_result", { status: "error", title: "Shift Update Failed", summary: `Failed to remove old assignment: ${delAssignError.message}`, errors: [delAssignError.message] }));
+        return capabilityError(`Failed to remove old assignment: ${delAssignError.message}`);
       }
     }
     const { error: newAssignError } = await sbService.from("shift_assignments").insert({
@@ -846,8 +847,8 @@ export async function executeShiftUpdate(
     });
     if (newAssignError) {
       await sbService.from("dash_pending_actions").update({ status: "failed", execution_result: { error: newAssignError.message }, updated_at: new Date().toISOString() }).eq("id", pa.id);
-      structuredEvents.push(makeStructuredEvent("execution_result", { status: "error", title: "Shift Reassignment Failed", summary: `Shift updated but employee reassignment failed: ${newAssignError.message}`, errors: [newAssignError.message] }));
-      return capabilityError(`Shift updated but employee reassignment failed: ${newAssignError.message}`);
+      structuredEvents.push(makeStructuredEvent("execution_result", { status: "error", title: "Shift Update Failed", summary: `Shift fields updated but failed to assign employee: ${newAssignError.message}`, errors: [newAssignError.message] }));
+      return capabilityError(`Shift fields updated but failed to assign employee: ${newAssignError.message}`);
     }
   }
 
@@ -939,11 +940,17 @@ export async function executeShiftDeletion(
 
   // Remove assignment first, then hard-delete the shift record
   if (preview.assignment_id) {
-    await sbService.from("shift_assignments").delete().eq("id", preview.assignment_id);
+    const { error: delAssignError } = await sbService.from("shift_assignments").delete().eq("id", preview.assignment_id);
+    if (delAssignError) {
+      console.error("[Dash] executeShiftDeletion: failed to remove assignment, continuing with shift delete:", delAssignError.message);
+    }
   }
 
   // Delete any remaining assignments for this shift (e.g. open-shift or multi-assign)
-  await sbService.from("shift_assignments").delete().eq("shift_id", preview.shift_id);
+  const { error: delRemainingError } = await sbService.from("shift_assignments").delete().eq("shift_id", preview.shift_id);
+  if (delRemainingError) {
+    console.error("[Dash] executeShiftDeletion: failed to remove remaining assignments, continuing:", delRemainingError.message);
+  }
 
   const { error: delError } = await sbService.from("shifts")
     .delete()
