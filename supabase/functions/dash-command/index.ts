@@ -1161,6 +1161,8 @@ function buildSystemPrompt(ctx: { role: string; companyName: string; modules: st
 - **CRITICAL DATE RULE**: When the user says "this week", "last week", "this month", "last 30 days", "today", "yesterday", or ANY relative date expression, you MUST auto-resolve it to concrete YYYY-MM-DD dates using the Today value above. NEVER ask the user to specify dates. Examples: "this week" = Monday of current week to today. "last 30 days" = today minus 30 to today. "last month" = first to last day of previous month.
 - **LOCATION NAME RULE**: When any tool accepts both \`location_id\` and \`location_name\`, you can pass the location name directly — the tool resolves it to a UUID automatically. No need to call \`search_locations\` first for audit, attendance, CA, task, or comparison tools.
 - **ATTENDANCE RULE**: For "who is working?", "how many checked in?", "attendance today", or any general attendance query, use \`get_attendance_summary\`. Only use \`get_attendance_exceptions\` for late arrivals or missed checkouts specifically.
+- **EMPLOYEE SHIFT QUERY RULE**: When asked to "show shifts for [name]", "list shifts for [name]", "what is [name] working this week/month", "what shifts does [name] have", or any query about a specific employee's schedule, ALWAYS call \`get_employee_shifts\`. NEVER say you cannot show shifts — the tool handles this. Do NOT use time-off tools as a substitute.
+- **DRAFT RESPONSE RULE**: After calling any draft tool, NEVER include success confirmations (✅, "created successfully", "shift has been created") in your text response — the action has NOT been executed yet and requires user approval. Only present the draft summary and ask for approval.
 
 ## Your Capabilities (auto-generated from registry)
 

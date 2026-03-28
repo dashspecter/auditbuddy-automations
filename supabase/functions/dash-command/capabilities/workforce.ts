@@ -752,10 +752,15 @@ export async function updateShiftDraft(
     reason: args.reason,
   };
 
-  const { data: paData } = await sbService.from("dash_pending_actions").insert({
+  const { data: paData, error: paError } = await sbService.from("dash_pending_actions").insert({
     company_id: companyId, user_id: userId, action_name: "update_shift",
     action_type: "write", risk_level: "medium", preview_json: preview, status: "pending",
   }).select("id").single();
+
+  if (paError || !paData?.id) {
+    console.error("[Dash] update_shift_draft: pending action insert failed:", paError?.message);
+    return capabilityError(`Failed to create update draft: ${paError?.message || "database error"}. Please try again.`);
+  }
 
   const changeSummary = Object.entries(changes).map(([k, v]: any) => `${k}: ${v.from} → ${v.to}`).join(", ");
   structuredEvents.push(makeStructuredEvent("action_preview", {
@@ -763,11 +768,11 @@ export async function updateShiftDraft(
     summary: `${shift.locations?.name} on ${shift.shift_date}: ${changeSummary}`,
     risk: "medium",
     affected: [shift.locations?.name, assignment?.employees?.full_name, newEmployeeName].filter(Boolean),
-    pending_action_id: paData?.id, draft: preview, can_approve: true,
+    pending_action_id: paData.id, draft: preview, can_approve: true,
   }));
 
   return success({
-    type: "action_preview", pending_action_id: paData?.id,
+    type: "action_preview", pending_action_id: paData.id,
     message: `Shift update draft created. Changes: ${changeSummary}. Please approve to proceed.`,
   });
 }
@@ -857,21 +862,28 @@ export async function deleteShiftDraft(
     reason: args.reason,
   };
 
-  const { data: paData } = await sbService.from("dash_pending_actions").insert({
+  const { data: paData, error: paError } = await sbService.from("dash_pending_actions").insert({
     company_id: companyId, user_id: userId, action_name: "delete_shift",
     action_type: "write", risk_level: "high", preview_json: preview, status: "pending",
   }).select("id").single();
+
+  // Guard: if the pending action insert failed, surface the error rather than proceeding
+  // with a null pending_action_id (which causes "Pending action not found" on execution)
+  if (paError || !paData?.id) {
+    console.error("[Dash] delete_shift_draft: pending action insert failed:", paError?.message);
+    return capabilityError(`Failed to create deletion draft: ${paError?.message || "database error"}. Please try again.`);
+  }
 
   structuredEvents.push(makeStructuredEvent("action_preview", {
     action: "Delete Shift",
     summary: `Remove ${preview.role} shift at ${preview.location_name} on ${preview.shift_date} (${preview.start_time}-${preview.end_time}), assigned to ${preview.employee_name}`,
     risk: "high",
     affected: [preview.location_name, preview.employee_name, preview.shift_date].filter(Boolean),
-    pending_action_id: paData?.id, draft: preview, can_approve: true,
+    pending_action_id: paData.id, draft: preview, can_approve: true,
   }));
 
   return success({
-    type: "action_preview", pending_action_id: paData?.id,
+    type: "action_preview", pending_action_id: paData.id,
     message: `Shift deletion draft created. This will remove the shift and its assignment. Please approve.`,
   });
 }
@@ -884,11 +896,11 @@ export async function executeShiftDeletion(
 ): Promise<CapabilityResult<any>> {
   const permCheck = checkCapabilityPermission({ action: "update", module: "workforce", ctx });
   if (!permCheck.ok) return permCheck;
-  if (!args.pending_action_id) return capabilityError("Missing pending_action_id.");
+  if (!args.pending_action_id) return capabilityError("No pending action to execute — the draft may not have been saved correctly. Please recreate the deletion draft and try again.");
 
   const { data: pa } = await sbService.from("dash_pending_actions")
     .select("id, status, company_id, preview_json").eq("id", args.pending_action_id).maybeSingle();
-  if (!pa) return capabilityError("Pending action not found.");
+  if (!pa) return capabilityError("Pending action not found — it may have already been executed or expired. Please recreate the deletion draft and try again.");
   if (pa.company_id !== companyId) return capabilityError("Cross-tenant action rejected.");
   if (pa.status !== "pending") return capabilityError(`Action already ${pa.status}.`);
 
@@ -980,21 +992,26 @@ export async function swapShiftDraft(
     shift_date: args.shift_date,
   };
 
-  const { data: paData } = await sbService.from("dash_pending_actions").insert({
+  const { data: paData, error: paError } = await sbService.from("dash_pending_actions").insert({
     company_id: companyId, user_id: userId, action_name: "swap_shifts",
     action_type: "write", risk_level: "high", preview_json: preview, status: "pending",
   }).select("id").single();
+
+  if (paError || !paData?.id) {
+    console.error("[Dash] swap_shift_draft: pending action insert failed:", paError?.message);
+    return capabilityError(`Failed to create swap draft: ${paError?.message || "database error"}. Please try again.`);
+  }
 
   structuredEvents.push(makeStructuredEvent("action_preview", {
     action: "Swap Shifts",
     summary: `Swap on ${args.shift_date}: ${empA.name} (${preview.employee_a.shift}) ↔ ${empB.name} (${preview.employee_b.shift})`,
     risk: "high",
     affected: [empA.name, empB.name],
-    pending_action_id: paData?.id, draft: preview, can_approve: true,
+    pending_action_id: paData.id, draft: preview, can_approve: true,
   }));
 
   return success({
-    type: "action_preview", pending_action_id: paData?.id,
+    type: "action_preview", pending_action_id: paData.id,
     message: `Shift swap draft created. ${empA.name} and ${empB.name} will trade shifts. Please approve.`,
   });
 }
