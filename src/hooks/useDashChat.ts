@@ -2,6 +2,7 @@ import { useState, useRef, useCallback, useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useCompanyContext } from "@/contexts/CompanyContext";
 import type { DashAttachment } from "@/components/dash/DashInput";
 
 export type DashMessage = {
@@ -71,6 +72,7 @@ export function useDashChat() {
   const abortRef = useRef<AbortController | null>(null);
   const streamStartedRef = useRef(false);
   const { user } = useAuth();
+  const { company } = useCompanyContext();
   const queryClient = useQueryClient();
 
   // Load last active session on mount
@@ -171,10 +173,11 @@ export function useDashChat() {
         await supabase.from("dash_sessions").upsert({
           id: sessionId,
           user_id: user.id,
-          messages_json: msgsForSave,
+          company_id: company?.id ?? "",
+          messages_json: msgsForSave as any,
           status: "active",
           updated_at: new Date().toISOString(),
-        }, { onConflict: "id" });
+        } as any, { onConflict: "id" });
       } catch (e) {
         console.error("[Dash] Auto-save failed:", e);
       }
