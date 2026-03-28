@@ -1678,6 +1678,30 @@ serve(async (req) => {
         finalContent = "I'm ready to help — could you clarify what you'd like me to do next?";
       }
 
+      // ─── FALLBACK: Model refused to call get_employee_shifts for shift query ───
+      const SHIFT_QUERY_PATTERN = /\b(show|list|get|what|give me|display)\b.{0,30}\bshift(s)?\b.{0,30}\b(for|of|by)\b|\b(schedule|roster|rota)\b.{0,30}\bfor\b|\bwhat.{0,20}(working|scheduled)\b/i;
+      const SHIFT_REFUSAL_PATTERN = /can'?t\s+(directly\s+)?show|cannot\s+show|don'?t\s+have.*ability|not\s+able\s+to\s+show|unable\s+to\s+show/i;
+      if (
+        SHIFT_QUERY_PATTERN.test(lastUserMsg) &&
+        SHIFT_REFUSAL_PATTERN.test(finalContent) &&
+        !toolsUsed.includes("get_employee_shifts") &&
+        toolsUsed.filter(t => !t.startsWith("execute_")).length === 0
+      ) {
+        console.log("[Dash] FALLBACK: Model refused get_employee_shifts, forcing it");
+        // Extract employee name from final content or last user message
+        const nameMatch = finalContent.match(/for\s+([A-Z][A-Za-z]+(?:\s+[A-Z][A-Za-z]+)+)/) ||
+          lastUserMsg.match(/for\s+([A-Za-z]+(?:\s+[A-Za-z]+)+)/i);
+        const employeeName = nameMatch?.[1]?.trim();
+        if (employeeName) {
+          const fallbackResult = await executeTool(sb, sbService, "get_employee_shifts", { employee_name: employeeName }, companyId, userId, platformRoles, companyRole, activeModules, allStructuredEvents);
+          if (!fallbackResult.error) {
+            conversationMessages.push(msg);
+            conversationMessages.push({ role: "user", content: `[System: get_employee_shifts returned data for "${employeeName}". Present the shifts as a table or list. Do NOT say you cannot show shifts.]` });
+            continue;
+          }
+        }
+      }
+
       // ─── FALLBACK: Model refused to call tool when file was attached ───
       const lastUserMsg = messages?.[messages.length - 1]?.content || "";
       const hasFileAttachment = typeof lastUserMsg === "string" && lastUserMsg.includes("[File URLs:");

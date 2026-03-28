@@ -77,7 +77,7 @@ export async function createLocationDraft(
 
   let pendingActionId: string | null = null;
   if (missing.length === 0) {
-    const { data: paData } = await sbService.from("dash_pending_actions").insert({
+    const { data: paData, error: paError } = await sbService.from("dash_pending_actions").insert({
       company_id: companyId,
       user_id: userId,
       action_name: "create_location",
@@ -86,7 +86,11 @@ export async function createLocationDraft(
       preview_json: draft,
       status: "pending",
     }).select("id").single();
-    pendingActionId = paData?.id || null;
+    if (paError || !paData?.id) {
+      console.error("[Dash] pending action insert failed:", paError?.message);
+      return capabilityError(`Failed to create draft: ${paError?.message || "database error"}. Please try again.`);
+    }
+    pendingActionId = paData.id;
   }
 
   structuredEvents.push(makeStructuredEvent("action_preview", {
@@ -220,7 +224,7 @@ export async function updateLocationDraft(
   const changeLines = Object.entries(changes).map(([k, v]) => `${k}: "${loc[k]}" → "${v}"`);
   const summary = `Update location "${loc.name}": ${changeLines.join(", ")}`;
 
-  const { data: paData } = await sbService.from("dash_pending_actions").insert({
+  const { data: paData, error: paError } = await sbService.from("dash_pending_actions").insert({
     company_id: companyId,
     user_id: userId,
     action_name: "update_location",
@@ -229,7 +233,11 @@ export async function updateLocationDraft(
     preview_json: draft,
     status: "pending",
   }).select("id").single();
-  const pendingActionId = paData?.id || null;
+  if (paError || !paData?.id) {
+    console.error("[Dash] pending action insert failed:", paError?.message);
+    return capabilityError(`Failed to create draft: ${paError?.message || "database error"}. Please try again.`);
+  }
+  const pendingActionId = paData.id;
 
   structuredEvents.push(makeStructuredEvent("action_preview", {
     action: "Update Location",
@@ -354,7 +362,7 @@ export async function deactivateLocationDraft(
     active_employee_count: employeeCount,
   };
 
-  const { data: paData } = await sbService.from("dash_pending_actions").insert({
+  const { data: paData, error: paError } = await sbService.from("dash_pending_actions").insert({
     company_id: companyId,
     user_id: userId,
     action_name: "deactivate_location",
@@ -363,7 +371,11 @@ export async function deactivateLocationDraft(
     preview_json: draft,
     status: "pending",
   }).select("id").single();
-  const pendingActionId = paData?.id || null;
+  if (paError || !paData?.id) {
+    console.error("[Dash] pending action insert failed:", paError?.message);
+    return capabilityError(`Failed to create draft: ${paError?.message || "database error"}. Please try again.`);
+  }
+  const pendingActionId = paData.id;
 
   const warning = employeeCount > 0 ? ` ⚠️ This location has ${employeeCount} active employees.` : "";
   const summary = `Deactivate location "${loc.name}".${warning}`;

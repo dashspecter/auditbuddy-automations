@@ -121,7 +121,7 @@ export async function createAuditTemplateDraft(
     target_locations: args.target_locations || "all",
   };
 
-  const { data: paData } = await sbService.from("dash_pending_actions").insert({
+  const { data: paData, error: paError } = await sbService.from("dash_pending_actions").insert({
     company_id: companyId,
     user_id: userId,
     action_name: "create_audit_template",
@@ -130,7 +130,11 @@ export async function createAuditTemplateDraft(
     preview_json: draft,
     status: "pending",
   }).select("id").single();
-  const pendingActionId = paData?.id || null;
+  if (paError || !paData?.id) {
+    console.error("[Dash] pending action insert failed:", paError?.message);
+    return capabilityError(`Failed to create draft: ${paError?.message || "database error"}. Please try again.`);
+  }
+  const pendingActionId = paData.id;
 
   structuredEvents.push(makeStructuredEvent("action_preview", {
     action: "Create Audit Template",
@@ -352,12 +356,16 @@ export async function scheduleAuditDraft(
 
   let pendingActionId: string | null = null;
   if (missing.length === 0) {
-    const { data: paData } = await sbService.from("dash_pending_actions").insert({
+    const { data: paData, error: paError } = await sbService.from("dash_pending_actions").insert({
       company_id: companyId, user_id: userId,
       action_name: "schedule_audit", action_type: "write",
       risk_level: "medium", preview_json: draft, status: "pending",
     }).select("id").single();
-    pendingActionId = paData?.id || null;
+    if (paError || !paData?.id) {
+      console.error("[Dash] pending action insert failed:", paError?.message);
+      return capabilityError(`Failed to create draft: ${paError?.message || "database error"}. Please try again.`);
+    }
+    pendingActionId = paData.id;
   }
 
   structuredEvents.push(makeStructuredEvent("action_preview", {
@@ -450,18 +458,22 @@ export async function cancelScheduledAuditDraft(
     reason: args.reason || null,
   };
 
-  const { data: paData } = await sbService.from("dash_pending_actions").insert({
+  const { data: paData, error: paError } = await sbService.from("dash_pending_actions").insert({
     company_id: companyId, user_id: userId,
     action_name: "cancel_scheduled_audit", action_type: "write",
     risk_level: "medium", preview_json: draft, status: "pending",
   }).select("id").single();
+  if (paError || !paData?.id) {
+    console.error("[Dash] pending action insert failed:", paError?.message);
+    return capabilityError(`Failed to create draft: ${paError?.message || "database error"}. Please try again.`);
+  }
 
   structuredEvents.push(makeStructuredEvent("action_preview", {
     action: "Cancel Scheduled Audit",
     summary: `Cancel "${draft.template_name}" at ${draft.location_name} on ${draft.scheduled_for}.${args.reason ? ` Reason: ${args.reason}` : ""}`,
     risk: "medium",
     affected: [draft.template_name, draft.location_name].filter(Boolean),
-    pending_action_id: paData?.id,
+    pending_action_id: paData.id,
     draft,
     missing_fields: [],
     can_approve: true,
@@ -469,7 +481,7 @@ export async function cancelScheduledAuditDraft(
 
   return success({
     type: "cancel_scheduled_audit_draft", draft,
-    pending_action_id: paData?.id, requires_approval: true, risk_level: "medium",
+    pending_action_id: paData.id, requires_approval: true, risk_level: "medium",
     message: `Cancel draft ready for "${draft.template_name}" on ${draft.scheduled_for}.`,
   });
 }

@@ -63,6 +63,7 @@ function StructuredEventRenderer({ event, onSuggestedClick, onDirectApproval }: 
     case "execution_result":
       return <ExecutionResultCard status={event.data.status} title={event.data.title} summary={event.data.summary} changes={event.data.changes} errors={event.data.errors} />;
     default:
+      console.warn("[Dash] Unknown structured event type:", event.type);
       return null;
   }
 }
