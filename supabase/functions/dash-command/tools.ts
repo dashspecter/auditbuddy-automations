@@ -52,6 +52,23 @@ export const tools = [
       },
     },
   },
+  {
+    type: "function",
+    function: {
+      name: "get_employee_shifts",
+      description: "Get the list of shifts assigned to a specific employee. Use when asked 'what shifts does X have?', 'show me X's schedule', 'are there other shifts for X', 'what is X working this week?'.",
+      parameters: {
+        type: "object",
+        properties: {
+          employee_name: { type: "string", description: "Employee name (partial match)" },
+          from_date: { type: "string", description: "Start date filter YYYY-MM-DD (optional)" },
+          to_date: { type: "string", description: "End date filter YYYY-MM-DD (optional)" },
+          limit: { type: "number", description: "Max shifts to return (default 20, max 50)" },
+        },
+        required: ["employee_name"],
+      },
+    },
+  },
   // --- READ: Audits ---
   {
     type: "function",

@@ -21,7 +21,7 @@ import {
 // ─── Domain Capability Imports ───
 import { getAuditResults, compareLocationPerformance, createAuditTemplateDraft, executeAuditTemplateCreation, listScheduledAudits, scheduleAuditDraft, executeAuditScheduling, cancelScheduledAuditDraft, executeCancelScheduledAudit } from "./capabilities/audits.ts";
 import { getOpenCorrectiveActions, reassignCorrectiveAction, executeCaReassignment, createCaDraft, executeCaCreation, updateCaStatusDraft, executeCaStatusUpdate } from "./capabilities/corrective-actions.ts";
-import { searchEmployees, getAttendanceExceptions, getAttendanceSummary, createEmployeeDraft, createShiftDraft, executeEmployeeCreation, executeShiftCreation, updateShiftDraft, executeShiftUpdate, deleteShiftDraft, executeShiftDeletion, swapShiftDraft, executeShiftSwap } from "./capabilities/workforce.ts";
+import { searchEmployees, getEmployeeShifts, getAttendanceExceptions, getAttendanceSummary, createEmployeeDraft, createShiftDraft, executeEmployeeCreation, executeShiftCreation, updateShiftDraft, executeShiftUpdate, deleteShiftDraft, executeShiftDeletion, swapShiftDraft, executeShiftSwap } from "./capabilities/workforce.ts";
 import { getTaskCompletionSummary, getWorkOrderStatus, getDocumentExpiries, getTrainingGaps, updateEmployeeDraft, executeEmployeeUpdate, deactivateEmployeeDraft, executeEmployeeDeactivation, correctAttendanceDraft, executeAttendanceCorrection, excuseLateDraft, executeExcuseLate, createWorkOrderDraft, executeWorkOrderCreation, updateWoStatusDraft, executeWoStatusUpdate, createTaskDraft, executeTaskCreation, createTrainingAssignmentDraft, executeTrainingAssignment, updateTrainingStatusDraft, executeTrainingStatusUpdate, listDepartments, createDepartmentDraft, executeCreateDepartment, updateDepartmentDraft, executeUpdateDepartment, deleteDepartmentDraft, executeDeleteDepartment, listTasks, updateTaskDraft, executeTaskUpdate, deleteTaskDraft, executeTaskDeletion, completeTaskDraft, executeTaskCompletion, listDocuments, linkDocumentDraft, executeDocumentLink, createDocumentCategoryDraft, executeDocumentCategoryCreation, deleteDocumentDraft, executeDocumentDeletion, listAlerts, resolveAlertDraft, executeAlertResolution, listTrainingPrograms, createTrainingProgramDraft, executeTrainingProgramCreation } from "./capabilities/operations.ts";
 import { searchLocations, getLocationOverview, getCrossModuleSummary } from "./capabilities/overview.ts";
 import { listLocations, getLocationDetails, createLocationDraft, executeLocationCreation, updateLocationDraft, executeLocationUpdate, deactivateLocationDraft, executeLocationDeactivation } from "./capabilities/locations.ts";
@@ -46,6 +46,7 @@ const TOOL_MODULE_MAP: Record<string, string> = {
   get_document_expiries: "documents",
   get_training_gaps: "workforce",
   search_employees: "workforce",
+  get_employee_shifts: "workforce",
   execute_employee_creation: "workforce",
   execute_audit_template_creation: "location_audits",
   reassign_corrective_action: "corrective_actions",
@@ -402,6 +403,9 @@ async function executeToolInner(
 
     case "search_employees":
       return resultToToolResponse(await searchEmployees(sb, companyId, args));
+
+    case "get_employee_shifts":
+      return resultToToolResponse(await getEmployeeShifts(sb, companyId, args));
 
     case "get_location_overview":
       return resultToToolResponse(await getLocationOverview(sb, companyId, args));

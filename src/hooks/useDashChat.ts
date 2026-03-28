@@ -157,6 +157,40 @@ export function useDashChat() {
     return () => { cancelled = true; };
   }, [user]);
 
+  // Realtime: sync pending action status across tabs/sessions
+  useEffect(() => {
+    if (!user) return;
+    const channel = supabase
+      .channel(`dash-pending-actions-${user.id}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "dash_pending_actions",
+          filter: `user_id=eq.${user.id}`,
+        },
+        (payload: any) => {
+          const { id, status } = payload.new;
+          if (!id || !status || status === "pending") return;
+          // Update structured events in messages that reference this pending_action_id
+          setMessages(prev => prev.map(m => {
+            if (!m.structured) return m;
+            const updated = m.structured.map(s => {
+              if (s.type === "action_preview" && s.data?.pending_action_id === id) {
+                return { ...s, data: { ...s.data, resolved_status: status } };
+              }
+              return s;
+            });
+            if (updated === m.structured) return m;
+            return { ...m, structured: updated };
+          }));
+        }
+      )
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [user]);
+
   // Auto-save session every 5 messages so conversation survives tab closes mid-stream
   useEffect(() => {
     if (!user || messages.length === 0 || messages.length % 5 !== 0 || isLoading) return;
