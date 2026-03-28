@@ -1611,6 +1611,32 @@ serve(async (req) => {
           const n = tc.function?.name || "";
           return n.endsWith("_draft") || n === "reassign_corrective_action";
         });
+
+        // Fast-path: if ALL tools in this batch are pure reads, run them in parallel
+        const allPureReads = !batchHasDraft && !anyDraftCalledThisRequest &&
+          msg.tool_calls.every((tc: any) => {
+            const n = tc.function?.name || "";
+            return !n.startsWith("execute_") && !n.endsWith("_draft") && n !== "reassign_corrective_action";
+          });
+
+        if (allPureReads && msg.tool_calls.length > 1) {
+          console.log(`[Dash] Parallel read execution: ${msg.tool_calls.map((tc: any) => tc.function?.name).join(", ")}`);
+          const parallelResults = await Promise.all(
+            msg.tool_calls.map(async (tc: any) => {
+              const toolName = tc.function.name;
+              let args: any;
+              try { args = JSON.parse(tc.function.arguments); } catch { args = {}; }
+              toolsUsed.push(toolName);
+              const toolResult = await executeTool(sb, sbService, toolName, args, companyId, userId, platformRoles, companyRole, activeModules, allStructuredEvents);
+              return { id: tc.id, toolResult };
+            })
+          );
+          for (const { id, toolResult } of parallelResults) {
+            conversationMessages.push({ role: "tool", tool_call_id: id, content: JSON.stringify(toolResult) });
+          }
+          continue;
+        }
+
         let draftCalled = false;
         for (const tc of msg.tool_calls) {
           const toolName = tc.function.name;

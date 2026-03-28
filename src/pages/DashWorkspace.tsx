@@ -37,7 +37,7 @@ function exportConversation(messages: { role: string; content: string }[]) {
 
 export default function DashWorkspace() {
   const navigate = useNavigate();
-  const { messages, isLoading, sendMessage, sendDirectApproval, clearChat, cancelStream, sessionId, loadSession, retryLast } = useDashChat();
+  const { messages, displayMessages, hasMoreHistory, loadMoreHistory, isLoading, sendMessage, sendDirectApproval, clearChat, cancelStream, sessionId, loadSession, retryLast } = useDashChat();
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const handleSend = (text: string, attachments?: import("@/components/dash/DashInput").DashAttachment[]) => {
@@ -112,7 +112,7 @@ export default function DashWorkspace() {
         {/* Main chat column */}
         <div className="flex flex-col flex-1 min-w-0">
           {/* Chat area */}
-          <DashMessageList messages={messages} isLoading={isLoading} suggestedQuestions={SUGGESTED} onSuggestedClick={(q) => handleSend(q)} onRetry={retryLast} onDirectApproval={sendDirectApproval} />
+          <DashMessageList messages={displayMessages} isLoading={isLoading} suggestedQuestions={SUGGESTED} onSuggestedClick={(q) => handleSend(q)} onRetry={retryLast} onDirectApproval={sendDirectApproval} hasMoreHistory={hasMoreHistory} loadMoreHistory={loadMoreHistory} />
 
           {/* Input */}
           <div className="pt-3 border-t border-border/40 mt-auto shrink-0">

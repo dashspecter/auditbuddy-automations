@@ -51,7 +51,7 @@ export function DashPanel({ trigger }: DashPanelProps) {
   const { data: company, isLoading: companyLoading } = useCompany();
   const [open, setOpen] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
-  const { messages, isLoading, sendMessage, sendDirectApproval, clearChat, cancelStream, sessionId, loadSession } = useDashChat();
+  const { messages, displayMessages, hasMoreHistory, loadMoreHistory, isLoading, sendMessage, sendDirectApproval, clearChat, cancelStream, sessionId, loadSession } = useDashChat();
 
   const isOwnerOrAdmin = company?.userRole === "company_owner" || company?.userRole === "company_admin";
   const hasDashAccess = isOwnerOrAdmin || roleData?.isAdmin || roleData?.isManager;
@@ -103,7 +103,7 @@ export function DashPanel({ trigger }: DashPanelProps) {
         {headerActions}
       </div>
 
-      <DashMessageList messages={messages} isLoading={isLoading} suggestedQuestions={suggested} onSuggestedClick={handleSend} onDirectApproval={sendDirectApproval} />
+      <DashMessageList messages={displayMessages} isLoading={isLoading} suggestedQuestions={suggested} onSuggestedClick={handleSend} onDirectApproval={sendDirectApproval} hasMoreHistory={hasMoreHistory} loadMoreHistory={loadMoreHistory} />
       <div className="pt-2 mt-auto shrink-0">
         <DashInput onSend={handleSend} isLoading={isLoading} onCancel={cancelStream} />
       </div>
