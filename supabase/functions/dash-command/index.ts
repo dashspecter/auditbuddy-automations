@@ -665,7 +665,7 @@ async function executeToolInner(
 
     // ────────── NOTIFICATIONS ──────────
     case "list_notifications":
-      return resultToToolResponse(await listNotifications(sb, companyId, args, structuredEvents));
+      return resultToToolResponse(await listNotifications(sb, companyId, args));
 
     case "send_notification_draft": {
       const ctx = buildPermCtx(companyId, userId, platformRoles, companyRole, activeModules);
