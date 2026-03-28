@@ -579,29 +579,40 @@ async function findShift(
     // Find shift assignments for this employee — filter shift_date in JS to avoid unreliable PostgREST join filter
     const { data: assignments } = await sb.from("shift_assignments")
       .select("id, shift_id, staff_id, status, shifts(id, shift_date, start_time, end_time, role, location_id, locations(name), status, company_id)")
-      .eq("staff_id", empId).limit(20);
-
-    // Step A: filter by company + date in JS (join filter is unreliable)
-    let valid = (assignments || []).filter((a: any) =>
-      a.shifts && a.shifts.company_id === companyId && a.shifts.shift_date === args.shift_date
-    );
-    if (!valid.length) return { shift: null, assignment: null, error: `No shift found for ${empName} on ${args.shift_date}.` };
+      .eq("staff_id", empId).limit(30);
 
     const makeResult = (a: any) => ({
       shift: a.shifts,
       assignment: { id: a.id, staff_id: a.staff_id, employees: { full_name: empName }, status: a.status },
     });
 
-    // Step B: cascade-filter by location → start_time → role
+    // Helper: safe location name match
+    const locMatch = (a: any, locName: string) =>
+      !!a.shifts.locations?.name?.toLowerCase()?.includes(locName.toLowerCase());
+
+    // Helper: time match — handles "14:00" vs "14:00:00" stored in DB
+    const timeMatch = (shiftTime: string | null, argTime: string) => {
+      if (!shiftTime) return false;
+      return shiftTime === argTime || shiftTime.startsWith(argTime);
+    };
+
+    // Step A: filter by company + date in JS
+    // Use startsWith to handle timestamps ("2026-03-28T00:00:00+00:00") vs plain dates ("2026-03-28")
+    let valid = (assignments || []).filter((a: any) =>
+      a.shifts &&
+      a.shifts.company_id === companyId &&
+      (a.shifts.shift_date === args.shift_date || a.shifts.shift_date?.startsWith(args.shift_date))
+    );
+    if (!valid.length) return { shift: null, assignment: null, error: `No shift found for ${empName} on ${args.shift_date}.` };
+
+    // Step B: cascade-filter by location → start_time → role when multiple shifts
     if (valid.length > 1) {
       if (args.location_name) {
-        const byLoc = valid.filter((a: any) =>
-          a.shifts.locations?.name?.toLowerCase().includes(args.location_name.toLowerCase())
-        );
+        const byLoc = valid.filter((a: any) => locMatch(a, args.location_name));
         if (byLoc.length > 0) valid = byLoc;
       }
       if (valid.length > 1 && args.start_time) {
-        const byTime = valid.filter((a: any) => a.shifts.start_time === args.start_time);
+        const byTime = valid.filter((a: any) => timeMatch(a.shifts.start_time, args.start_time));
         if (byTime.length > 0) valid = byTime;
       }
       if (valid.length > 1 && args.role) {
@@ -618,8 +629,14 @@ async function findShift(
       }
     }
 
-    // Step C: role mismatch guard when only one shift found
+    // Step C: single-shift guards
     const only = valid[0];
+    // Location guard: user specified a location but the only shift found is at a different location
+    if (args.location_name && !locMatch(only, args.location_name)) {
+      const foundLoc = only.shifts.locations?.name || "unknown location";
+      return { shift: null, assignment: null, error: `No shift found for ${empName} at "${args.location_name}" on ${args.shift_date}. Found a shift at ${foundLoc} instead — did you mean that one?` };
+    }
+    // Role guard: user specified a role but only shift has a different role
     if (args.role && only.shifts.role?.toLowerCase() !== args.role.toLowerCase()) {
       return { shift: null, assignment: null, error: `No ${args.role} shift found for ${empName} on ${args.shift_date}. Found role: ${only.shifts.role || "unspecified"}.` };
     }

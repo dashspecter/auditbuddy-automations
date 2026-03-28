@@ -1565,6 +1565,9 @@ serve(async (req) => {
     let iteration = 0;
     const toolsUsed: string[] = [];
     const allStructuredEvents: string[] = [];
+    // Cross-iteration draft guard: once any draft tool is called in this request,
+    // block ALL execute tools in every subsequent Gemini iteration (not just the same batch).
+    let anyDraftCalledThisRequest = false;
 
     while (iteration < maxIterations) {
       iteration++;
@@ -1607,9 +1610,13 @@ serve(async (req) => {
         let draftCalled = false;
         for (const tc of msg.tool_calls) {
           const toolName = tc.function.name;
-          // Guard: block execute tools if batch contains a draft (order-independent) or if draft was already called
-          if ((batchHasDraft || draftCalled) && (toolName.startsWith("execute_") || toolName === "execute_ca_reassignment")) {
-            console.warn(`[Dash] Blocked same-turn execute after draft: ${toolName}`);
+          const isExecuteTool = toolName.startsWith("execute_") || toolName === "execute_ca_reassignment";
+          // Guard: block execute tools if:
+          //   (a) same batch contains a draft (order-independent), OR
+          //   (b) a draft was already called earlier in this batch, OR
+          //   (c) a draft was called in a PRIOR iteration of this request (cross-iteration guard)
+          if ((batchHasDraft || draftCalled || anyDraftCalledThisRequest) && isExecuteTool) {
+            console.warn(`[Dash] Blocked execute after draft (cross-iteration=${anyDraftCalledThisRequest}): ${toolName}`);
             conversationMessages.push({ role: "tool", tool_call_id: tc.id, content: JSON.stringify({ skipped: true, reason: "Waiting for user approval before executing." }) });
             continue;
           }
@@ -1618,14 +1625,15 @@ serve(async (req) => {
           toolsUsed.push(toolName);
           const toolResult = await executeTool(sb, sbService, toolName, args, companyId, userId, platformRoles, companyRole, activeModules, allStructuredEvents);
           conversationMessages.push({ role: "tool", tool_call_id: tc.id, content: JSON.stringify(toolResult) });
-          // Mark if a draft tool was called — block further execute tools in this batch
+          // Mark if a draft tool was called — persists across iterations
           if (toolName.endsWith("_draft") || toolName === "reassign_corrective_action") {
             draftCalled = true;
+            anyDraftCalledThisRequest = true;
           }
         }
         // If a draft was called, force the LLM to stop and present the draft
         if (draftCalled) {
-          conversationMessages.push({ role: "system", content: "A draft was created. STOP calling tools now. Present the draft preview to the user and wait for their approval in the next message." });
+          conversationMessages.push({ role: "system", content: "A draft was created. STOP calling tools now. Present the draft preview to the user and wait for their approval in the next message. Do NOT call any execute_* tools." });
         }
         continue;
       }
