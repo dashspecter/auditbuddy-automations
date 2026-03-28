@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback, useEffect } from "react";
+import { useState, useRef, useCallback, useEffect, useMemo } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -20,6 +20,7 @@ export type DashStructuredEvent = {
 
 const DASH_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/dash-command`;
 const STREAM_TIMEOUT_MS = 90_000; // 90 seconds without data → abort
+const DISPLAY_PAGE_SIZE = 50;
 
 /** Get a fresh access token, refreshing the session if needed */
 async function getFreshToken(): Promise<string> {
@@ -74,6 +75,7 @@ export function useDashChat() {
   const { user } = useAuth();
   const { company } = useCompanyContext();
   const queryClient = useQueryClient();
+  const [extraHistory, setExtraHistory] = useState(0);
 
   // Load last active session on mount
   useEffect(() => {
@@ -218,6 +220,13 @@ export function useDashChat() {
     };
     save();
   }, [messages.length, isLoading, user, sessionId]);
+
+  const displayMessages = useMemo(
+    () => messages.slice(Math.max(0, messages.length - DISPLAY_PAGE_SIZE - extraHistory)),
+    [messages, extraHistory]
+  );
+  const hasMoreHistory = messages.length > DISPLAY_PAGE_SIZE + extraHistory;
+  const loadMoreHistory = useCallback(() => setExtraHistory(prev => prev + DISPLAY_PAGE_SIZE), []);
 
   const processStream = async (resp: Response, existingStructuredEvents?: DashStructuredEvent[]) => {
     const reader = resp.body!.getReader();
@@ -502,5 +511,5 @@ export function useDashChat() {
     setTimeout(() => sendMessage(lastUserMsg.content, lastUserMsg.attachments), 50);
   }, [messages, sendMessage]);
 
-  return { messages, isLoading, error, sendMessage, sendDirectApproval, clearChat, cancelStream, sessionId, loadSession, retryLast };
+  return { messages, displayMessages, hasMoreHistory, loadMoreHistory, isLoading, error, sendMessage, sendDirectApproval, clearChat, cancelStream, sessionId, loadSession, retryLast };
 }

@@ -20,6 +20,8 @@ interface DashMessageListProps {
   onSuggestedClick: (q: string) => void;
   onRetry?: () => void;
   onDirectApproval?: (pendingActionId: string, action: "approve" | "reject", executeTool?: string) => Promise<ApprovalResult>;
+  hasMoreHistory?: boolean;
+  loadMoreHistory?: () => void;
 }
 
 function StructuredEventRenderer({ event, onSuggestedClick, onDirectApproval }: { event: DashStructuredEvent; onSuggestedClick: (q: string) => void; onDirectApproval?: (pendingActionId: string, action: "approve" | "reject", executeTool?: string) => Promise<ApprovalResult> }) {
@@ -158,7 +160,7 @@ function ProgressiveLoadingIndicator() {
   );
 }
 
-export function DashMessageList({ messages, isLoading, suggestedQuestions, onSuggestedClick, onRetry, onDirectApproval }: DashMessageListProps) {
+export function DashMessageList({ messages, isLoading, suggestedQuestions, onSuggestedClick, onRetry, onDirectApproval, hasMoreHistory, loadMoreHistory }: DashMessageListProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -202,7 +204,16 @@ export function DashMessageList({ messages, isLoading, suggestedQuestions, onSug
             </div>
           </div>
         ) : (
-          messages.map((msg, i) => <MessageBubble key={i} msg={msg} onSuggestedClick={onSuggestedClick} onDirectApproval={onDirectApproval} />)
+          <>
+            {hasMoreHistory && loadMoreHistory && (
+              <div className="flex justify-center pb-2">
+                <Button variant="outline" size="sm" onClick={loadMoreHistory} className="text-xs gap-1.5">
+                  Load older messages
+                </Button>
+              </div>
+            )}
+            {messages.map((msg, i) => <MessageBubble key={i} msg={msg} onSuggestedClick={onSuggestedClick} onDirectApproval={onDirectApproval} />)}
+          </>
         )}
 
         {showRetry && (
