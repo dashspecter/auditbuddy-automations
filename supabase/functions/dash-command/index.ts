@@ -633,7 +633,7 @@ async function executeToolInner(
 
     // ────────── LOCATION MANAGEMENT ──────────
     case "list_locations":
-      return resultToToolResponse(await listLocations(sb, companyId, args, structuredEvents));
+      return resultToToolResponse(await listLocations(sb, companyId, args));
 
     case "get_location_details":
       return resultToToolResponse(await getLocationDetails(sb, companyId, args));
