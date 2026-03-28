@@ -72,6 +72,7 @@ export function useDashChat() {
   const abortRef = useRef<AbortController | null>(null);
   const streamStartedRef = useRef(false);
   const { user } = useAuth();
+  const { company } = useCompanyContext();
   const queryClient = useQueryClient();
 
   // Load last active session on mount
