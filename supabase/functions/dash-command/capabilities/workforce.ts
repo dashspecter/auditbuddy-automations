@@ -21,6 +21,65 @@ export async function searchEmployees(
   return success({ count: data?.length ?? 0, employees: data?.map((e: any) => ({ id: e.id, name: e.full_name, role: e.role, status: e.status, location: e.locations?.name })) });
 }
 
+export async function getEmployeeShifts(
+  sb: any, companyId: string, args: any
+): Promise<CapabilityResult<any>> {
+  // Resolve employee
+  const { data: empData } = await sb.from("employees")
+    .select("id, full_name").eq("company_id", companyId)
+    .ilike("full_name", `%${args.employee_name}%`).limit(5);
+  if (!empData?.length) return capabilityError(`Employee "${args.employee_name}" not found.`);
+  if (empData.length > 1) return capabilityError(`Multiple employees match "${args.employee_name}": ${empData.map((e: any) => e.full_name).join(", ")}. Please be more specific.`);
+  const emp = empData[0];
+
+  // Build query for shift_assignments with shifts joined
+  let q = sb.from("shift_assignments")
+    .select("id, status, shifts(id, shift_date, start_time, end_time, role, status, locations(name))")
+    .eq("staff_id", emp.id)
+    .order("shifts(shift_date)", { ascending: false });
+
+  // Optional date range filters
+  if (args.from_date || args.to_date) {
+    // Fetch all and filter in JS (join filter unreliable)
+    q = q.limit(100);
+  } else {
+    q = q.limit(args.limit ? Math.min(args.limit, 50) : 20);
+  }
+
+  const { data, error } = await q;
+  if (error) return capabilityError(error.message);
+
+  let shifts = (data || [])
+    .filter((a: any) => a.shifts)
+    .map((a: any) => ({
+      shift_id: a.shifts.id,
+      date: a.shifts.shift_date,
+      start_time: a.shifts.start_time,
+      end_time: a.shifts.end_time,
+      role: a.shifts.role,
+      location: a.shifts.locations?.name,
+      status: a.shifts.status,
+      assignment_status: a.status,
+    }));
+
+  // Filter by date range in JS if provided
+  if (args.from_date) {
+    shifts = shifts.filter((s: any) => s.date && (s.date === args.from_date || s.date > args.from_date || s.date?.startsWith(args.from_date)));
+  }
+  if (args.to_date) {
+    shifts = shifts.filter((s: any) => s.date && (s.date <= args.to_date || s.date?.startsWith(args.to_date)));
+  }
+
+  // Sort by date descending
+  shifts.sort((a: any, b: any) => (b.date || "").localeCompare(a.date || ""));
+
+  return success({
+    employee: emp.full_name,
+    total: shifts.length,
+    shifts,
+  }, { count: shifts.length, truncated: false });
+}
+
 // ─── Location Name Resolution (shared) ───
 async function resolveLocationIdForWorkforce(sb: any, companyId: string, locationName: string): Promise<{ id: string; name: string } | null> {
   const { data } = await sb.from("locations").select("id, name").eq("company_id", companyId).ilike("name", `%${locationName}%`).limit(1).maybeSingle();

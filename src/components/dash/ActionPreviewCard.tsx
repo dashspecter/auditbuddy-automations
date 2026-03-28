@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Check, X, AlertTriangle, Shield, Loader2 } from "lucide-react";
-import { useState, useCallback } from "react";
+import { useState, useRef, useCallback } from "react";
 import type { ApprovalResult } from "@/hooks/useDashChat";
 
 const RISK_CONFIG = {
@@ -35,25 +35,53 @@ export function ActionPreviewCard({
     : resolved_status === "rejected" ? "rejected" as const
     : resolved_status === "expired" ? "rejected" as const
     : "pending" as const;
-  const [status, setStatus] = useState<"pending" | "approving" | "approved" | "rejected" | "failed">(initialStatus);
+  const [status, setStatus] = useState<"pending" | "countdown" | "approving" | "approved" | "rejected" | "failed">(initialStatus);
+  const [countdown, setCountdown] = useState(5);
+  const countdownRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const executeRef = useRef<(() => void) | null>(null);
   const riskInfo = RISK_CONFIG[risk] || RISK_CONFIG.medium;
   const RiskIcon = riskInfo.icon;
 
   const handleApprove = useCallback(async () => {
     if (!pending_action_id || !onApprove || status !== "pending") return;
-    setStatus("approving");
-    try {
-      const result = await onApprove(pending_action_id);
-      if (result && typeof result === "object" && "success" in result) {
-        setStatus(result.success ? "approved" : "failed");
-      } else {
-        // Legacy void return — optimistically assume success after stream completes
-        setStatus("approved");
+    setStatus("countdown");
+    setCountdown(5);
+
+    const doExecute = async () => {
+      setStatus("approving");
+      try {
+        const result = await onApprove(pending_action_id);
+        if (result && typeof result === "object" && "success" in result) {
+          setStatus(result.success ? "approved" : "failed");
+        } else {
+          // Legacy void return — optimistically assume success after stream completes
+          setStatus("approved");
+        }
+      } catch {
+        setStatus("failed");
       }
-    } catch {
-      setStatus("failed");
-    }
+    };
+
+    executeRef.current = doExecute;
+    // Start ticking every second
+    let remaining = 5;
+    const tick = () => {
+      remaining--;
+      setCountdown(remaining);
+      if (remaining <= 0) {
+        doExecute();
+      } else {
+        countdownRef.current = setTimeout(tick, 1000);
+      }
+    };
+    countdownRef.current = setTimeout(tick, 1000);
   }, [pending_action_id, onApprove, status]);
+
+  const handleUndo = useCallback(() => {
+    if (countdownRef.current) clearTimeout(countdownRef.current);
+    setStatus("pending");
+    setCountdown(5);
+  }, []);
 
   const handleReject = useCallback(async () => {
     if (!pending_action_id || !onReject || status !== "pending") return;
@@ -113,6 +141,15 @@ export function ActionPreviewCard({
           <Button size="sm" variant="outline" className="gap-1.5 h-8 text-xs" onClick={handleReject}>
             <X className="h-3.5 w-3.5" />
             Reject
+          </Button>
+        </div>
+      )}
+
+      {status === "countdown" && (
+        <div className="flex items-center gap-2 pt-1">
+          <span className="text-xs text-muted-foreground">Executing in {countdown}s...</span>
+          <Button size="sm" variant="outline" className="h-6 text-xs gap-1" onClick={handleUndo}>
+            <X className="h-3 w-3" /> Undo
           </Button>
         </div>
       )}
