@@ -1774,4 +1774,16 @@ export const tools = [
       },
     },
   },
+  // --- META: Capability discovery ---
+  {
+    type: "function",
+    function: {
+      name: "get_capabilities",
+      description: "Return the list of things Dash can do for this user — domains, example actions, and active modules. Call this when the user asks 'what can you do?', 'help', 'what features do you have?', or similar.",
+      parameters: {
+        type: "object",
+        properties: {},
+      },
+    },
+  },
 ];

@@ -1,4 +1,4 @@
-import { useRef, useEffect, memo } from "react";
+import { useRef, useEffect, useState, memo } from "react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Bot, User, Sparkles, Loader2, RotateCcw, Paperclip } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -132,6 +132,32 @@ const MessageBubble = memo(({ msg, onSuggestedClick, onDirectApproval }: { msg: 
 ));
 MessageBubble.displayName = "MessageBubble";
 
+const LOADING_STATES = [
+  "Understanding your request...",
+  "Looking up data...",
+  "Processing...",
+  "Preparing response...",
+];
+
+function ProgressiveLoadingIndicator() {
+  const [stateIdx, setStateIdx] = useState(0);
+  useEffect(() => {
+    const id = setInterval(() => setStateIdx(i => (i + 1) % LOADING_STATES.length), 2200);
+    return () => clearInterval(id);
+  }, []);
+  return (
+    <div className="flex gap-3 p-3 rounded-xl bg-primary/[0.04] border border-primary/10">
+      <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-primary/15">
+        <Bot className="h-3.5 w-3.5 text-primary" />
+      </div>
+      <div className="flex items-center gap-2">
+        <Loader2 className="h-3.5 w-3.5 animate-spin text-primary" />
+        <span className="text-xs text-muted-foreground transition-all duration-300">{LOADING_STATES[stateIdx]}</span>
+      </div>
+    </div>
+  );
+}
+
 export function DashMessageList({ messages, isLoading, suggestedQuestions, onSuggestedClick, onRetry, onDirectApproval }: DashMessageListProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -139,7 +165,7 @@ export function DashMessageList({ messages, isLoading, suggestedQuestions, onSug
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
-  }, [messages]);
+  }, [messages, isLoading]);
 
   const lastMsg = messages[messages.length - 1];
   const showRetry = !isLoading && lastMsg?.role === "assistant" && lastMsg.content.startsWith("⚠️") && onRetry;
@@ -189,15 +215,7 @@ export function DashMessageList({ messages, isLoading, suggestedQuestions, onSug
         )}
 
         {isLoading && messages[messages.length - 1]?.role === "user" && (
-          <div className="flex gap-3 p-3 rounded-xl bg-primary/[0.04] border border-primary/10">
-            <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-primary/15">
-              <Bot className="h-3.5 w-3.5 text-primary" />
-            </div>
-            <div className="flex items-center gap-2">
-              <Loader2 className="h-3.5 w-3.5 animate-spin text-primary" />
-              <span className="text-xs text-muted-foreground">Analyzing...</span>
-            </div>
-          </div>
+          <ProgressiveLoadingIndicator />
         )}
       </div>
     </ScrollArea>

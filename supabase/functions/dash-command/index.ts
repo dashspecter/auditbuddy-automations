@@ -28,7 +28,7 @@ import { listLocations, getLocationDetails, createLocationDraft, executeLocation
 import { listNotifications, sendNotificationDraft, executeNotificationSend } from "./capabilities/notifications.ts";
 import { saveUserPreference, getUserPreferences, saveOrgMemory, getOrgMemory, saveWorkflow, listSavedWorkflows } from "./capabilities/memory.ts";
 import { downloadFileAsBase64 as dlFileBase64, transformSpreadsheetToSchedule, transformSopToTraining, parseUploadedFile } from "./capabilities/file-processing.ts";
-import { CAPABILITY_REGISTRY } from "./registry.ts";
+import { CAPABILITY_REGISTRY, getInvalidateKeysForTool } from "./registry.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -375,7 +375,14 @@ async function executeTool(
   }
 
   try {
-    return await executeToolInner(sb, sbService, name, args, companyId, userId, platformRoles, companyRole, activeModules, structuredEvents);
+    const TOOL_TIMEOUT_MS = 15_000;
+    const timeout = new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error(`Tool timed out after ${TOOL_TIMEOUT_MS / 1000}s`)), TOOL_TIMEOUT_MS)
+    );
+    return await Promise.race([
+      executeToolInner(sb, sbService, name, args, companyId, userId, platformRoles, companyRole, activeModules, structuredEvents),
+      timeout,
+    ]);
   } catch (err: any) {
     console.error(`[Dash] Tool "${name}" error:`, err);
     return { error: `Tool "${name}" failed: ${err.message || "Unknown error"}. You may retry this request.`, recoverable: true };
@@ -1096,6 +1103,21 @@ async function executeToolInner(
       return resultToToolResponse(result);
     }
 
+    case "get_capabilities": {
+      // Build a human-readable summary of active capabilities for this company
+      const lines: string[] = [];
+      for (const [domain, cap] of Object.entries(CAPABILITY_REGISTRY)) {
+        if (cap.maturity === "planned") continue;
+        // Skip if module not active (use activeModules from closure)
+        if (cap.module !== "dash" && cap.module !== "overview" && !activeModules.includes(cap.module)) continue;
+        const label = domain.replace(/_/g, " ").replace(/\b\w/g, (c: string) => c.toUpperCase());
+        const readCount = cap.reads.length;
+        const writeCount = cap.actions.filter((a: string) => !a.startsWith("execute_")).length;
+        lines.push(`**${label}**: ${readCount} read operation${readCount !== 1 ? "s" : ""}, ${writeCount} action${writeCount !== 1 ? "s" : ""} — e.g. "${cap.aliases[0]}"`);
+      }
+      return { capabilities: lines, message: `I can help with ${lines.length} domains:\n\n${lines.join("\n")}` };
+    }
+
     default:
       return resultToToolResponse(capabilityError(`Unknown tool: ${name}`));
   }
@@ -1349,11 +1371,13 @@ serve(async (req) => {
       const stream = new ReadableStream({
         start(controller) {
           // Emit structured execution_result so the frontend card can resolve its state
+          // Include invalidate_keys so the frontend knows exactly which React Query caches to bust
           const execResultEvt = makeStructuredEvent("execution_result", {
             status: toolResult.error ? "error" : "success",
             title: toolResult.error ? "Execution Failed" : "Action Executed",
             summary: toolResult.error || toolResult.message || "Action executed successfully.",
             pending_action_id: direct_approval.pending_action_id,
+            invalidate_keys: getInvalidateKeysForTool(toolName),
           });
           // Prepend the execution result, then any tool-emitted structured events
           controller.enqueue(encoder.encode(`data: ${execResultEvt}\n\n`));
@@ -1407,12 +1431,15 @@ serve(async (req) => {
       if (APPROVE_PATTERNS.test(lastContent) || REJECT_PATTERNS.test(lastContent)) {
         const isApprove = APPROVE_PATTERNS.test(lastContent);
         try {
+          // Only auto-route if action was created within the last 10 minutes (prevents stale false-positives)
+          const tenMinsAgo = new Date(Date.now() - 10 * 60 * 1000).toISOString();
           const { data: pendingActions } = await sbService
             .from("dash_pending_actions")
-            .select("id, action_name, preview_json")
+            .select("id, action_name, preview_json, created_at")
             .eq("user_id", userId)
             .eq("company_id", companyId)
             .eq("status", "pending")
+            .gte("created_at", tenMinsAgo)
             .order("created_at", { ascending: false })
             .limit(2);
 
@@ -1455,6 +1482,7 @@ serve(async (req) => {
                     title: toolResult2.error ? "Execution Failed" : "Action Executed",
                     summary: toolResult2.error || toolResult2.message || "Action executed successfully.",
                     pending_action_id: pa.id,
+                    invalidate_keys: getInvalidateKeysForTool(toolName),
                   });
                   controller.enqueue(encoder.encode(`data: ${execEvt}\n\n`));
                   for (const evt of allStructuredEvents2) {
