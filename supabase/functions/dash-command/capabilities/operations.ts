@@ -820,15 +820,19 @@ export async function updateDepartmentDraft(
   }
   if (!deptId) return capabilityError("Department not found.");
   const draft = { department_id: deptId, name: deptName, description: args.description, color: args.color };
-  const { data: paData } = await sbService.from("dash_pending_actions").insert({
+  const { data: paData, error: paError } = await sbService.from("dash_pending_actions").insert({
     company_id: companyId, user_id: userId, action_name: "update_department",
     action_type: "write", risk_level: "low", preview_json: draft, status: "pending",
   }).select("id").single();
+  if (paError || !paData?.id) {
+    console.error("[Dash] pending action insert failed:", paError?.message);
+    return capabilityError(`Failed to create draft: ${paError?.message || "database error"}. Please try again.`);
+  }
   structuredEvents.push(makeStructuredEvent("action_preview", {
     action: "Update Department", summary: `Update department "${deptName}"`,
-    risk: "low", affected: [deptName].filter(Boolean), pending_action_id: paData?.id, draft, missing_fields: [], can_approve: true,
+    risk: "low", affected: [deptName].filter(Boolean), pending_action_id: paData.id, draft, missing_fields: [], can_approve: true,
   }));
-  return success({ type: "update_department_draft", draft, pending_action_id: paData?.id, requires_approval: true, risk_level: "low", message: `Update draft ready.` });
+  return success({ type: "update_department_draft", draft, pending_action_id: paData.id, requires_approval: true, risk_level: "low", message: `Update draft ready.` });
 }
 
 export async function executeUpdateDepartment(
@@ -877,15 +881,19 @@ export async function deleteDepartmentDraft(
   // Count employees in department
   const { count: empCount } = await sb.from("employees").select("id", { count: "exact", head: true }).eq("department_id", deptId).eq("company_id", companyId);
   const draft = { department_id: deptId, department_name: deptName, employee_count: empCount || 0 };
-  const { data: paData } = await sbService.from("dash_pending_actions").insert({
+  const { data: paData, error: paError } = await sbService.from("dash_pending_actions").insert({
     company_id: companyId, user_id: userId, action_name: "delete_department",
     action_type: "write", risk_level: "high", preview_json: draft, status: "pending",
   }).select("id").single();
+  if (paError || !paData?.id) {
+    console.error("[Dash] pending action insert failed:", paError?.message);
+    return capabilityError(`Failed to create draft: ${paError?.message || "database error"}. Please try again.`);
+  }
   structuredEvents.push(makeStructuredEvent("action_preview", {
     action: "Delete Department", summary: `Delete department "${deptName}"${empCount ? ` — WARNING: ${empCount} employee(s) assigned` : ""}`,
-    risk: "high", affected: [deptName].filter(Boolean), pending_action_id: paData?.id, draft, missing_fields: [], can_approve: true,
+    risk: "high", affected: [deptName].filter(Boolean), pending_action_id: paData.id, draft, missing_fields: [], can_approve: true,
   }));
-  return success({ type: "delete_department_draft", draft, pending_action_id: paData?.id, requires_approval: true, risk_level: "high", message: `Delete draft ready. ${empCount ? `${empCount} employee(s) will be unassigned.` : ""}` });
+  return success({ type: "delete_department_draft", draft, pending_action_id: paData.id, requires_approval: true, risk_level: "high", message: `Delete draft ready. ${empCount ? `${empCount} employee(s) will be unassigned.` : ""}` });
 }
 
 export async function executeDeleteDepartment(
