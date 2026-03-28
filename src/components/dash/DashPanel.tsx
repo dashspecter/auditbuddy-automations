@@ -20,18 +20,23 @@ interface DashPanelProps {
 
 const SUGGESTED_BY_ROLE: Record<string, string[]> = {
   admin: [
+    "What can you do?",
     "What are the biggest operational issues across all locations this month?",
     "Show me open corrective actions by severity",
     "Compare audit scores between locations this month",
     "Are there any expiring documents I should know about?",
+    "Show me who is working at each location today",
   ],
   manager: [
+    "What can you do?",
     "Give me a summary of today's attendance exceptions",
     "What are the top issues in my locations this week?",
     "Show open corrective actions that are overdue",
     "How are my locations performing on audits this month?",
+    "Create a shift for tomorrow at 09:00–17:00",
   ],
   staff: [
+    "What can you do?",
     "What tasks are pending at my location?",
     "Show me recent audit results",
     "Are there any open work orders?",

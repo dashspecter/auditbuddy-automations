@@ -157,6 +157,31 @@ export function useDashChat() {
     return () => { cancelled = true; };
   }, [user]);
 
+  // Auto-save session every 5 messages so conversation survives tab closes mid-stream
+  useEffect(() => {
+    if (!user || messages.length === 0 || messages.length % 5 !== 0 || isLoading) return;
+    const save = async () => {
+      try {
+        const msgsForSave = messages.map(m => ({
+          role: m.role,
+          content: buildTransportText(m.content, m.attachments),
+          structured: m.structured?.map(s => ({ event_type: s.type, data: s.data })),
+          attachments: m.attachments,
+        }));
+        await supabase.from("dash_sessions").upsert({
+          id: sessionId,
+          user_id: user.id,
+          messages_json: msgsForSave,
+          status: "active",
+          updated_at: new Date().toISOString(),
+        }, { onConflict: "id" });
+      } catch (e) {
+        console.error("[Dash] Auto-save failed:", e);
+      }
+    };
+    save();
+  }, [messages.length, isLoading, user, sessionId]);
+
   const processStream = async (resp: Response, existingStructuredEvents?: DashStructuredEvent[]) => {
     const reader = resp.body!.getReader();
     const decoder = new TextDecoder();
@@ -297,9 +322,14 @@ export function useDashChat() {
         return { success: false, error: execResult.data.summary || "Execution failed" };
       }
 
-      // Invalidate all domain queries so UI reflects the approved action
-      const keys = ["shifts", "employee-shifts-multiweek", "pending-approvals", "shift-assignments", "today-working-staff", "team-stats", "time-off-requests", "employees", "corrective-actions", "work-orders", "attendance", "tasks", "training"];
-      keys.forEach(k => queryClient.invalidateQueries({ queryKey: [k] }));
+      // Use domain-specific keys from the execution_result event if available,
+      // otherwise fall back to the full set so we never miss a stale cache.
+      const domainKeys: string[] = execResult?.data?.invalidate_keys?.length
+        ? execResult.data.invalidate_keys
+        : ["shifts", "employee-shifts-multiweek", "pending-approvals", "shift-assignments",
+           "today-working-staff", "team-stats", "time-off-requests", "employees",
+           "corrective-actions", "work-orders", "attendance", "tasks", "training"];
+      domainKeys.forEach(k => queryClient.invalidateQueries({ queryKey: [k] }));
 
       return { success: true };
     } catch (err: any) {

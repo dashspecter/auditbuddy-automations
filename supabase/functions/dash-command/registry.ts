@@ -9,6 +9,8 @@ export interface CapabilityEntry {
   entities: string[];
   aliases: string[];
   reads: string[];
+  /** React Query cache keys to invalidate on the frontend after any action in this domain succeeds */
+  invalidateKeys: string[];
   actions: string[];
   approvalClass: Record<string, string>;
   maturity: "stable" | "beta" | "planned";
@@ -37,6 +39,7 @@ export const CAPABILITY_REGISTRY: Record<string, CapabilityEntry> = {
       "reject_time_off_request",
       "cancel_time_off_request",
     ],
+    invalidateKeys: ["time-off-requests", "pending-approvals", "employees", "attendance"],
     approvalClass: {
       create_as_manager: "auto_approved",
       create_as_employee: "pending",
@@ -46,13 +49,13 @@ export const CAPABILITY_REGISTRY: Record<string, CapabilityEntry> = {
     maturity: "stable",
   },
 
-  // ─── Migrated to capability modules ───
   audits: {
     module: "location_audits",
     entities: ["location_audit", "audit_template", "audit_section", "scheduled_audit"],
     aliases: ["audit", "inspection", "check", "verificare", "schedule audit", "planned audit"],
     reads: ["get_audit_results", "compare_location_performance", "list_scheduled_audits"],
     actions: ["create_audit_template", "schedule_audit_draft", "execute_audit_scheduling", "cancel_scheduled_audit_draft", "execute_cancel_scheduled_audit"],
+    invalidateKeys: ["location_audits", "draft_audits", "manager-audit-stats"],
     approvalClass: { create: "manager_required", schedule: "manager_required", cancel: "manager_required" },
     maturity: "stable",
   },
@@ -63,6 +66,7 @@ export const CAPABILITY_REGISTRY: Record<string, CapabilityEntry> = {
     aliases: ["CA", "corrective action", "fix", "remediere", "actiune corectiva", "finding", "non-conformity"],
     reads: ["get_open_corrective_actions"],
     actions: ["reassign_corrective_action", "create_ca_draft", "update_ca_status_draft"],
+    invalidateKeys: ["corrective-actions"],
     approvalClass: { reassign: "manager_required", create: "manager_required", update_status: "manager_required" },
     maturity: "stable",
   },
@@ -73,6 +77,7 @@ export const CAPABILITY_REGISTRY: Record<string, CapabilityEntry> = {
     aliases: ["employee", "staff", "angajat", "personal", "shift", "tura", "schedule", "program", "swap", "schimb", "attendance", "prezenta", "training", "instruire"],
     reads: ["search_employees", "get_attendance_exceptions", "get_attendance_summary", "get_training_gaps"],
     actions: ["create_employee", "create_shift", "update_shift", "delete_shift", "swap_shifts", "update_employee_draft", "deactivate_employee_draft", "correct_attendance_draft", "excuse_late_draft", "create_training_assignment_draft", "execute_training_assignment", "update_training_status_draft", "execute_training_status_update"],
+    invalidateKeys: ["employees", "shifts", "shift-assignments", "employee-shifts-multiweek", "today-working-staff", "attendance", "team-stats", "training"],
     approvalClass: { create: "manager_required", update: "manager_required", delete: "manager_required", swap: "manager_required", deactivate: "manager_required" },
     maturity: "stable",
   },
@@ -83,6 +88,7 @@ export const CAPABILITY_REGISTRY: Record<string, CapabilityEntry> = {
     aliases: ["task", "work order", "document", "sarcina", "comanda", "maintenance", "repair", "alert", "notification"],
     reads: ["get_task_completion_summary", "get_work_order_status", "get_document_expiries", "list_tasks", "list_documents", "list_alerts"],
     actions: ["create_work_order_draft", "update_wo_status_draft", "create_task_draft", "update_task_draft", "execute_task_update", "delete_task_draft", "execute_task_deletion", "complete_task_draft", "execute_task_completion", "link_document_draft", "execute_document_link", "create_document_category_draft", "execute_document_category_creation", "delete_document_draft", "execute_document_deletion", "resolve_alert_draft", "execute_alert_resolution"],
+    invalidateKeys: ["tasks", "work-orders", "team-stats"],
     approvalClass: { create: "manager_required", update: "manager_required", delete: "manager_required", resolve: "manager_required" },
     maturity: "stable",
   },
@@ -93,6 +99,7 @@ export const CAPABILITY_REGISTRY: Record<string, CapabilityEntry> = {
     aliases: ["location", "store", "branch", "site", "locatie", "magazin"],
     reads: ["list_locations", "get_location_details"],
     actions: ["create_location_draft", "execute_location_creation", "update_location_draft", "execute_location_update", "deactivate_location_draft", "execute_location_deactivation"],
+    invalidateKeys: ["shifts", "employees", "today-working-staff"],
     approvalClass: { create: "manager_required", update: "manager_required", deactivate: "manager_required" },
     maturity: "stable",
   },
@@ -103,6 +110,7 @@ export const CAPABILITY_REGISTRY: Record<string, CapabilityEntry> = {
     aliases: ["department", "team", "departament", "echipa"],
     reads: ["list_departments"],
     actions: ["create_department_draft", "execute_create_department", "update_department_draft", "execute_update_department", "delete_department_draft", "execute_delete_department"],
+    invalidateKeys: ["employees", "shifts"],
     approvalClass: { create: "manager_required", update: "manager_required", delete: "manager_required" },
     maturity: "stable",
   },
@@ -113,6 +121,7 @@ export const CAPABILITY_REGISTRY: Record<string, CapabilityEntry> = {
     aliases: ["notification", "announcement", "alert", "message", "notificare", "anunt"],
     reads: ["list_notifications"],
     actions: ["send_notification_draft", "execute_notification_send"],
+    invalidateKeys: ["pending-approvals"],
     approvalClass: { send: "manager_required" },
     maturity: "stable",
   },
@@ -123,6 +132,7 @@ export const CAPABILITY_REGISTRY: Record<string, CapabilityEntry> = {
     aliases: ["training program", "training module", "course", "program formare", "instruire"],
     reads: ["list_training_programs"],
     actions: ["create_training_program_draft", "execute_training_program_creation"],
+    invalidateKeys: ["training"],
     approvalClass: { create: "manager_required" },
     maturity: "stable",
   },
@@ -133,6 +143,7 @@ export const CAPABILITY_REGISTRY: Record<string, CapabilityEntry> = {
     aliases: ["overview", "summary", "dashboard", "rezumat"],
     reads: ["search_locations", "get_location_overview", "get_cross_module_summary"],
     actions: [],
+    invalidateKeys: [],
     approvalClass: {},
     maturity: "stable",
   },
@@ -143,6 +154,7 @@ export const CAPABILITY_REGISTRY: Record<string, CapabilityEntry> = {
     aliases: ["preference", "memory", "shortcut", "workflow"],
     reads: ["get_user_preferences", "get_org_memory", "list_saved_workflows"],
     actions: ["save_user_preference", "save_org_memory", "save_workflow"],
+    invalidateKeys: [],
     approvalClass: {},
     maturity: "stable",
   },
@@ -153,6 +165,7 @@ export const CAPABILITY_REGISTRY: Record<string, CapabilityEntry> = {
     aliases: ["file", "upload", "PDF", "document", "spreadsheet"],
     reads: [],
     actions: ["parse_uploaded_file", "transform_spreadsheet_to_schedule", "transform_sop_to_training", "transform_compliance_doc_to_audit"],
+    invalidateKeys: ["location_audits", "training", "shifts"],
     approvalClass: { parse: "auto_approved" },
     maturity: "stable",
   },
@@ -179,4 +192,17 @@ export function findCapabilityForTool(toolName: string): string | null {
     }
   }
   return null;
+}
+
+/**
+ * Get the React Query cache keys that should be invalidated
+ * when a given tool successfully executes.
+ */
+export function getInvalidateKeysForTool(toolName: string): string[] {
+  for (const cap of Object.values(CAPABILITY_REGISTRY)) {
+    if (cap.reads.includes(toolName) || cap.actions.includes(toolName)) {
+      return cap.invalidateKeys;
+    }
+  }
+  return [];
 }
