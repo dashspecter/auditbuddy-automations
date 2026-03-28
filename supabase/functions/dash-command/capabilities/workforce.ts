@@ -215,7 +215,7 @@ export async function createEmployeeDraft(
 
   let pendingActionId: string | null = null;
   if (missing.length === 0) {
-    const { data: paData } = await sbService.from("dash_pending_actions").insert({
+    const { data: paData, error: paError } = await sbService.from("dash_pending_actions").insert({
       company_id: companyId,
       user_id: userId,
       action_name: "create_employee",
@@ -224,7 +224,11 @@ export async function createEmployeeDraft(
       preview_json: draft,
       status: "pending",
     }).select("id").single();
-    pendingActionId = paData?.id || null;
+    if (paError || !paData?.id) {
+      console.error("[Dash] create_employee_draft: pending action insert failed:", paError?.message);
+      return capabilityError(`Failed to create draft: ${paError?.message || "database error"}. Please try again.`);
+    }
+    pendingActionId = paData.id;
   }
 
   structuredEvents.push(makeStructuredEvent("action_preview", {
@@ -370,7 +374,7 @@ export async function createShiftDraft(
 
   let pendingActionId: string | null = null;
   if (missing.length === 0) {
-    const { data: paData } = await sbService.from("dash_pending_actions").insert({
+    const { data: paData, error: paError } = await sbService.from("dash_pending_actions").insert({
       company_id: companyId,
       user_id: userId,
       action_name: "create_shift",
@@ -379,7 +383,11 @@ export async function createShiftDraft(
       preview_json: draft,
       status: "pending",
     }).select("id").single();
-    pendingActionId = paData?.id || null;
+    if (paError || !paData?.id) {
+      console.error("[Dash] create_shift_draft: pending action insert failed:", paError?.message);
+      return capabilityError(`Failed to create draft: ${paError?.message || "database error"}. Please try again.`);
+    }
+    pendingActionId = paData.id;
   }
 
   structuredEvents.push(makeStructuredEvent("action_preview", {
@@ -561,7 +569,21 @@ export async function executeShiftCreation(
       approved_at: new Date().toISOString(),
     });
     if (assignError) {
-      console.error("Failed to create shift assignment:", assignError.message);
+      console.error("[Dash] executeShiftCreation: assignment insert failed:", assignError.message);
+      // Shift WAS created; mark as executed with partial result
+      await sbService.from("dash_pending_actions")
+        .update({ status: "executed", approved_at: new Date().toISOString(), approved_by: userId,
+          execution_result: { shift_id: shiftData.id, assignment_created: false, assignment_error: assignError.message },
+          updated_at: new Date().toISOString() })
+        .eq("id", pa.id);
+      structuredEvents.push(makeStructuredEvent("execution_result", {
+        status: "partial", title: "Shift Created (Assignment Failed)",
+        summary: `Shift created for ${shiftData.shift_date} but employee assignment failed: ${assignError.message}. The shift exists but is unassigned.`,
+        changes: [`Shift created for ${draft.shift_date}`, `Time: ${draft.start_time}–${draft.end_time}`],
+        errors: [`Assignment failed: ${assignError.message}`],
+      }));
+      return success({ type: "shift_created", shift_id: shiftData.id, assignment_created: false,
+        message: `Shift created for ${shiftData.shift_date} but employee assignment failed: ${assignError.message}` });
     } else {
       assignmentCreated = true;
     }
@@ -812,12 +834,21 @@ export async function executeShiftUpdate(
   // Handle employee reassignment if requested
   if (preview.new_employee_id) {
     if (preview.old_assignment_id) {
-      await sbService.from("shift_assignments").delete().eq("id", preview.old_assignment_id);
+      const { error: delAssignError } = await sbService.from("shift_assignments").delete().eq("id", preview.old_assignment_id);
+      if (delAssignError) {
+        console.error("[Dash] executeShiftUpdate: failed to remove old assignment:", delAssignError.message);
+        // Continue — old assignment removal failure is non-fatal; new assignment will still be attempted
+      }
     }
-    await sbService.from("shift_assignments").insert({
+    const { error: newAssignError } = await sbService.from("shift_assignments").insert({
       shift_id: preview.shift_id, staff_id: preview.new_employee_id,
       assigned_by: userId, status: "assigned", approval_status: "approved", approved_by: userId, approved_at: new Date().toISOString(),
     });
+    if (newAssignError) {
+      await sbService.from("dash_pending_actions").update({ status: "failed", execution_result: { error: newAssignError.message }, updated_at: new Date().toISOString() }).eq("id", pa.id);
+      structuredEvents.push(makeStructuredEvent("execution_result", { status: "error", title: "Shift Reassignment Failed", summary: `Shift updated but employee reassignment failed: ${newAssignError.message}`, errors: [newAssignError.message] }));
+      return capabilityError(`Shift updated but employee reassignment failed: ${newAssignError.message}`);
+    }
   }
 
   await sbService.from("dash_pending_actions").update({

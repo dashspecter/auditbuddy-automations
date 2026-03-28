@@ -195,10 +195,10 @@ export function useDashChat() {
     return () => { supabase.removeChannel(channel); };
   }, [user]);
 
-  // Auto-save session every 5 messages so conversation survives tab closes mid-stream
+  // Auto-save session 5 seconds after last message change (debounced)
   useEffect(() => {
-    if (!user || messages.length === 0 || messages.length % 5 !== 0 || isLoading) return;
-    const save = async () => {
+    if (!user || messages.length === 0 || isLoading) return;
+    const timer = setTimeout(async () => {
       try {
         const msgsForSave = messages.map(m => ({
           role: m.role,
@@ -217,9 +217,9 @@ export function useDashChat() {
       } catch (e) {
         console.error("[Dash] Auto-save failed:", e);
       }
-    };
-    save();
-  }, [messages.length, isLoading, user, sessionId]);
+    }, 5000); // 5s debounce — save after user stops chatting
+    return () => clearTimeout(timer);
+  }, [messages, isLoading, user, sessionId]);
 
   const displayMessages = useMemo(
     () => messages.slice(Math.max(0, messages.length - DISPLAY_PAGE_SIZE - extraHistory)),

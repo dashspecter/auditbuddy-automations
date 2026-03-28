@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Check, X, AlertTriangle, Shield, Loader2 } from "lucide-react";
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import type { ApprovalResult } from "@/hooks/useDashChat";
 
 const RISK_CONFIG = {
@@ -42,8 +42,15 @@ export function ActionPreviewCard({
   const riskInfo = RISK_CONFIG[risk] || RISK_CONFIG.medium;
   const RiskIcon = riskInfo.icon;
 
+  useEffect(() => {
+    return () => {
+      if (countdownRef.current) clearTimeout(countdownRef.current);
+    };
+  }, []);
+
   const handleApprove = useCallback(async () => {
     if (!pending_action_id || !onApprove || status !== "pending") return;
+    if (countdownRef.current) clearTimeout(countdownRef.current);
     setStatus("countdown");
     setCountdown(5);
 
@@ -79,6 +86,7 @@ export function ActionPreviewCard({
 
   const handleUndo = useCallback(() => {
     if (countdownRef.current) clearTimeout(countdownRef.current);
+    executeRef.current = null;
     setStatus("pending");
     setCountdown(5);
   }, []);

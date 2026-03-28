@@ -52,7 +52,7 @@ export async function sendNotificationDraft(
 
   let pendingActionId: string | null = null;
   if (missing.length === 0) {
-    const { data: paData } = await sbService.from("dash_pending_actions").insert({
+    const { data: paData, error: paError } = await sbService.from("dash_pending_actions").insert({
       company_id: companyId,
       user_id: userId,
       action_name: "send_notification",
@@ -61,7 +61,11 @@ export async function sendNotificationDraft(
       preview_json: draft,
       status: "pending",
     }).select("id").single();
-    pendingActionId = paData?.id || null;
+    if (paError || !paData?.id) {
+      console.error("[Dash] pending action insert failed:", paError?.message);
+      return capabilityError(`Failed to create draft: ${paError?.message || "database error"}. Please try again.`);
+    }
+    pendingActionId = paData.id;
   }
 
   const targetRolesLabel = draft.target_roles?.length

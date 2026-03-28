@@ -53,7 +53,7 @@ export async function reassignCorrectiveAction(
     if (empLookup) newAssigneeName = empLookup.full_name;
   }
 
-  const { data: paData } = await sbService.from("dash_pending_actions").insert({
+  const { data: paData, error: paError } = await sbService.from("dash_pending_actions").insert({
     company_id: companyId,
     user_id: userId,
     action_name: "reassign_corrective_action",
@@ -69,13 +69,17 @@ export async function reassignCorrectiveAction(
     },
     status: "pending",
   }).select("id").single();
+  if (paError || !paData?.id) {
+    console.error("[Dash] pending action insert failed:", paError?.message);
+    return capabilityError(`Failed to create draft: ${paError?.message || "database error"}. Please try again.`);
+  }
 
   structuredEvents.push(makeStructuredEvent("action_preview", {
     action: `Reassign CA: "${caData.title}"`,
     summary: `Change assignee to ${newAssigneeName}. Reason: ${args.reason || "Not specified"}.`,
     risk: "high",
     affected: [caData.title, newAssigneeName].filter(Boolean),
-    pending_action_id: paData?.id,
+    pending_action_id: paData.id,
     can_approve: true,
     draft: {
       ca_id: caData.id,
@@ -88,7 +92,7 @@ export async function reassignCorrectiveAction(
 
   return success({
     type: "action_preview",
-    pending_action_id: paData?.id,
+    pending_action_id: paData.id,
     message: `CA reassignment draft created. Please review and approve to proceed.`,
   });
 }
@@ -211,11 +215,15 @@ export async function createCaDraft(
 
   let pendingActionId: string | null = null;
   if (missing.length === 0) {
-    const { data: paData } = await sbService.from("dash_pending_actions").insert({
+    const { data: paData, error: paError } = await sbService.from("dash_pending_actions").insert({
       company_id: companyId, user_id: userId, action_name: "create_corrective_action",
       action_type: "write", risk_level: "high", preview_json: draft, status: "pending",
     }).select("id").single();
-    pendingActionId = paData?.id || null;
+    if (paError || !paData?.id) {
+      console.error("[Dash] pending action insert failed:", paError?.message);
+      return capabilityError(`Failed to create draft: ${paError?.message || "database error"}. Please try again.`);
+    }
+    pendingActionId = paData.id;
   }
 
   structuredEvents.push(makeStructuredEvent("action_preview", {
@@ -286,18 +294,22 @@ export async function updateCaStatusDraft(
 
   const draft = { ca_id: caData.id, ca_title: caData.title, old_status: caData.status, new_status: newStatus, reason: args.reason };
 
-  const { data: paData } = await sbService.from("dash_pending_actions").insert({
+  const { data: paData, error: paError } = await sbService.from("dash_pending_actions").insert({
     company_id: companyId, user_id: userId, action_name: "update_ca_status",
     action_type: "write", risk_level: "high", preview_json: draft, status: "pending",
   }).select("id").single();
+  if (paError || !paData?.id) {
+    console.error("[Dash] pending action insert failed:", paError?.message);
+    return capabilityError(`Failed to create draft: ${paError?.message || "database error"}. Please try again.`);
+  }
 
   structuredEvents.push(makeStructuredEvent("action_preview", {
     action: `Update CA Status: "${caData.title}"`,
     summary: `Change status from "${caData.status}" to "${newStatus}".${args.reason ? ` Reason: ${args.reason}` : ""}`,
-    risk: "high", affected: [caData.title], pending_action_id: paData?.id, draft, can_approve: true,
+    risk: "high", affected: [caData.title], pending_action_id: paData.id, draft, can_approve: true,
   }));
 
-  return success({ type: "ca_status_draft", draft, pending_action_id: paData?.id, requires_approval: true, message: `CA status change draft ready. Approve to proceed.` });
+  return success({ type: "ca_status_draft", draft, pending_action_id: paData.id, requires_approval: true, message: `CA status change draft ready. Approve to proceed.` });
 }
 
 export async function executeCaStatusUpdate(
