@@ -312,7 +312,7 @@ export function useDashChat() {
       setIsLoading(false);
       abortRef.current = null;
     }
-  }, [messages, isLoading, sessionId]);
+  }, [messages, isLoading, sessionId, queryClient]);
 
   const sendMessage = useCallback(async (text: string, attachments?: DashAttachment[]) => {
     if (!text.trim() || isLoading) return;

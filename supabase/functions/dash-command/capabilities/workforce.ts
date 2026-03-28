@@ -576,19 +576,55 @@ async function findShift(
     const empId = empData[0].id;
     const empName = empData[0].full_name;
 
-    // Find shift assignments for this employee on this date
+    // Find shift assignments for this employee — filter shift_date in JS to avoid unreliable PostgREST join filter
     const { data: assignments } = await sb.from("shift_assignments")
       .select("id, shift_id, staff_id, status, shifts(id, shift_date, start_time, end_time, role, location_id, locations(name), status, company_id)")
-      .eq("staff_id", empId).eq("shifts.shift_date", args.shift_date).limit(5);
+      .eq("staff_id", empId).limit(20);
 
-    const valid = (assignments || []).filter((a: any) => a.shifts && a.shifts.company_id === companyId);
+    // Step A: filter by company + date in JS (join filter is unreliable)
+    let valid = (assignments || []).filter((a: any) =>
+      a.shifts && a.shifts.company_id === companyId && a.shifts.shift_date === args.shift_date
+    );
     if (!valid.length) return { shift: null, assignment: null, error: `No shift found for ${empName} on ${args.shift_date}.` };
-    if (valid.length > 1 && args.location_name) {
-      const filtered = valid.filter((a: any) => a.shifts.locations?.name?.toLowerCase().includes(args.location_name.toLowerCase()));
-      if (filtered.length === 1) return { shift: filtered[0].shifts, assignment: { id: filtered[0].id, staff_id: filtered[0].staff_id, employees: { full_name: empName }, status: filtered[0].status } };
+
+    const makeResult = (a: any) => ({
+      shift: a.shifts,
+      assignment: { id: a.id, staff_id: a.staff_id, employees: { full_name: empName }, status: a.status },
+    });
+
+    // Step B: cascade-filter by location → start_time → role
+    if (valid.length > 1) {
+      if (args.location_name) {
+        const byLoc = valid.filter((a: any) =>
+          a.shifts.locations?.name?.toLowerCase().includes(args.location_name.toLowerCase())
+        );
+        if (byLoc.length > 0) valid = byLoc;
+      }
+      if (valid.length > 1 && args.start_time) {
+        const byTime = valid.filter((a: any) => a.shifts.start_time === args.start_time);
+        if (byTime.length > 0) valid = byTime;
+      }
+      if (valid.length > 1 && args.role) {
+        const byRole = valid.filter((a: any) =>
+          a.shifts.role?.toLowerCase() === args.role.toLowerCase()
+        );
+        if (byRole.length > 0) valid = byRole;
+      }
+      if (valid.length > 1) {
+        return { shift: null, assignment: null, error: `${empName} has ${valid.length} shifts on ${args.shift_date} matching those criteria. Please specify location, time, or role.` };
+      }
+      if (valid.length === 0) {
+        return { shift: null, assignment: null, error: `No shift found for ${empName} on ${args.shift_date} matching those criteria.` };
+      }
     }
-    if (valid.length > 1) return { shift: null, assignment: null, error: `${empName} has ${valid.length} shifts on ${args.shift_date}. Please specify location or time.` };
-    return { shift: valid[0].shifts, assignment: { id: valid[0].id, staff_id: valid[0].staff_id, employees: { full_name: empName }, status: valid[0].status } };
+
+    // Step C: role mismatch guard when only one shift found
+    const only = valid[0];
+    if (args.role && only.shifts.role?.toLowerCase() !== args.role.toLowerCase()) {
+      return { shift: null, assignment: null, error: `No ${args.role} shift found for ${empName} on ${args.shift_date}. Found role: ${only.shifts.role || "unspecified"}.` };
+    }
+
+    return makeResult(only);
   }
 
   return { shift: null, assignment: null, error: "Please provide a shift_id, or employee_name + shift_date to identify the shift." };
