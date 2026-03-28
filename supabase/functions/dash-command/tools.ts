@@ -56,7 +56,7 @@ export const tools = [
     type: "function",
     function: {
       name: "get_employee_shifts",
-      description: "Get the list of shifts assigned to a specific employee. Use when asked 'what shifts does X have?', 'show me X's schedule', 'are there other shifts for X', 'what is X working this week?'.",
+      description: "Get the list of shifts assigned to a specific employee. ALWAYS use this when asked to 'show shifts for X', 'list shifts for X', 'show me X's schedule', 'what shifts does X have?', 'what is X working this week/month?', 'are there other shifts for X'. Never refuse to show shifts — always call this tool.",
       parameters: {
         type: "object",
         properties: {
