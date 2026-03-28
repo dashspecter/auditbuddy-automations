@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback, useEffect, useMemo } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -297,14 +297,9 @@ export function useDashChat() {
         return { success: false, error: execResult.data.summary || "Execution failed" };
       }
 
-      // Invalidate all relevant caches so the UI reflects the change immediately
-      queryClient.invalidateQueries({ queryKey: ["shifts"], exact: false });
-      queryClient.invalidateQueries({ queryKey: ["shift-assignments"], exact: false });
-      queryClient.invalidateQueries({ queryKey: ["employee-shifts-multiweek"], exact: false });
-      queryClient.invalidateQueries({ queryKey: ["pending-approvals"], exact: false });
-      queryClient.invalidateQueries({ queryKey: ["today-working-staff"], exact: false });
-      queryClient.invalidateQueries({ queryKey: ["employees"], exact: false });
-      queryClient.invalidateQueries({ queryKey: ["time-off-requests"], exact: false });
+      // Invalidate all domain queries so UI reflects the approved action
+      const keys = ["shifts", "employee-shifts-multiweek", "pending-approvals", "shift-assignments", "today-working-staff", "team-stats", "time-off-requests", "employees", "corrective-actions", "work-orders", "attendance", "tasks", "training"];
+      keys.forEach(k => queryClient.invalidateQueries({ queryKey: [k] }));
 
       return { success: true };
     } catch (err: any) {
