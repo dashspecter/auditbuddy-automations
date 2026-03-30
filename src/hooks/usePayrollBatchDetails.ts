@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { format, parseISO, differenceInMinutes, startOfDay, eachDayOfInterval } from "date-fns";
+import { format, parseISO, differenceInMinutes, startOfDay } from "date-fns";
 
 export interface PayrollEmployeeDetail {
   employee_id: string;
