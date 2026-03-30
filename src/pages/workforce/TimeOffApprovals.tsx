@@ -37,6 +37,7 @@ interface TimeOffRequest {
     avatar_url: string | null;
     annual_vacation_days: number;
   };
+  time_off_request_dates?: Array<{ date: string }>;
 }
 
 const TimeOffApprovals = () => {
@@ -53,8 +54,7 @@ const TimeOffApprovals = () => {
   const [activeTab, setActiveTab] = useState("pending");
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [editingRequest, setEditingRequest] = useState<TimeOffRequest | null>(null);
-  const [editStartDate, setEditStartDate] = useState<Date | undefined>();
-  const [editEndDate, setEditEndDate] = useState<Date | undefined>();
+  const [editSelectedDates, setEditSelectedDates] = useState<Date[]>([]);
   const [revokeDialogOpen, setRevokeDialogOpen] = useState(false);
   const [revokingRequest, setRevokingRequest] = useState<TimeOffRequest | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -95,7 +95,8 @@ const TimeOffApprovals = () => {
             full_name,
             avatar_url,
             annual_vacation_days
-          )
+          ),
+          time_off_request_dates(date)
         `)
         .eq("company_id", companyData.company_id)
         .order("created_at", { ascending: false });
@@ -157,27 +158,60 @@ const TimeOffApprovals = () => {
 
   const handleEditDates = (request: TimeOffRequest) => {
     setEditingRequest(request);
-    setEditStartDate(new Date(request.start_date));
-    setEditEndDate(new Date(request.end_date));
+    // Load existing dates from child table
+    const dates = request.time_off_request_dates?.map(d => new Date(d.date + 'T00:00:00')) || [];
+    if (dates.length === 0) {
+      // Fallback to range
+      const current = new Date(request.start_date);
+      const end = new Date(request.end_date);
+      while (current <= end) {
+        dates.push(new Date(current));
+        current.setDate(current.getDate() + 1);
+      }
+    }
+    setEditSelectedDates(dates);
     setEditDialogOpen(true);
   };
 
   const submitEditDates = async () => {
-    if (!editingRequest || !editStartDate || !editEndDate) return;
-    if (editEndDate < editStartDate) {
-      toast.error("End date must be after start date");
-      return;
-    }
+    if (!editingRequest || editSelectedDates.length === 0) return;
     try {
       setIsSubmitting(true);
+      const sortedDates = [...editSelectedDates].sort((a, b) => a.getTime() - b.getTime());
+      const newStart = format(sortedDates[0], "yyyy-MM-dd");
+      const newEnd = format(sortedDates[sortedDates.length - 1], "yyyy-MM-dd");
+      const dateStrings = sortedDates.map(d => format(d, "yyyy-MM-dd"));
+
+      // Update parent request
       const { error } = await supabase
         .from("time_off_requests")
-        .update({
-          start_date: format(editStartDate, "yyyy-MM-dd"),
-          end_date: format(editEndDate, "yyyy-MM-dd"),
-        })
+        .update({ start_date: newStart, end_date: newEnd })
         .eq("id", editingRequest.id);
       if (error) throw error;
+
+      // Replace child date rows
+      await supabase
+        .from("time_off_request_dates")
+        .delete()
+        .eq("request_id", editingRequest.id);
+
+      const { data: reqData } = await supabase
+        .from("time_off_requests")
+        .select("company_id")
+        .eq("id", editingRequest.id)
+        .single();
+
+      if (reqData) {
+        const { error: datesError } = await supabase
+          .from("time_off_request_dates")
+          .insert(dateStrings.map(d => ({
+            request_id: editingRequest.id,
+            date: d,
+            company_id: reqData.company_id,
+          })));
+        if (datesError) throw datesError;
+      }
+
       toast.success("Vacation dates updated successfully");
       setEditDialogOpen(false);
       loadRequests();
@@ -212,10 +246,25 @@ const TimeOffApprovals = () => {
     }
   };
 
-  const calculateDays = (start: string, end: string) => {
-    const startDate = new Date(start);
-    const endDate = new Date(end);
+  const calculateDays = (request: TimeOffRequest) => {
+    if (request.time_off_request_dates && request.time_off_request_dates.length > 0) {
+      return request.time_off_request_dates.length;
+    }
+    const startDate = new Date(request.start_date);
+    const endDate = new Date(request.end_date);
     return Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+  };
+
+  const formatRequestDates = (request: TimeOffRequest) => {
+    const dates = request.time_off_request_dates;
+    if (dates && dates.length > 0) {
+      const sorted = [...dates].sort((a, b) => a.date.localeCompare(b.date));
+      if (sorted.length <= 4) {
+        return sorted.map(d => format(new Date(d.date + 'T00:00:00'), "MMM d")).join(", ");
+      }
+      return `${format(new Date(sorted[0].date + 'T00:00:00'), "MMM d")} … ${format(new Date(sorted[sorted.length - 1].date + 'T00:00:00'), "MMM d")}`;
+    }
+    return `${format(new Date(request.start_date), "MMM d")} - ${format(new Date(request.end_date), "MMM d, yyyy")}`;
   };
 
   if (isLoading) {
@@ -300,11 +349,11 @@ const TimeOffApprovals = () => {
                         <div className="flex items-center gap-2">
                           <Calendar className="h-4 w-4 text-muted-foreground" />
                           <span className="font-medium">
-                            {format(new Date(request.start_date), "MMM d")} - {format(new Date(request.end_date), "MMM d, yyyy")}
+                            {formatRequestDates(request)}
                           </span>
                         </div>
                         <Badge variant="secondary">
-                          {calculateDays(request.start_date, request.end_date)} {t('workforce.timeOff.days')}
+                          {calculateDays(request)} {t('workforce.timeOff.days')}
                         </Badge>
                       </div>
                       {request.reason && (
@@ -379,9 +428,9 @@ const TimeOffApprovals = () => {
                     </div>
 
                     <div className="text-sm text-muted-foreground">
-                      {format(new Date(request.start_date), "MMM d")} - {format(new Date(request.end_date), "MMM d, yyyy")}
+                      {formatRequestDates(request)}
                       <Badge variant="secondary" className="ml-2">
-                        {calculateDays(request.start_date, request.end_date)} days
+                        {calculateDays(request)} days
                       </Badge>
                     </div>
 
@@ -439,8 +488,8 @@ const TimeOffApprovals = () => {
               <div className="bg-muted p-3 rounded-lg">
                 <div className="font-medium">{selectedRequest.employees.full_name}</div>
                 <div className="text-sm text-muted-foreground">
-                  {format(new Date(selectedRequest.start_date), "MMM d")} - {format(new Date(selectedRequest.end_date), "MMM d, yyyy")}
-                  ({calculateDays(selectedRequest.start_date, selectedRequest.end_date)} {t('workforce.timeOff.days')})
+                  {formatRequestDates(selectedRequest)}
+                  ({calculateDays(selectedRequest)} {t('workforce.timeOff.days')})
                 </div>
               </div>
 
@@ -479,11 +528,11 @@ const TimeOffApprovals = () => {
 
       {/* Edit Dates Dialog */}
       <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
-        <DialogContent>
+        <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Edit Vacation Dates</DialogTitle>
             <DialogDescription>
-              Update the start and end dates for this approved time off request.
+              Select or deselect specific dates for this approved time off request.
             </DialogDescription>
           </DialogHeader>
 
@@ -494,42 +543,39 @@ const TimeOffApprovals = () => {
                 <div className="text-sm text-muted-foreground capitalize">{editingRequest.request_type}</div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>Start Date</Label>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button variant="outline" className={cn("w-full justify-start text-left font-normal", !editStartDate && "text-muted-foreground")}>
-                        <Calendar className="h-4 w-4 mr-2" />
-                        {editStartDate ? format(editStartDate, "MMM d, yyyy") : "Pick date"}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                      <CalendarPicker mode="single" selected={editStartDate} onSelect={setEditStartDate} initialFocus className={cn("p-3 pointer-events-auto")} />
-                    </PopoverContent>
-                  </Popover>
-                </div>
-                <div className="space-y-2">
-                  <Label>End Date</Label>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button variant="outline" className={cn("w-full justify-start text-left font-normal", !editEndDate && "text-muted-foreground")}>
-                        <Calendar className="h-4 w-4 mr-2" />
-                        {editEndDate ? format(editEndDate, "MMM d, yyyy") : "Pick date"}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                      <CalendarPicker mode="single" selected={editEndDate} onSelect={setEditEndDate} initialFocus className={cn("p-3 pointer-events-auto")} />
-                    </PopoverContent>
-                  </Popover>
-                </div>
+              <div className="space-y-2">
+                <Label>Select Dates</Label>
+                <CalendarPicker
+                  mode="multiple"
+                  selected={editSelectedDates}
+                  onSelect={(dates) => setEditSelectedDates(dates || [])}
+                  className={cn("p-3 pointer-events-auto rounded-md border")}
+                />
+                {editSelectedDates.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5 mt-2">
+                    {[...editSelectedDates]
+                      .sort((a, b) => a.getTime() - b.getTime())
+                      .map((date) => (
+                        <Badge key={date.toISOString()} variant="secondary" className="gap-1 text-xs">
+                          {format(date, "MMM d")}
+                          <X
+                            className="h-3 w-3 cursor-pointer hover:text-destructive"
+                            onClick={() => setEditSelectedDates(prev => prev.filter(d => d.getTime() !== date.getTime()))}
+                          />
+                        </Badge>
+                      ))}
+                  </div>
+                )}
+                <p className="text-xs text-muted-foreground">
+                  {editSelectedDates.length} {editSelectedDates.length === 1 ? 'day' : 'days'} selected
+                </p>
               </div>
 
               <div className="flex gap-2">
                 <Button variant="outline" className="flex-1" onClick={() => setEditDialogOpen(false)}>
                   Cancel
                 </Button>
-                <Button className="flex-1" onClick={submitEditDates} disabled={isSubmitting}>
+                <Button className="flex-1" onClick={submitEditDates} disabled={isSubmitting || editSelectedDates.length === 0}>
                   {isSubmitting ? "Saving..." : "Save Changes"}
                 </Button>
               </div>
@@ -553,8 +599,8 @@ const TimeOffApprovals = () => {
               <div className="bg-muted p-3 rounded-lg">
                 <div className="font-medium">{revokingRequest.employees.full_name}</div>
                 <div className="text-sm text-muted-foreground">
-                  {format(new Date(revokingRequest.start_date), "MMM d")} - {format(new Date(revokingRequest.end_date), "MMM d, yyyy")}
-                  ({calculateDays(revokingRequest.start_date, revokingRequest.end_date)} days)
+                  {formatRequestDates(revokingRequest)}
+                  ({calculateDays(revokingRequest)} days)
                 </div>
               </div>
 

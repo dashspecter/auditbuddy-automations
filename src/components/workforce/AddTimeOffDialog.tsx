@@ -5,9 +5,9 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Calendar } from "@/components/ui/calendar";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { CalendarIcon, Palmtree } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Palmtree, X } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { useCreateTimeOffRequest } from "@/hooks/useTimeOffRequests";
@@ -31,8 +31,7 @@ export const AddTimeOffDialog = ({
 }: AddTimeOffDialogProps) => {
   const { t } = useTranslation();
   const [employeeId, setEmployeeId] = useState<string>("");
-  const [startDate, setStartDate] = useState<Date | undefined>();
-  const [endDate, setEndDate] = useState<Date | undefined>();
+  const [selectedDates, setSelectedDates] = useState<Date[]>([]);
   const [requestType, setRequestType] = useState<string>("vacation");
   const [reason, setReason] = useState("");
   
@@ -42,23 +41,21 @@ export const AddTimeOffDialog = ({
   useEffect(() => {
     if (open) {
       setEmployeeId(defaultEmployeeId || "");
-      setStartDate(defaultDate);
-      setEndDate(defaultDate);
+      setSelectedDates(defaultDate ? [defaultDate] : []);
       setRequestType("vacation");
       setReason("");
     }
   }, [open, defaultEmployeeId, defaultDate]);
 
   const handleSubmit = async () => {
-    if (!employeeId || !startDate || !endDate) {
+    if (!employeeId || selectedDates.length === 0) {
       toast.error(t('workforce.components.addTimeOffDialog.fillRequired'));
       return;
     }
 
-    if (endDate < startDate) {
-      toast.error(t('workforce.components.addTimeOffDialog.endDateAfterStart'));
-      return;
-    }
+    const sortedDates = [...selectedDates].sort((a, b) => a.getTime() - b.getTime());
+    const startDate = sortedDates[0];
+    const endDate = sortedDates[sortedDates.length - 1];
 
     try {
       await createTimeOff.mutateAsync({
@@ -69,6 +66,7 @@ export const AddTimeOffDialog = ({
         request_type: requestType,
         reason: reason || null,
         rejection_reason: null,
+        selected_dates: sortedDates.map(d => format(d, 'yyyy-MM-dd')),
       });
       
       toast.success(t('workforce.components.addTimeOffDialog.addedSuccess'));
@@ -78,9 +76,13 @@ export const AddTimeOffDialog = ({
     }
   };
 
+  const removeDate = (dateToRemove: Date) => {
+    setSelectedDates(prev => prev.filter(d => d.getTime() !== dateToRemove.getTime()));
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Palmtree className="h-5 w-5 text-green-600" />
@@ -124,59 +126,32 @@ export const AddTimeOffDialog = ({
             </Select>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label>{t('workforce.components.addTimeOffDialog.startDate')} *</Label>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className={cn(
-                      "w-full justify-start text-left font-normal",
-                      !startDate && "text-muted-foreground"
-                    )}
-                  >
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {startDate ? format(startDate, "MMM d, yyyy") : t('workforce.components.addTimeOffDialog.pickDate')}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar
-                    mode="single"
-                    selected={startDate}
-                    onSelect={setStartDate}
-                    initialFocus
-                  />
-                </PopoverContent>
-              </Popover>
-            </div>
-
-            <div className="space-y-2">
-              <Label>{t('workforce.components.addTimeOffDialog.endDate')} *</Label>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className={cn(
-                      "w-full justify-start text-left font-normal",
-                      !endDate && "text-muted-foreground"
-                    )}
-                  >
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {endDate ? format(endDate, "MMM d, yyyy") : t('workforce.components.addTimeOffDialog.pickDate')}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar
-                    mode="single"
-                    selected={endDate}
-                    onSelect={setEndDate}
-                    disabled={(date) => startDate ? date < startDate : false}
-                    initialFocus
-                  />
-                </PopoverContent>
-              </Popover>
-            </div>
+          <div className="space-y-2">
+            <Label>{t('workforce.components.addTimeOffDialog.selectDates', 'Select Dates')} *</Label>
+            <Calendar
+              mode="multiple"
+              selected={selectedDates}
+              onSelect={(dates) => setSelectedDates(dates || [])}
+              className={cn("p-3 pointer-events-auto rounded-md border")}
+            />
+            {selectedDates.length > 0 && (
+              <div className="flex flex-wrap gap-1.5 mt-2">
+                {[...selectedDates]
+                  .sort((a, b) => a.getTime() - b.getTime())
+                  .map((date) => (
+                    <Badge key={date.toISOString()} variant="secondary" className="gap-1 text-xs">
+                      {format(date, "MMM d")}
+                      <X
+                        className="h-3 w-3 cursor-pointer hover:text-destructive"
+                        onClick={() => removeDate(date)}
+                      />
+                    </Badge>
+                  ))}
+              </div>
+            )}
+            <p className="text-xs text-muted-foreground">
+              {selectedDates.length} {selectedDates.length === 1 ? 'day' : 'days'} selected
+            </p>
           </div>
 
           <div className="space-y-2">
@@ -196,7 +171,7 @@ export const AddTimeOffDialog = ({
           <Button 
             className="flex-1" 
             onClick={handleSubmit}
-            disabled={createTimeOff.isPending || !employeeId || !startDate || !endDate}
+            disabled={createTimeOff.isPending || !employeeId || selectedDates.length === 0}
           >
             {createTimeOff.isPending ? t('workforce.components.addTimeOffDialog.adding') : t('workforce.components.addTimeOffDialog.addTimeOff')}
           </Button>

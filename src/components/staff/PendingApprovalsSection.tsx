@@ -32,6 +32,7 @@ interface PendingRequest {
     avatar_url: string | null;
     annual_vacation_days: number;
   };
+  time_off_request_dates?: Array<{ date: string }>;
 }
 
 export function PendingApprovalsSection() {
@@ -66,7 +67,8 @@ export function PendingApprovalsSection() {
         .from("time_off_requests")
         .select(`
           id, start_date, end_date, status, reason, request_type, created_at,
-          employees:employee_id (id, full_name, avatar_url, annual_vacation_days)
+          employees:employee_id (id, full_name, avatar_url, annual_vacation_days),
+          time_off_request_dates(date)
         `)
         .eq("company_id", companyData.company_id)
         .eq("status", "pending")
@@ -120,10 +122,25 @@ export function PendingApprovalsSection() {
     }
   };
 
-  const calculateDays = (start: string, end: string) => {
-    const s = new Date(start);
-    const e = new Date(end);
+  const calculateDays = (request: PendingRequest) => {
+    if (request.time_off_request_dates && request.time_off_request_dates.length > 0) {
+      return request.time_off_request_dates.length;
+    }
+    const s = new Date(request.start_date);
+    const e = new Date(request.end_date);
     return Math.ceil((e.getTime() - s.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+  };
+
+  const formatRequestDates = (request: PendingRequest) => {
+    const dates = request.time_off_request_dates;
+    if (dates && dates.length > 0) {
+      const sorted = [...dates].sort((a, b) => a.date.localeCompare(b.date));
+      if (sorted.length <= 3) {
+        return sorted.map(d => format(new Date(d.date + 'T00:00:00'), "MMM d")).join(", ");
+      }
+      return `${format(new Date(sorted[0].date + 'T00:00:00'), "MMM d")} … ${format(new Date(sorted[sorted.length - 1].date + 'T00:00:00'), "MMM d")}`;
+    }
+    return `${format(new Date(request.start_date), "MMM d")} – ${format(new Date(request.end_date), "MMM d")}`;
   };
 
   if (isLoading) return null;
@@ -170,8 +187,8 @@ export function PendingApprovalsSection() {
                       </Badge>
                     </div>
                     <div className="text-sm text-muted-foreground mt-1">
-                      {format(new Date(request.start_date), "MMM d")} – {format(new Date(request.end_date), "MMM d")}
-                      <span className="ml-1">({calculateDays(request.start_date, request.end_date)}d)</span>
+                      {formatRequestDates(request)}
+                      <span className="ml-1">({calculateDays(request)}d)</span>
                     </div>
                     {request.reason && (
                       <p className="text-xs text-muted-foreground mt-1 italic line-clamp-2">"{request.reason}"</p>
@@ -223,8 +240,8 @@ export function PendingApprovalsSection() {
               <div className="bg-muted p-3 rounded-lg">
                 <div className="font-medium">{selectedRequest.employees.full_name}</div>
                 <div className="text-sm text-muted-foreground">
-                  {format(new Date(selectedRequest.start_date), "MMM d")} – {format(new Date(selectedRequest.end_date), "MMM d, yyyy")}
-                  ({calculateDays(selectedRequest.start_date, selectedRequest.end_date)} days)
+                  {formatRequestDates(selectedRequest)}
+                  ({calculateDays(selectedRequest)} days)
                 </div>
               </div>
 
