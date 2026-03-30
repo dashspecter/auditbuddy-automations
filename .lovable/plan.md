@@ -1,26 +1,27 @@
 
 
-# Fix: Shift Scheduling Grid Not Showing Correct Vacation Days
+# Fix: Vacation Days Not Appearing in Shift Scheduling
 
-## Problem
-The scheduling grid uses `isWithinInterval(date, { start: start_date, end: end_date })` to check if an employee has time off on a given day. With the new specific-dates model, this is wrong — it treats the entire min→max range as time off, even for non-consecutive selections (e.g., employee selects Mar 3, 5, 7 but Mar 4 and 6 also show as time off).
+## What You See
+The scheduling grid in Location view has a "Time Off" row that appears below the shifts for each location — showing employee names with a red background on days they have approved time off. However, it's currently not showing because of **two bugs**:
 
-## Fix
-Update two functions in `EnhancedShiftWeekView.tsx` to check against the actual `time_off_request_dates` child rows instead of the date range:
+## Bug 1: Date Range Query Is Wrong
+The `useTimeOffRequests` hook filters with `start_date >= weekStart AND end_date <= weekEnd`. This only fetches requests **entirely contained** within the displayed week. A request spanning Mar 25–Apr 2 would NOT appear when viewing Mar 30–Apr 5.
 
-### `getTimeOffForEmployeeAndDay` (line 332)
-Instead of `isWithinInterval`, check if the day's date string exists in `req.time_off_request_dates`. Fall back to range check for legacy requests without child rows.
+**Fix**: Change to overlap logic: `start_date <= weekEnd AND end_date >= weekStart`. This catches any request that touches the displayed week.
 
-### `getTimeOffForLocationAndDay` (line 344)
-Same change — use `time_off_request_dates` for matching, with range fallback.
+## Bug 2: Location Matching Is Too Restrictive
+The "Time Off" row only shows employees whose **primary `location_id`** matches the selected location. But employees often work at locations different from their primary assignment (e.g., they have shifts at LBFC Amzei but their profile says a different location).
 
-## Also fix: `EmployeeMultiWeekView.tsx`
-The `getTimeOffForDay` function (line ~108) uses the same `isWithinInterval` pattern and needs the same update.
+**Fix**: Also consider employees who have shifts at the location during the displayed period, not just those with a matching `location_id`.
 
-## Scope
+## Files Modified
 
 | File | Change |
 |------|--------|
-| `src/components/workforce/EnhancedShiftWeekView.tsx` | Update `getTimeOffForEmployeeAndDay` and `getTimeOffForLocationAndDay` to use specific dates |
-| `src/components/workforce/EmployeeMultiWeekView.tsx` | Update `getTimeOffForDay` to use specific dates |
+| `src/hooks/useTimeOffRequests.ts` | Fix date overlap query: `lte("start_date", endDate)` + `gte("end_date", startDate)` |
+| `src/components/workforce/EnhancedShiftWeekView.tsx` | Expand `getTimeOffForLocationAndDay` to include employees with shifts at the location, not just primary `location_id` match |
+
+## Result
+After the fix, the "Time Off" row will correctly appear under each location showing approved vacation days with employee names in red badges — exactly matching the dates the employee selected and the manager approved.
 
