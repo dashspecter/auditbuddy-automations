@@ -95,7 +95,8 @@ const TimeOffApprovals = () => {
             full_name,
             avatar_url,
             annual_vacation_days
-          )
+          ),
+          time_off_request_dates(date)
         `)
         .eq("company_id", companyData.company_id)
         .order("created_at", { ascending: false });
