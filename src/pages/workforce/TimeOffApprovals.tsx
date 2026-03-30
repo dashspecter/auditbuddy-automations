@@ -214,10 +214,25 @@ const TimeOffApprovals = () => {
     }
   };
 
-  const calculateDays = (start: string, end: string) => {
-    const startDate = new Date(start);
-    const endDate = new Date(end);
+  const calculateDays = (request: TimeOffRequest) => {
+    if (request.time_off_request_dates && request.time_off_request_dates.length > 0) {
+      return request.time_off_request_dates.length;
+    }
+    const startDate = new Date(request.start_date);
+    const endDate = new Date(request.end_date);
     return Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+  };
+
+  const formatRequestDates = (request: TimeOffRequest) => {
+    const dates = request.time_off_request_dates;
+    if (dates && dates.length > 0) {
+      const sorted = [...dates].sort((a, b) => a.date.localeCompare(b.date));
+      if (sorted.length <= 4) {
+        return sorted.map(d => format(new Date(d.date + 'T00:00:00'), "MMM d")).join(", ");
+      }
+      return `${format(new Date(sorted[0].date + 'T00:00:00'), "MMM d")} … ${format(new Date(sorted[sorted.length - 1].date + 'T00:00:00'), "MMM d")}`;
+    }
+    return `${format(new Date(request.start_date), "MMM d")} - ${format(new Date(request.end_date), "MMM d, yyyy")}`;
   };
 
   if (isLoading) {
