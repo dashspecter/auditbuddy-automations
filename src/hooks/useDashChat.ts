@@ -226,7 +226,10 @@ export function useDashChat() {
     [messages, extraHistory]
   );
   const hasMoreHistory = messages.length > DISPLAY_PAGE_SIZE + extraHistory;
-  const loadMoreHistory = useCallback(() => setExtraHistory(prev => prev + DISPLAY_PAGE_SIZE), []);
+  const loadMoreHistory = useCallback(() => {
+    if (messages.length <= DISPLAY_PAGE_SIZE + extraHistory) return; // guard double-click
+    setExtraHistory(prev => prev + DISPLAY_PAGE_SIZE);
+  }, [messages.length, extraHistory]);
 
   const processStream = async (resp: Response, existingStructuredEvents?: DashStructuredEvent[]) => {
     const reader = resp.body!.getReader();

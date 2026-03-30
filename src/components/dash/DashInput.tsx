@@ -74,7 +74,7 @@ export function DashInput({ onSend, isLoading, onCancel, placeholder, className 
 
       const { data: urlData } = await supabase.storage
         .from("dash-uploads")
-        .createSignedUrl(path, 3600);
+        .createSignedUrl(path, 86400); // 24-hour expiry so files remain accessible for long sessions
 
       if (urlData?.signedUrl) {
         newFiles.push({ name: file.name, url: urlData.signedUrl });
