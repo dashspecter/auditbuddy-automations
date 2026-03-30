@@ -1,56 +1,59 @@
 
 
-# Fix: Shift Deletion via Dash Approved but Not Reflected in UI
+# Fix: Payroll Vacation Days — Deduplicate Overlapping Approved Requests
 
-## Root Cause
+## Confirmed Business Rule
 
-When a user approves a Dash action (like "delete shift") via the ActionPreviewCard, the flow is:
+Vacation days are **only** counted from the approved time-off request flow: Employee requests → Manager approves. The query already correctly filters `status = "approved"`. No other source of vacation days exists.
 
-1. UI calls `sendDirectApproval()` in `useDashChat.ts`
-2. Backend receives `direct_approval`, resolves `delete_shift` → `execute_shift_deletion`, hard-deletes the shift from the database
-3. Backend returns success via SSE stream
-4. **UI does nothing** — `useDashChat.ts` has zero query invalidation after approval
+## The Bug
 
-The shift is gone from the database but the React Query cache still holds the stale data. The realtime subscription (`useRealtimeShifts.ts`) *should* catch the DELETE event, but backend deletions via the service-role client may not reliably trigger realtime events for the authenticated client channel.
+When an employee has **two overlapping approved requests** (e.g., Mar 20–Apr 1 and Mar 23–Apr 1), the current code sums each request's days independently, double-counting the overlap. Razvan Parvan shows 21 days instead of the correct 12.
 
-**Result**: The grid keeps showing the deleted shift until the user manually refreshes.
+## Fix — One File Change
 
-## Fix
+**File: `src/hooks/usePayrollBatchDetails.ts`** (lines 356-365)
 
-**File: `src/hooks/useDashChat.ts`**
-
-After `sendDirectApproval` completes successfully (line 298 `return { success: true }`), invalidate all schedule-related queries. This is a broad but safe invalidation since Dash actions can touch shifts, employees, attendance, corrective actions, work orders, tasks, and training.
-
-Add `useQueryClient` from TanStack Query, then after a successful approval:
+Replace the naive per-request day counter with a `Set<string>` that collects unique calendar dates, eliminating any overlap:
 
 ```typescript
-// After successful execution (line ~297-298)
-queryClient.invalidateQueries({ queryKey: ["shifts"], exact: false });
-queryClient.invalidateQueries({ queryKey: ["employee-shifts-multiweek"] });
-queryClient.invalidateQueries({ queryKey: ["pending-approvals"] });
-queryClient.invalidateQueries({ queryKey: ["shift-assignments"] });
-queryClient.invalidateQueries({ queryKey: ["today-working-staff"] });
-queryClient.invalidateQueries({ queryKey: ["team-stats"] });
-queryClient.invalidateQueries({ queryKey: ["time-off-requests"] });
-queryClient.invalidateQueries({ queryKey: ["employees"] });
-queryClient.invalidateQueries({ queryKey: ["corrective-actions"] });
-queryClient.invalidateQueries({ queryKey: ["work-orders"] });
-queryClient.invalidateQueries({ queryKey: ["attendance"] });
-queryClient.invalidateQueries({ queryKey: ["tasks"] });
-queryClient.invalidateQueries({ queryKey: ["training"] });
+// Time-off days — deduplicate overlapping approved requests
+const vacationDateSet = new Set<string>();
+const medicalDateSet = new Set<string>();
+
+for (const req of empTimeOff) {
+  const start = parseISO(req.start_date) < parseISO(periodStart) 
+    ? parseISO(periodStart) : parseISO(req.start_date);
+  const end = parseISO(req.end_date) > parseISO(periodEnd) 
+    ? parseISO(periodEnd) : parseISO(req.end_date);
+
+  for (const day of eachDayOfInterval({ start, end })) {
+    const key = format(day, 'yyyy-MM-dd');
+    if (req.request_type === "vacation" || req.request_type === "annual_leave") {
+      vacationDateSet.add(key);
+    } else if (req.request_type === "medical" || req.request_type === "sick_leave") {
+      medicalDateSet.add(key);
+    }
+  }
+}
+
+const vacationDays = vacationDateSet.size;
+const medicalDays = medicalDateSet.size;
 ```
 
-This ensures that no matter what Dash action was approved (shift delete, employee update, attendance correction, etc.), the relevant UI data refreshes immediately.
+## Expected Results After Fix
 
-## Files Modified
+| Employee | Before (wrong) | After (correct) |
+|----------|----------------|-----------------|
+| Razvan Parvan | 21 | 12 |
+| Grecea Alexandru | 7 | 7 (no overlap, unchanged) |
+| Gabriela Mitan | 1 | 1 (unchanged) |
+
+## Scope
 
 | File | Change |
 |------|--------|
-| `src/hooks/useDashChat.ts` | Import `useQueryClient`; invalidate all domain queries after successful direct approval |
+| `src/hooks/usePayrollBatchDetails.ts` | Deduplicate overlapping date ranges using Set |
 
-## Validation
-
-1. Ask Dash to delete a shift → approve → shift disappears from the grid immediately
-2. Ask Dash to create a shift → approve → shift appears in the grid immediately
-3. Ask Dash to update a shift → approve → change reflected immediately
+**Note**: Weekends (Sat/Sun) are currently included in the count. This matches the business rule as stated — if the approved request spans a weekend, those days count. If you want weekends excluded, that's a separate decision.
 
