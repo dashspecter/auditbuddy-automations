@@ -15,6 +15,7 @@ import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 import { PullToRefresh } from "@/components/PullToRefresh";
 import { BackToTop } from "@/components/BackToTop";
+import { ManagerClockInCard } from "@/components/dashboard/ManagerClockInCard";
 import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { useTranslation } from "react-i18next";
