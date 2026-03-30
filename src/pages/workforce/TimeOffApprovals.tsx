@@ -317,11 +317,11 @@ const TimeOffApprovals = () => {
                         <div className="flex items-center gap-2">
                           <Calendar className="h-4 w-4 text-muted-foreground" />
                           <span className="font-medium">
-                            {format(new Date(request.start_date), "MMM d")} - {format(new Date(request.end_date), "MMM d, yyyy")}
+                            {formatRequestDates(request)}
                           </span>
                         </div>
                         <Badge variant="secondary">
-                          {calculateDays(request.start_date, request.end_date)} {t('workforce.timeOff.days')}
+                          {calculateDays(request)} {t('workforce.timeOff.days')}
                         </Badge>
                       </div>
                       {request.reason && (
