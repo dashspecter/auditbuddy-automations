@@ -138,7 +138,7 @@ Deno.serve(async (req) => {
 // ──────────────────────────────────────────
 
 async function resolveEmployees(
-  db: ReturnType<typeof createClient>,
+  db: any,
   task: { assigned_to: string | null; assigned_role_id: string | null; company_id: string }
 ): Promise<string[]> {
   if (task.assigned_to) return [task.assigned_to];
