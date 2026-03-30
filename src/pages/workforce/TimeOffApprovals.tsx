@@ -528,11 +528,11 @@ const TimeOffApprovals = () => {
 
       {/* Edit Dates Dialog */}
       <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
-        <DialogContent>
+        <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Edit Vacation Dates</DialogTitle>
             <DialogDescription>
-              Update the start and end dates for this approved time off request.
+              Select or deselect specific dates for this approved time off request.
             </DialogDescription>
           </DialogHeader>
 
@@ -543,42 +543,39 @@ const TimeOffApprovals = () => {
                 <div className="text-sm text-muted-foreground capitalize">{editingRequest.request_type}</div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>Start Date</Label>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button variant="outline" className={cn("w-full justify-start text-left font-normal", !editStartDate && "text-muted-foreground")}>
-                        <Calendar className="h-4 w-4 mr-2" />
-                        {editStartDate ? format(editStartDate, "MMM d, yyyy") : "Pick date"}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                      <CalendarPicker mode="single" selected={editStartDate} onSelect={setEditStartDate} initialFocus className={cn("p-3 pointer-events-auto")} />
-                    </PopoverContent>
-                  </Popover>
-                </div>
-                <div className="space-y-2">
-                  <Label>End Date</Label>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button variant="outline" className={cn("w-full justify-start text-left font-normal", !editEndDate && "text-muted-foreground")}>
-                        <Calendar className="h-4 w-4 mr-2" />
-                        {editEndDate ? format(editEndDate, "MMM d, yyyy") : "Pick date"}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                      <CalendarPicker mode="single" selected={editEndDate} onSelect={setEditEndDate} initialFocus className={cn("p-3 pointer-events-auto")} />
-                    </PopoverContent>
-                  </Popover>
-                </div>
+              <div className="space-y-2">
+                <Label>Select Dates</Label>
+                <CalendarPicker
+                  mode="multiple"
+                  selected={editSelectedDates}
+                  onSelect={(dates) => setEditSelectedDates(dates || [])}
+                  className={cn("p-3 pointer-events-auto rounded-md border")}
+                />
+                {editSelectedDates.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5 mt-2">
+                    {[...editSelectedDates]
+                      .sort((a, b) => a.getTime() - b.getTime())
+                      .map((date) => (
+                        <Badge key={date.toISOString()} variant="secondary" className="gap-1 text-xs">
+                          {format(date, "MMM d")}
+                          <X
+                            className="h-3 w-3 cursor-pointer hover:text-destructive"
+                            onClick={() => setEditSelectedDates(prev => prev.filter(d => d.getTime() !== date.getTime()))}
+                          />
+                        </Badge>
+                      ))}
+                  </div>
+                )}
+                <p className="text-xs text-muted-foreground">
+                  {editSelectedDates.length} {editSelectedDates.length === 1 ? 'day' : 'days'} selected
+                </p>
               </div>
 
               <div className="flex gap-2">
                 <Button variant="outline" className="flex-1" onClick={() => setEditDialogOpen(false)}>
                   Cancel
                 </Button>
-                <Button className="flex-1" onClick={submitEditDates} disabled={isSubmitting}>
+                <Button className="flex-1" onClick={submitEditDates} disabled={isSubmitting || editSelectedDates.length === 0}>
                   {isSubmitting ? "Saving..." : "Save Changes"}
                 </Button>
               </div>
