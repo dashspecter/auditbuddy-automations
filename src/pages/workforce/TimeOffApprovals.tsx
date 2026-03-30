@@ -158,8 +158,18 @@ const TimeOffApprovals = () => {
 
   const handleEditDates = (request: TimeOffRequest) => {
     setEditingRequest(request);
-    setEditStartDate(new Date(request.start_date));
-    setEditEndDate(new Date(request.end_date));
+    // Load existing dates from child table
+    const dates = request.time_off_request_dates?.map(d => new Date(d.date + 'T00:00:00')) || [];
+    if (dates.length === 0) {
+      // Fallback to range
+      const current = new Date(request.start_date);
+      const end = new Date(request.end_date);
+      while (current <= end) {
+        dates.push(new Date(current));
+        current.setDate(current.getDate() + 1);
+      }
+    }
+    setEditSelectedDates(dates);
     setEditDialogOpen(true);
   };
 
