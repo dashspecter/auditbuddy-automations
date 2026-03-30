@@ -114,7 +114,10 @@ export const VacationDetailsDialog = ({ open, onOpenChange }: VacationDetailsDia
                       <div>
                         <p className="font-medium text-sm">{request.request_type}</p>
                         <p className="text-xs text-muted-foreground">
-                          {new Date(request.start_date).toLocaleDateString()} - {new Date(request.end_date).toLocaleDateString()}
+                          {(request as any).time_off_request_dates?.length > 0
+                            ? `${(request as any).time_off_request_dates.length} days`
+                            : `${new Date(request.start_date).toLocaleDateString()} - ${new Date(request.end_date).toLocaleDateString()}`
+                          }
                         </p>
                       </div>
                       <Badge variant="secondary">Approved</Badge>
