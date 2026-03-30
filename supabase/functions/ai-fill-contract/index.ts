@@ -99,7 +99,7 @@ class SimpleZip {
       // Decompress using DecompressionStream
       const ds = new DecompressionStream("deflate-raw");
       const writer = ds.writable.getWriter();
-      writer.write(data);
+      writer.write(data as unknown as BufferSource);
       writer.close();
       const reader = ds.readable.getReader();
       const chunks: Uint8Array[] = [];
