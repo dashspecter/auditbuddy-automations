@@ -56,7 +56,7 @@ function StructuredEventRenderer({ event, onSuggestedClick, onDirectApproval }: 
     case "source_card":
       return <SourceCard module={event.data.module} entity={event.data.entity} id={event.data.id} label={event.data.label} />;
     case "data_table":
-      return <DataTableCard columns={event.data.columns} rows={event.data.rows} title={event.data.title} />;
+      return <DataTableCard columns={event.data.columns} rows={(event.data.rows as (string | number)[][])} title={event.data.title} />;
     case "clarification":
       return <ClarificationCard question={event.data.question} options={event.data.options} onSelect={(answer) => onSuggestedClick(answer)} />;
     case "action_preview":

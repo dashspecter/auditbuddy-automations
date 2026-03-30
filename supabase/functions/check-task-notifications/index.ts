@@ -160,7 +160,7 @@ async function resolveEmployees(
       .eq("company_id", task.company_id)
       .ilike("role", role.name);
 
-    return (employees || []).map((e) => e.id);
+    return (employees || []).map((e: any) => e.id);
   }
 
   return [];
