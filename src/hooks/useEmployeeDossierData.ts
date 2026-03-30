@@ -86,10 +86,12 @@ export function useEmployeeDossierData(
     staleTime: STALE_TIME.LONG,
   });
 
-  // 2. Performance scores via RPC (all locations)
+  // 2. Performance scores via RPC — SINGLE SOURCE OF TRUTH for the displayed score.
+  //    Always use this for the current/selected period score. Never mix with monthlyQuery for display.
   const perfQuery = useEmployeePerformance(startDate, endDate);
 
-  // 3. Monthly score history
+  // 3. Monthly score history (archived snapshots) — used ONLY for trend charts / badge streaks.
+  //    Do NOT use these values as the displayed score; they are historical and may lag the RPC.
   const monthlyQuery = useMonthlyScores(employeeId, 12);
 
   // 4. Attendance logs for the date range

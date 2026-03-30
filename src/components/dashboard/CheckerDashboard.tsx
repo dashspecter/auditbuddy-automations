@@ -8,6 +8,7 @@ import { DashboardGreeting } from "./DashboardGreeting";
 import { DraftAudits } from "./DraftAudits";
 import { useLocationAudits } from "@/hooks/useAudits";
 import { useAuth } from "@/contexts/AuthContext";
+import { isCompletedAudit } from "@/lib/auditHelpers";
 import { format } from "date-fns";
 import { useMemo, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
@@ -36,7 +37,7 @@ export const CheckerDashboard = () => {
     };
 
     const totalAudits = myAudits.length;
-    const completedAudits = myAudits.filter(a => a.status === 'compliant').length;
+    const completedAudits = myAudits.filter(a => isCompletedAudit(a)).length;
     const totalScore = myAudits.reduce((sum, a) => sum + (a.overall_score || 0), 0);
     const avgScore = totalAudits > 0 ? Math.round(totalScore / totalAudits) : 0;
     

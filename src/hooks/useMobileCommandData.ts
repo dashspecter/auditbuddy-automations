@@ -2,6 +2,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useCompany } from '@/hooks/useCompany';
 import { startOfDay, startOfWeek, subDays, format, differenceInCalendarDays, differenceInCalendarWeeks, differenceInCalendarMonths } from 'date-fns';
+import { AUDIT_FINISHED_STATUSES, PROBLEM_SCORE_THRESHOLD } from '@/lib/constants';
 
 // ── Types ──────────────────────────────────────────────────────────
 
@@ -94,8 +95,9 @@ function useClockedIn(companyId: string | undefined) {
 
       const { data, error } = await supabase
         .from('attendance_logs')
-        .select('id, staff_id, check_in_at, employees!attendance_logs_staff_id_fkey(full_name, role), locations!attendance_logs_location_id_fkey(name, id)')
+        .select('id, staff_id, check_in_at, auto_clocked_out, employees!attendance_logs_staff_id_fkey(full_name, role), locations!attendance_logs_location_id_fkey(name, id)')
         .is('check_out_at', null)
+        .eq('auto_clocked_out', false)
         .gte('check_in_at', todayStart);
 
       if (error) throw error;
@@ -340,7 +342,7 @@ function useTodayCompletedAudits(companyId: string | undefined) {
         .select('id, overall_score, audit_date, location, template_id, audit_templates(name), locations(name)')
         .eq('company_id', companyId!)
         .eq('audit_date', today)
-        .in('status', ['completed', 'compliant', 'non_compliant']);
+        .in('status', AUDIT_FINISHED_STATUSES);
 
       if (error) throw error;
 
@@ -370,7 +372,7 @@ function useWeeklyAuditSummary(companyId: string | undefined) {
         .eq('company_id', companyId!)
         .gte('audit_date', monday)
         .lte('audit_date', today)
-        .in('status', ['completed', 'compliant', 'non_compliant']);
+        .in('status', AUDIT_FINISHED_STATUSES);
 
       if (auditErr) throw auditErr;
 
@@ -379,7 +381,7 @@ function useWeeklyAuditSummary(companyId: string | undefined) {
       const locations = new Set(audits.map((a: any) => a.location_id).filter(Boolean));
 
       const negativeAudits = audits
-        .filter((a: any) => a.overall_score != null && a.overall_score < 70)
+        .filter((a: any) => a.overall_score != null && a.overall_score < PROBLEM_SCORE_THRESHOLD)
         .map((a: any) => ({
           id: a.id,
           templateName: a.audit_templates?.name ?? 'Audit',
@@ -474,8 +476,8 @@ function useMonthlyNegatives(companyId: string | undefined) {
         .eq('company_id', companyId!)
         .gte('audit_date', thirtyDaysAgo)
         .lte('audit_date', today)
-        .in('status', ['completed', 'compliant', 'non_compliant'])
-        .lt('overall_score', 70);
+        .in('status', AUDIT_FINISHED_STATUSES)
+        .lt('overall_score', PROBLEM_SCORE_THRESHOLD);
 
       const byLocation: Record<string, { total: number; count: number; name: string }> = {};
       (lowAudits ?? []).forEach((a: any) => {

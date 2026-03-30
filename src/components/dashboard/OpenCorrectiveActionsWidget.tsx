@@ -1,4 +1,5 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { CA_OPEN_STATUSES } from "@/lib/constants";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Shield, ArrowRight } from "lucide-react";
@@ -17,7 +18,7 @@ export const OpenCorrectiveActionsWidget = () => {
 
   const stats = useMemo(() => {
     if (!cas) return { open: 0, inProgress: 0, overdue: 0, critical: 0, high: 0, medium: 0, low: 0 };
-    const active = cas.filter(ca => ca.status === "open" || ca.status === "in_progress");
+    const active = cas.filter(ca => CA_OPEN_STATUSES.includes(ca.status as any));
     return {
       open: cas.filter(ca => ca.status === "open").length,
       inProgress: cas.filter(ca => ca.status === "in_progress").length,
@@ -32,7 +33,7 @@ export const OpenCorrectiveActionsWidget = () => {
   const recentCAs = useMemo(() => {
     if (!cas) return [];
     return cas
-      .filter(ca => ca.status === "open" || ca.status === "in_progress")
+      .filter(ca => CA_OPEN_STATUSES.includes(ca.status as any))
       .slice(0, 4);
   }, [cas]);
 

@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import { useLocationAudits } from "./useAudits";
 import { startOfDay, endOfDay } from "date-fns";
+import { isCompletedAudit } from "@/lib/auditHelpers";
 
 interface DashboardStatsOptions {
   dateFrom?: Date;
@@ -34,7 +35,7 @@ export const useDashboardStats = (options?: DashboardStatsOptions) => {
     }
 
     const totalAudits = filteredAudits.length;
-    const completedAudits = filteredAudits.filter(a => a.status === 'compliant').length;
+    const completedAudits = filteredAudits.filter(a => isCompletedAudit(a)).length;
     
     const now = new Date();
     now.setHours(0, 0, 0, 0); // Reset to start of day

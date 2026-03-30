@@ -1,4 +1,5 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { CA_OPEN_STATUSES } from "@/lib/constants";
 import { Badge } from "@/components/ui/badge";
 import { Building2, TrendingUp, ListTodo, Shield, Users } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
@@ -54,7 +55,7 @@ export const DepartmentHealthGrid = () => {
         .from("corrective_actions")
         .select("id, status, location_id")
         .eq("company_id", company.id)
-        .in("status", ["open", "in_progress"]);
+        .in("status", CA_OPEN_STATUSES);
 
       // Get staff count per location
       const { data: staff } = await supabase

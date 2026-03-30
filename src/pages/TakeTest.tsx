@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { CA_OPEN_STATUSES } from "@/lib/constants";
 import { useParams, useNavigate } from "react-router-dom";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -295,7 +296,7 @@ const TakeTest = () => {
               .from("corrective_action_items")
               .select("id, corrective_action_id, corrective_actions(source_type, source_id)")
               .eq("assignee_user_id", authUser.id)
-              .in("status", ["open", "in_progress"]);
+              .in("status", CA_OPEN_STATUSES);
 
             const testCaItems = (openItems ?? []).filter(
               (item: any) => item.corrective_actions?.source_type === "test_submission"

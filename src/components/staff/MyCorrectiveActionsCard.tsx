@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { CA_OPEN_STATUSES } from "@/lib/constants";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -55,7 +56,7 @@ export const MyCorrectiveActionsCard = ({ userId }: MyCorrectiveActionsCardProps
           )
         `)
         .eq("assignee_user_id", userId)
-        .in("status", ["open", "in_progress"])
+        .in("status", CA_OPEN_STATUSES)
         .order("due_at", { ascending: true });
 
       if (error) throw error;

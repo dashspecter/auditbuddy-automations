@@ -11,6 +11,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Header } from "@/components/Header";
 import { useLocationAudits } from "@/hooks/useAudits";
 import { useMemo } from "react";
+import { isCompletedAudit } from "@/lib/auditHelpers";
 import { StatsCard } from "@/components/dashboard/StatsCard";
 import { useTranslation } from "react-i18next";
 
@@ -30,7 +31,7 @@ const Landing = () => {
 
     const myAudits = allAudits.filter(audit => audit.user_id === user.id);
     const totalAudits = myAudits.length;
-    const completedAudits = myAudits.filter(a => a.status === 'compliant').length;
+    const completedAudits = myAudits.filter(a => isCompletedAudit(a)).length;
     const totalScore = myAudits.reduce((sum, a) => sum + (a.overall_score || 0), 0);
     const avgScore = totalAudits > 0 ? Math.round(totalScore / totalAudits) : 0;
     

@@ -149,11 +149,11 @@ export async function getAttendanceSummary(
     return success({
       logs: c.items.map((l: any) => ({
         employee: l.employees?.full_name, check_in: l.check_in_at, check_out: l.check_out_at,
-        status: l.check_out_at ? "completed" : "working", is_late: l.is_late, late_minutes: l.late_minutes,
+        status: l.check_out_at ? "completed" : (l.auto_clocked_out ? "auto_clocked_out" : "working"), is_late: l.is_late, late_minutes: l.late_minutes,
         location: l.locations?.name,
       })),
       total_checked_in: c.items.length,
-      currently_working: c.items.filter((l: any) => !l.check_out_at).length,
+      currently_working: c.items.filter((l: any) => !l.check_out_at && !l.auto_clocked_out).length,
       total: c.total, returned: c.returned, truncated: c.truncated,
     });
   }

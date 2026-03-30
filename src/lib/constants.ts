@@ -44,6 +44,35 @@ export const AUDIT_STATUS = {
   DISCARDED: 'discarded',
 } as const;
 
+/**
+ * All statuses that represent a finished/submitted audit.
+ * Includes both hyphenated and underscored variants of non-compliant
+ * because the DB may contain either form.
+ * Use this everywhere an "is completed" check is needed — never hardcode inline.
+ */
+export const AUDIT_FINISHED_STATUSES = [
+  'completed',
+  'compliant',
+  'non-compliant',
+  'non_compliant',
+] as const;
+
+export type AuditFinishedStatus = typeof AUDIT_FINISHED_STATUSES[number];
+
+/**
+ * All statuses that represent an open (actionable) corrective action.
+ * Import this constant instead of hardcoding ["open", "in_progress"] inline.
+ */
+export const CA_OPEN_STATUSES = ['open', 'in_progress'] as const;
+
+export type CAOpenStatus = typeof CA_OPEN_STATUSES[number];
+
+/**
+ * Audit score below this threshold is considered a problem/negative audit.
+ * Used for "negative audits" lists, red-flag indicators, and PDF reports.
+ */
+export const PROBLEM_SCORE_THRESHOLD = 70;
+
 export const EQUIPMENT_STATUS = {
   ACTIVE: 'active',
   MAINTENANCE: 'maintenance',

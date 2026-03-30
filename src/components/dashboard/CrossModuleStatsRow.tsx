@@ -1,4 +1,5 @@
 import { TrendingUp, ListTodo, Users, Shield, GraduationCap, Clock } from "lucide-react";
+import { CA_OPEN_STATUSES } from "@/lib/constants";
 import { StatsCard } from "./StatsCard";
 import { useDashboardStats } from "@/hooks/useDashboardStats";
 import { useTaskStats } from "@/hooks/useTasks";
@@ -52,7 +53,7 @@ export const CrossModuleStatsRow = ({ dateFrom, dateTo }: CrossModuleStatsRowPro
 
   const openCAsCount = useMemo(() => {
     if (!cas) return 0;
-    return cas.filter(ca => ca.status === "open" || ca.status === "in_progress").length;
+    return cas.filter(ca => CA_OPEN_STATUSES.includes(ca.status as any)).length;
   }, [cas]);
 
   const trainingCompliance = useMemo(() => {

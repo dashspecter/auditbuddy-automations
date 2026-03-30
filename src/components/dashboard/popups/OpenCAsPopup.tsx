@@ -1,4 +1,5 @@
 import { useCorrectiveActions, isOverdue } from "@/hooks/useCorrectiveActions";
+import { CA_OPEN_STATUSES } from "@/lib/constants";
 import { Badge } from "@/components/ui/badge";
 import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
@@ -9,7 +10,7 @@ export const OpenCAsPopup = () => {
 
   const { stats, recentCAs } = useMemo(() => {
     if (!cas) return { stats: { open: 0, inProgress: 0, overdue: 0, critical: 0, high: 0, medium: 0, low: 0 }, recentCAs: [] };
-    const active = cas.filter(ca => ca.status === "open" || ca.status === "in_progress");
+    const active = cas.filter(ca => CA_OPEN_STATUSES.includes(ca.status as any));
     return {
       stats: {
         open: cas.filter(ca => ca.status === "open").length,
