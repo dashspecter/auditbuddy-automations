@@ -51,6 +51,13 @@ const TimeOffApprovals = () => {
   const [actionType, setActionType] = useState<"approve" | "reject">("approve");
   const [rejectionReason, setRejectionReason] = useState("");
   const [activeTab, setActiveTab] = useState("pending");
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [editingRequest, setEditingRequest] = useState<TimeOffRequest | null>(null);
+  const [editStartDate, setEditStartDate] = useState<Date | undefined>();
+  const [editEndDate, setEditEndDate] = useState<Date | undefined>();
+  const [revokeDialogOpen, setRevokeDialogOpen] = useState(false);
+  const [revokingRequest, setRevokingRequest] = useState<TimeOffRequest | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     loadRequests();
