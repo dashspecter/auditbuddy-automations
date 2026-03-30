@@ -7,6 +7,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useCompanyContext } from "@/contexts/CompanyContext";
 import { toast } from "sonner";
 import { useSpeechRecognition } from "@/hooks/useSpeechRecognition";
+import { useDashLocale } from "@/contexts/DashLocaleContext";
 
 export interface DashAttachment {
   name: string;
@@ -31,13 +32,6 @@ const ALLOWED_TYPES = [
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 const MAX_LENGTH = 2000;
 
-/** Detect locale from browser — prefer Romanian if set */
-function detectLocale(): "ro-RO" | "en-US" {
-  if (typeof navigator === "undefined") return "en-US";
-  const lang = navigator.language || (navigator as any).userLanguage || "";
-  return lang.startsWith("ro") ? "ro-RO" : "en-US";
-}
-
 export function DashInput({ onSend, isLoading, onCancel, placeholder, className }: DashInputProps) {
   const [input, setInput] = useState("");
   const [uploading, setUploading] = useState(false);
@@ -47,6 +41,7 @@ export function DashInput({ onSend, isLoading, onCancel, placeholder, className 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { user } = useAuth();
   const { company } = useCompanyContext();
+  const { t, speechLocale } = useDashLocale();
 
   // Track the input value before voice started so we can append to it
   const preVoiceInputRef = useRef("");
@@ -66,7 +61,7 @@ export function DashInput({ onSend, isLoading, onCancel, placeholder, className 
   }, []);
 
   const { isSupported: voiceSupported, isListening, error: voiceError, toggle: toggleVoice } = useSpeechRecognition({
-    locale: detectLocale(),
+    locale: speechLocale,
     onResult: handleVoiceResult,
     onInterim: handleVoiceInterim,
   });
@@ -180,7 +175,7 @@ export function DashInput({ onSend, isLoading, onCancel, placeholder, className 
       {isListening && (
         <div className="flex items-center gap-2 px-2 text-xs text-red-500 animate-pulse">
           <span className="inline-block h-2 w-2 rounded-full bg-red-500" />
-          Listening... speak now ({detectLocale() === "ro-RO" ? "Română" : "English"})
+          {t.listening} ({speechLocale === "ro-RO" ? "Română" : "English"})
         </div>
       )}
 
@@ -202,7 +197,7 @@ export function DashInput({ onSend, isLoading, onCancel, placeholder, className 
           className="h-[42px] w-[42px] shrink-0 rounded-xl"
           onClick={() => fileInputRef.current?.click()}
           disabled={isLoading || uploading || isListening}
-          title="Attach file"
+          title={t.attachFile}
         >
           {uploading ? (
             <Loader2 className="h-4 w-4 animate-spin" />
@@ -222,7 +217,7 @@ export function DashInput({ onSend, isLoading, onCancel, placeholder, className 
             )}
             onClick={handleToggleVoice}
             disabled={isLoading || uploading}
-            title={isListening ? "Stop recording" : "Voice input"}
+            title={isListening ? t.stopRecording : t.voiceInput}
           >
             {isListening ? (
               <MicOff className="h-4 w-4" />
@@ -243,7 +238,7 @@ export function DashInput({ onSend, isLoading, onCancel, placeholder, className 
             onKeyDown={handleKeyDown}
             disabled={isLoading}
             readOnly={isListening}
-            placeholder={placeholder ?? "Ask Dash anything about your operations..."}
+            placeholder={placeholder ?? t.placeholder}
             rows={1}
             className={cn(
               "w-full resize-none rounded-xl border border-input bg-background px-3 py-2.5 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 disabled:opacity-50 min-h-[42px] max-h-[120px]",

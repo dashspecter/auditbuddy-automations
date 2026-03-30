@@ -13,6 +13,7 @@ import { DashSessionHistory } from "./DashSessionHistory";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useNavigate } from "react-router-dom";
 import { useCompany } from "@/hooks/useCompany";
+import { DashLocaleProvider, useDashLocale } from "@/contexts/DashLocaleContext";
 
 interface DashPanelProps {
   trigger?: React.ReactNode;
@@ -44,11 +45,12 @@ const SUGGESTED_BY_ROLE: Record<string, string[]> = {
   ],
 };
 
-export function DashPanel({ trigger }: DashPanelProps) {
+function DashPanelInner({ trigger }: DashPanelProps) {
   const isMobile = useIsMobile();
   const navigate = useNavigate();
   const { data: roleData, isLoading: roleLoading } = useUserRole();
   const { data: company, isLoading: companyLoading } = useCompany();
+  const { locale, setLocale, t } = useDashLocale();
   const [open, setOpen] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
   const { messages, displayMessages, hasMoreHistory, loadMoreHistory, isLoading, sendMessage, sendDirectApproval, clearChat, cancelStream, sessionId, loadSession } = useDashChat();
@@ -69,9 +71,19 @@ export function DashPanel({ trigger }: DashPanelProps) {
 
   const headerActions = (
     <div className="flex items-center gap-1">
+      {/* Locale toggle */}
+      <Button
+        variant="ghost"
+        size="sm"
+        className="h-7 px-2 text-xs font-medium text-muted-foreground hover:text-foreground"
+        onClick={() => setLocale(locale === "ro" ? "en" : "ro")}
+        title={locale === "ro" ? "Switch to English" : "Schimbă în Română"}
+      >
+        {locale === "ro" ? "EN" : "RO"}
+      </Button>
       <Popover open={historyOpen} onOpenChange={setHistoryOpen}>
         <PopoverTrigger asChild>
-          <Button variant="ghost" size="icon" className="h-7 w-7" title="Session history">
+          <Button variant="ghost" size="icon" className="h-7 w-7" title={t.history}>
             <History className="h-3.5 w-3.5" />
           </Button>
         </PopoverTrigger>
@@ -84,7 +96,7 @@ export function DashPanel({ trigger }: DashPanelProps) {
         </PopoverContent>
       </Popover>
       {messages.length > 0 && (
-        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={clearChat} title="Clear chat">
+        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={clearChat} title={t.clear}>
           <Trash2 className="h-3.5 w-3.5" />
         </Button>
       )}
@@ -153,5 +165,14 @@ export function DashPanel({ trigger }: DashPanelProps) {
         {chatContent}
       </DialogContent>
     </Dialog>
+  );
+}
+
+/** Public export — wraps inner component with locale context */
+export function DashPanel({ trigger }: DashPanelProps) {
+  return (
+    <DashLocaleProvider>
+      <DashPanelInner trigger={trigger} />
+    </DashLocaleProvider>
   );
 }

@@ -1,4 +1,6 @@
 import { useRef, useEffect, useState, memo } from "react";
+import { z } from "zod";
+import { useDashLocale } from "@/contexts/DashLocaleContext";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Bot, User, Sparkles, Loader2, RotateCcw, Paperclip } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -13,6 +15,30 @@ import { ClarificationCard } from "./ClarificationCard";
 import { ActionPreviewCard } from "./ActionPreviewCard";
 import { ExecutionResultCard } from "./ExecutionResultCard";
 
+// Runtime Zod schemas for structured event data validation
+const SourceCardSchema = z.object({ module: z.string(), entity: z.string(), id: z.string(), label: z.string() });
+const DataTableSchema = z.object({ columns: z.array(z.string()), rows: z.array(z.array(z.union([z.string(), z.number(), z.boolean(), z.null()]))), title: z.string().optional() });
+const ActionPreviewSchema = z.object({ action: z.string(), summary: z.string(), risk: z.enum(["low", "medium", "high"]).optional(), affected: z.array(z.string()).optional(), pending_action_id: z.string().optional(), can_approve: z.boolean().optional(), missing_fields: z.array(z.string()).optional(), draft: z.unknown().optional(), resolved_status: z.string().optional() });
+const ExecutionResultSchema = z.object({ status: z.enum(["success", "error", "partial"]), title: z.string().optional(), summary: z.string().optional(), changes: z.array(z.string()).optional(), errors: z.array(z.string()).optional() });
+const ClarificationSchema = z.object({ question: z.string(), options: z.array(z.string()).optional() });
+
+function validateEventData(event: DashStructuredEvent): boolean {
+  try {
+    switch (event.type) {
+      case "source_card": SourceCardSchema.parse(event.data); break;
+      case "data_table": DataTableSchema.parse(event.data); break;
+      case "action_preview": ActionPreviewSchema.parse(event.data); break;
+      case "execution_result": ExecutionResultSchema.parse(event.data); break;
+      case "clarification": ClarificationSchema.parse(event.data); break;
+      default: break;
+    }
+    return true;
+  } catch (err) {
+    console.warn("[Dash] Structured event validation failed:", event.type, err);
+    return false;
+  }
+}
+
 interface DashMessageListProps {
   messages: DashMessage[];
   isLoading: boolean;
@@ -25,6 +51,7 @@ interface DashMessageListProps {
 }
 
 function StructuredEventRenderer({ event, onSuggestedClick, onDirectApproval }: { event: DashStructuredEvent; onSuggestedClick: (q: string) => void; onDirectApproval?: (pendingActionId: string, action: "approve" | "reject", executeTool?: string) => Promise<ApprovalResult> }) {
+  if (!validateEventData(event)) return null;
   switch (event.type) {
     case "source_card":
       return <SourceCard module={event.data.module} entity={event.data.entity} id={event.data.id} label={event.data.label} />;
@@ -162,6 +189,7 @@ function ProgressiveLoadingIndicator() {
 }
 
 export function DashMessageList({ messages, isLoading, suggestedQuestions, onSuggestedClick, onRetry, onDirectApproval, hasMoreHistory, loadMoreHistory }: DashMessageListProps) {
+  const { t } = useDashLocale();
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -209,7 +237,7 @@ export function DashMessageList({ messages, isLoading, suggestedQuestions, onSug
             {hasMoreHistory && loadMoreHistory && (
               <div className="flex justify-center pb-2">
                 <Button variant="outline" size="sm" onClick={loadMoreHistory} className="text-xs gap-1.5">
-                  Load older messages
+                  {t.loadOlder}
                 </Button>
               </div>
             )}

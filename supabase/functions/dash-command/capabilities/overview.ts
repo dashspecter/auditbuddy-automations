@@ -46,13 +46,34 @@ export async function getCrossModuleSummary(
   utcRange: (sb: any, from: string, to: string) => Promise<{ fromUtc: string; toUtc: string } | null>
 ): Promise<CapabilityResult<any>> {
   const ur = await utcRange(sb, args.from, args.to);
-  const locationFilter = args.location_id;
 
-  let auditQ = sb.from("location_audits").select("id, overall_score, status, location_id, locations(name)").eq("company_id", companyId).gte("audit_date", args.from).lte("audit_date", args.to);
+  // Resolve location_name → location_id if only name was provided
+  let locationFilter = args.location_id;
+  let resolvedLocationName: string | null = null;
+  if (!locationFilter && args.location_name) {
+    const { data: locRow } = await sb.from("locations")
+      .select("id, name").eq("company_id", companyId)
+      .ilike("name", `%${args.location_name}%`).limit(1);
+    if (locRow?.[0]) {
+      locationFilter = locRow[0].id;
+      resolvedLocationName = locRow[0].name;
+    } else {
+      return capabilityError(`No location found matching "${args.location_name}"`);
+    }
+  }
+
+  // Filter audits at DB level (only finished statuses) — prevents JS post-filter from missing records
+  let auditQ = sb.from("location_audits")
+    .select("id, overall_score, status, location_id, locations(name)")
+    .eq("company_id", companyId)
+    .in("status", AUDIT_FINISHED_STATUSES)
+    .gte("audit_date", args.from)
+    .lte("audit_date", args.to);
   if (locationFilter) auditQ = auditQ.eq("location_id", locationFilter);
-  const { data: audits } = await auditQ.limit(200);
+  const { data: audits } = await auditQ.limit(500);
 
-  const finishedAudits = (audits ?? []).filter((a: any) => AUDIT_FINISHED_STATUSES.includes(a.status));
+  // All returned audits are already finished (filtered at DB level)
+  const finishedAudits = audits ?? [];
   const scoredAudits = finishedAudits.filter((a: any) => a.overall_score != null && a.overall_score > 0);
   const avgScore = scoredAudits.length > 0 ? Math.round(scoredAudits.reduce((s: number, a: any) => s + a.overall_score, 0) / scoredAudits.length) : null;
 
@@ -93,7 +114,8 @@ export async function getCrossModuleSummary(
   return success({
     date_range: { from: args.from, to: args.to },
     location_id: locationFilter ?? "all",
-    audits: { total: (audits ?? []).length, finished: finishedAudits.length, scored: scoredAudits.length, avg_score: avgScore },
+    location_name: resolvedLocationName ?? args.location_name ?? null,
+    audits: { total: finishedAudits.length, finished: finishedAudits.length, scored: scoredAudits.length, avg_score: avgScore },
     corrective_actions: { open: (cas ?? []).filter((c: any) => c.status === "open").length, in_progress: (cas ?? []).filter((c: any) => c.status === "in_progress").length, by_severity: { critical: (cas ?? []).filter((c: any) => c.severity === "critical").length, high: (cas ?? []).filter((c: any) => c.severity === "high").length } },
     attendance: { total_logs: (attLogs ?? []).length, late_arrivals: lateCount, missing_checkouts: noCheckout },
     work_orders: { open: (wos ?? []).filter((w: any) => w.status === "open").length, in_progress: (wos ?? []).filter((w: any) => w.status === "in_progress").length },

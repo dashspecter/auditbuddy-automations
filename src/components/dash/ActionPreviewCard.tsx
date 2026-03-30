@@ -3,12 +3,7 @@ import { Badge } from "@/components/ui/badge";
 import { Check, X, AlertTriangle, Shield, Loader2 } from "lucide-react";
 import { useState, useRef, useCallback, useEffect } from "react";
 import type { ApprovalResult } from "@/hooks/useDashChat";
-
-const RISK_CONFIG = {
-  low: { color: "bg-green-500/10 text-green-700 border-green-200", icon: Shield, label: "Low Risk" },
-  medium: { color: "bg-amber-500/10 text-amber-700 border-amber-200", icon: AlertTriangle, label: "Medium Risk" },
-  high: { color: "bg-red-500/10 text-red-700 border-red-200", icon: AlertTriangle, label: "High Risk" },
-};
+import { useDashLocale } from "@/contexts/DashLocaleContext";
 
 interface ActionPreviewCardProps {
   action: string;
@@ -29,6 +24,14 @@ export function ActionPreviewCard({
   can_approve = false, missing_fields, draft, resolved_status,
   onApprove, onReject,
 }: ActionPreviewCardProps) {
+  const { t } = useDashLocale();
+
+  const RISK_CONFIG = {
+    low: { color: "bg-green-500/10 text-green-700 border-green-200", icon: Shield, label: t.lowRisk },
+    medium: { color: "bg-amber-500/10 text-amber-700 border-amber-200", icon: AlertTriangle, label: t.mediumRisk },
+    high: { color: "bg-red-500/10 text-red-700 border-red-200", icon: AlertTriangle, label: t.highRisk },
+  };
+
   // Map resolved DB status to card display status
   const initialStatus = resolved_status === "approved" || resolved_status === "executed"
     ? "approved" as const
@@ -121,7 +124,7 @@ export function ActionPreviewCard({
 
       {missing_fields && missing_fields.length > 0 && (
         <div className="space-y-1">
-          <p className="text-xs font-medium text-destructive">Missing required fields:</p>
+          <p className="text-xs font-medium text-destructive">{t.missingFields}</p>
           <div className="flex flex-wrap gap-1">
             {missing_fields.map((field, i) => (
               <Badge key={i} variant="destructive" className="text-xs font-normal">
@@ -134,7 +137,7 @@ export function ActionPreviewCard({
 
       {affected && affected.length > 0 && (
         <div className="space-y-1">
-          <p className="text-xs font-medium text-muted-foreground">Affected:</p>
+          <p className="text-xs font-medium text-muted-foreground">{t.affected}</p>
           <div className="flex flex-wrap gap-1">
             {affected.map((item, i) => (
               <Badge key={i} variant="secondary" className="text-xs font-normal">
@@ -149,20 +152,20 @@ export function ActionPreviewCard({
         <div className="flex gap-2 pt-1">
           <Button size="sm" className="gap-1.5 h-8 text-xs" onClick={handleApprove}>
             <Check className="h-3.5 w-3.5" />
-            Approve & Execute
+            {t.approve}
           </Button>
           <Button size="sm" variant="outline" className="gap-1.5 h-8 text-xs" onClick={handleReject}>
             <X className="h-3.5 w-3.5" />
-            Reject
+            {t.reject}
           </Button>
         </div>
       )}
 
       {status === "countdown" && (
         <div className="flex items-center gap-2 pt-1">
-          <span className="text-xs text-muted-foreground">Executing in {countdown}s...</span>
+          <span className="text-xs text-muted-foreground">{t.undoIn(countdown)}</span>
           <Button size="sm" variant="outline" className="h-6 text-xs gap-1" onClick={handleUndo}>
-            <X className="h-3 w-3" /> Undo
+            <X className="h-3 w-3" /> {t.undo}
           </Button>
         </div>
       )}
@@ -170,7 +173,7 @@ export function ActionPreviewCard({
       {status === "approving" && (
         <div className="flex items-center gap-2 pt-1 text-xs text-muted-foreground">
           <Loader2 className="h-3.5 w-3.5 animate-spin" />
-          Executing...
+          {t.executing}
         </div>
       )}
 
@@ -178,7 +181,7 @@ export function ActionPreviewCard({
         <div className="flex items-center gap-2 pt-1">
           <Badge variant="outline" className="bg-green-500/10 text-green-700 border-green-200 gap-1">
             <Check className="h-3 w-3" />
-            Approved & Executed
+            {t.approved}
           </Badge>
         </div>
       )}
@@ -187,7 +190,7 @@ export function ActionPreviewCard({
         <div className="flex items-center gap-2 pt-1">
           <Badge variant="outline" className="bg-red-500/10 text-red-700 border-red-200 gap-1">
             <X className="h-3 w-3" />
-            Rejected
+            {t.rejected}
           </Badge>
         </div>
       )}
@@ -196,10 +199,10 @@ export function ActionPreviewCard({
         <div className="flex items-center gap-2 pt-1">
           <Badge variant="outline" className="bg-red-500/10 text-red-700 border-red-200 gap-1">
             <AlertTriangle className="h-3 w-3" />
-            Failed — check result below
+            {t.failed}
           </Badge>
           <Button size="sm" variant="ghost" className="h-6 text-xs" onClick={() => setStatus("pending")}>
-            Retry
+            {t.retry}
           </Button>
         </div>
       )}

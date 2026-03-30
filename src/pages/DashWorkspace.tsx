@@ -10,6 +10,7 @@ import { DashSavedWorkflows } from "@/components/dash/DashSavedWorkflows";
 import { Trash2 } from "lucide-react";
 import { useState, useCallback } from "react";
 import { cn } from "@/lib/utils";
+import { DashLocaleProvider, useDashLocale } from "@/contexts/DashLocaleContext";
 
 const SUGGESTED = [
   "What are the biggest operational issues across all locations in the last 30 days?",
@@ -35,10 +36,11 @@ function exportConversation(messages: { role: string; content: string }[]) {
   URL.revokeObjectURL(url);
 }
 
-export default function DashWorkspace() {
+function DashWorkspaceInner() {
   const navigate = useNavigate();
   const { messages, displayMessages, hasMoreHistory, loadMoreHistory, isLoading, sendMessage, sendDirectApproval, clearChat, cancelStream, sessionId, loadSession, retryLast } = useDashChat();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const { locale, setLocale, t } = useDashLocale();
 
   const handleSend = (text: string, attachments?: import("@/components/dash/DashInput").DashAttachment[]) => {
     sendMessage(text, attachments);
@@ -67,6 +69,16 @@ export default function DashWorkspace() {
           </div>
         </div>
         <div className="flex items-center gap-1">
+          {/* Locale toggle */}
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-7 px-2 text-xs font-medium text-muted-foreground hover:text-foreground hidden lg:inline-flex"
+            onClick={() => setLocale(locale === "ro" ? "en" : "ro")}
+            title={locale === "ro" ? "Switch to English" : "Schimbă în Română"}
+          >
+            {locale === "ro" ? "EN" : "RO"}
+          </Button>
           <Button
             variant="ghost"
             size="sm"
@@ -75,17 +87,17 @@ export default function DashWorkspace() {
             title={sidebarOpen ? "Hide sidebar" : "Show sidebar"}
           >
             {sidebarOpen ? <PanelLeftClose className="h-3.5 w-3.5" /> : <PanelLeftOpen className="h-3.5 w-3.5" />}
-            {sidebarOpen ? "Hide" : "History"}
+            {sidebarOpen ? "Hide" : t.history}
           </Button>
           {messages.length > 0 && (
             <>
               <Button variant="ghost" size="sm" onClick={handleExport} className="gap-1.5 text-xs">
                 <Download className="h-3.5 w-3.5" />
-                Export
+                {t.export}
               </Button>
               <Button variant="ghost" size="sm" onClick={clearChat} className="gap-1.5 text-xs">
                 <Trash2 className="h-3.5 w-3.5" />
-                Clear
+                {t.clear}
               </Button>
             </>
           )}
@@ -116,10 +128,18 @@ export default function DashWorkspace() {
 
           {/* Input */}
           <div className="pt-3 border-t border-border/40 mt-auto shrink-0">
-            <DashInput onSend={handleSend} isLoading={isLoading} onCancel={cancelStream} placeholder="Ask Dash about your operations..." />
+            <DashInput onSend={handleSend} isLoading={isLoading} onCancel={cancelStream} />
           </div>
         </div>
       </div>
     </div>
+  );
+}
+
+export default function DashWorkspace() {
+  return (
+    <DashLocaleProvider>
+      <DashWorkspaceInner />
+    </DashLocaleProvider>
   );
 }

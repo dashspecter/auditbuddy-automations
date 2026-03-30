@@ -13,10 +13,59 @@ export type DashMessage = {
   attachments?: DashAttachment[];
 };
 
-export type DashStructuredEvent = {
-  type: "source_card" | "data_table" | "action_preview" | "approval_request" | "execution_result" | "clarification";
-  data: any;
+export type SourceCardEvent = {
+  type: "source_card";
+  data: { module: string; entity: string; id: string; label: string };
 };
+
+export type DataTableEvent = {
+  type: "data_table";
+  data: { columns: string[]; rows: (string | number | boolean | null)[][]; title?: string };
+};
+
+export type ActionPreviewEvent = {
+  type: "action_preview";
+  data: {
+    action: string;
+    summary: string;
+    risk?: "low" | "medium" | "high";
+    affected?: string[];
+    pending_action_id?: string;
+    can_approve?: boolean;
+    missing_fields?: string[];
+    draft?: unknown;
+    resolved_status?: string;
+  };
+};
+
+export type ApprovalRequestEvent = {
+  type: "approval_request";
+  data: { pending_action_id: string; message?: string };
+};
+
+export type ExecutionResultEvent = {
+  type: "execution_result";
+  data: {
+    status: "success" | "error" | "partial";
+    title?: string;
+    summary?: string;
+    changes?: string[];
+    errors?: string[];
+  };
+};
+
+export type ClarificationEvent = {
+  type: "clarification";
+  data: { question: string; options?: string[] };
+};
+
+export type DashStructuredEvent =
+  | SourceCardEvent
+  | DataTableEvent
+  | ActionPreviewEvent
+  | ApprovalRequestEvent
+  | ExecutionResultEvent
+  | ClarificationEvent;
 
 const DASH_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/dash-command`;
 const STREAM_TIMEOUT_MS = 90_000; // 90 seconds without data → abort
