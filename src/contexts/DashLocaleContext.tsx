@@ -63,7 +63,7 @@ export const DASH_STRINGS = {
 
 interface DashLocaleContextValue {
   locale: DashLocale;
-  t: typeof DASH_STRINGS["en"];
+  t: (typeof DASH_STRINGS)[DashLocale];
   setLocale: (l: DashLocale) => void;
   speechLocale: "ro-RO" | "en-US";
 }

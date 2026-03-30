@@ -14,14 +14,14 @@ function makeMockSb(overrides: Record<string, any> = {}) {
   const data = { ...defaults, ...overrides };
 
   const chainable = (result: any) => ({
-    select: () => chainable(result),
-    eq: () => chainable(result),
-    ilike: () => chainable(result),
-    or: () => chainable(result),
-    order: () => chainable(result),
-    limit: () => chainable(result),
-    gte: () => chainable(result),
-    lte: () => chainable(result),
+    select: (..._args: any[]) => chainable(result),
+    eq: (..._args: any[]) => chainable(result),
+    ilike: (..._args: any[]) => chainable(result),
+    or: (..._args: any[]) => chainable(result),
+    order: (..._args: any[]) => chainable(result),
+    limit: (..._args: any[]) => chainable(result),
+    gte: (..._args: any[]) => chainable(result),
+    lte: (..._args: any[]) => chainable(result),
     maybeSingle: async () => result,
     then: undefined,
     [Symbol.asyncIterator]: undefined,

@@ -422,8 +422,9 @@ export function useDashChat() {
 
       // Use domain-specific keys from the execution_result event if available,
       // otherwise fall back to the full set so we never miss a stale cache.
-      const domainKeys: string[] = execResult?.data?.invalidate_keys?.length
-        ? execResult.data.invalidate_keys
+      const execData = execResult?.data as any;
+      const domainKeys: string[] = execData?.invalidate_keys?.length
+        ? execData.invalidate_keys
         : ["shifts", "employee-shifts-multiweek", "pending-approvals", "shift-assignments",
            "today-working-staff", "team-stats", "time-off-requests", "employees",
            "corrective-actions", "work-orders", "attendance", "tasks", "training"];
