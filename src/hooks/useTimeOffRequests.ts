@@ -28,6 +28,7 @@ export const useTimeOffRequests = (startDate?: string, endDate?: string, employe
     queryKey: ["time-off-requests", startDate, endDate, employeeId],
     enabled,
     queryFn: async () => {
+      console.log("[useTimeOffRequests] Fetching time-off requests", { startDate, endDate, employeeId });
       let query = supabase
         .from("time_off_requests")
         .select("*, employees(full_name, avatar_url), time_off_request_dates(date)")
