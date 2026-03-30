@@ -28,10 +28,10 @@ export const VacationDetailsDialog = ({ open, onOpenChange }: VacationDetailsDia
       const startOfYear = `${currentYear}-01-01`;
       const endOfYear = `${currentYear}-12-31`;
 
-      // Get approved time off requests for this year
+      // Get approved time off requests for this year with specific dates
       const { data: timeOffRequests, error } = await supabase
         .from("time_off_requests")
-        .select("*")
+        .select("*, time_off_request_dates(date)")
         .eq("employee_id", employee.id)
         .eq("status", "approved")
         .gte("start_date", startOfYear)
@@ -39,13 +39,17 @@ export const VacationDetailsDialog = ({ open, onOpenChange }: VacationDetailsDia
 
       if (error) throw error;
 
-      // Calculate used days
-      const usedDays = timeOffRequests?.reduce((total, request) => {
-        const start = new Date(request.start_date);
-        const end = new Date(request.end_date);
-        const days = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1;
-        return total + days;
-      }, 0) || 0;
+      // Count unique dates from child table
+      const uniqueDates = new Set<string>();
+      for (const request of timeOffRequests || []) {
+        const dates = (request as any).time_off_request_dates || [];
+        for (const d of dates) {
+          if (d.date >= startOfYear && d.date <= endOfYear) {
+            uniqueDates.add(d.date);
+          }
+        }
+      }
+      const usedDays = uniqueDates.size;
 
       const totalDays = employee.annual_vacation_days || 21;
       const remaining = totalDays - usedDays;
