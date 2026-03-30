@@ -352,12 +352,30 @@ export const EnhancedShiftWeekView = () => {
 
   // Get all time-off entries for employees belonging to a specific location on a given day
   const getTimeOffForLocationAndDay = (locationId: string, date: Date) => {
-    const locationEmployeeIds = employees
-      .filter(emp => emp.location_id === locationId)
-      .map(emp => emp.id);
+    // Include employees assigned to this location OR who have shifts at this location
+    const locationEmployeeIdsByProfile = new Set(
+      employees
+        .filter(emp => emp.location_id === locationId)
+        .map(emp => emp.id)
+    );
+    
+    // Also include employees who have shifts at this location during the week
+    const employeesWithShiftsAtLocation = new Set<string>();
+    shifts
+      .filter(s => s.location_id === locationId)
+      .forEach(s => {
+        s.shift_assignments?.forEach((sa: any) => {
+          if (sa.staff_id) employeesWithShiftsAtLocation.add(sa.staff_id);
+        });
+      });
+    
+    const allLocationEmployeeIds = new Set([
+      ...locationEmployeeIdsByProfile,
+      ...employeesWithShiftsAtLocation,
+    ]);
     
     return timeOffRequests.filter(req =>
-      locationEmployeeIds.includes(req.employee_id) &&
+      allLocationEmployeeIds.has(req.employee_id) &&
       req.status === "approved" &&
       isDateInTimeOffRequest(req, date)
     );

@@ -33,11 +33,13 @@ export const useTimeOffRequests = (startDate?: string, endDate?: string, employe
         .select("*, employees(full_name, avatar_url), time_off_request_dates(date)")
         .order("start_date", { ascending: true });
       
-      if (startDate) {
-        query = query.gte("start_date", startDate);
-      }
-      if (endDate) {
-        query = query.lte("end_date", endDate);
+      if (startDate && endDate) {
+        // Overlap logic: fetch any request that touches the displayed period
+        query = query.lte("start_date", endDate).gte("end_date", startDate);
+      } else if (startDate) {
+        query = query.gte("end_date", startDate);
+      } else if (endDate) {
+        query = query.lte("start_date", endDate);
       }
       if (employeeId) {
         query = query.eq("employee_id", employeeId);
