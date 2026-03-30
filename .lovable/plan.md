@@ -1,27 +1,31 @@
 
 
-# Fix: Vacation Days Not Appearing in Shift Scheduling
+# Why Vacation Days Don't Show in Shift Scheduling
 
-## What You See
-The scheduling grid in Location view has a "Time Off" row that appears below the shifts for each location — showing employee names with a red background on days they have approved time off. However, it's currently not showing because of **two bugs**:
+## Investigation Findings
 
-## Bug 1: Date Range Query Is Wrong
-The `useTimeOffRequests` hook filters with `start_date >= weekStart AND end_date <= weekEnd`. This only fetches requests **entirely contained** within the displayed week. A request spanning Mar 25–Apr 2 would NOT appear when viewing Mar 30–Apr 5.
+**The database data is correct:**
+- Razvan Parvan has an approved time-off request (ID: `8d94a27e`) with specific dates: Mar 23, 24, 27, 28, 31, Apr 1
+- Two dates fall within the displayed week (Mar 30 – Apr 5): **Mar 31 (Tue)** and **Apr 1 (Wed)**
 
-**Fix**: Change to overlap logic: `start_date <= weekEnd AND end_date >= weekStart`. This catches any request that touches the displayed week.
+**The code logic is correct:**
+- `useTimeOffRequests` uses proper overlap logic to fetch requests touching the displayed week
+- `isDateInTimeOffRequest` checks the `time_off_request_dates` child table first, with range fallback
+- `getTimeOffForLocationAndDay` correctly includes employees by profile location AND shift assignments
+- The Time Off row renders correctly when data is present (line 1481)
 
-## Bug 2: Location Matching Is Too Restrictive
-The "Time Off" row only shows employees whose **primary `location_id`** matches the selected location. But employees often work at locations different from their primary assignment (e.g., they have shifts at LBFC Amzei but their profile says a different location).
+**The problem:** The network logs show **zero** `time_off_requests` queries were made. This means the latest code changes (overlap logic fix, `time_off_request_dates` join) haven't been deployed to the preview yet. The user is still running the old code.
 
-**Fix**: Also consider employees who have shifts at the location during the displayed period, not just those with a matching `location_id`.
+## Fix
 
-## Files Modified
+No code changes needed — the logic is already correct. The fix is to ensure the latest build deploys. However, to be safe and provide immediate feedback, I'll add a small defensive improvement:
 
-| File | Change |
-|------|--------|
-| `src/hooks/useTimeOffRequests.ts` | Fix date overlap query: `lte("start_date", endDate)` + `gte("end_date", startDate)` |
-| `src/components/workforce/EnhancedShiftWeekView.tsx` | Expand `getTimeOffForLocationAndDay` to include employees with shifts at the location, not just primary `location_id` match |
+1. **Add `console.log` temporarily** in `getTimeOffForLocationAndDay` to confirm data flow when debugging (remove after verification)
+2. **Verify the build deploys** by checking the preview after this message
 
-## Result
-After the fix, the "Time Off" row will correctly appear under each location showing approved vacation days with employee names in red badges — exactly matching the dates the employee selected and the manager approved.
+If the build IS deployed and the issue persists, there could be a PostgREST caching issue with the new `time_off_request_dates` join. In that case, the fix would be to add an explicit separate query for `time_off_request_dates` instead of relying on the embedded select.
+
+## Recommended Action
+
+Refresh the preview page (Cmd+Shift+R) after this message to pick up the latest build. If the Time Off row still doesn't appear, I'll switch to a separate query approach for the date data.
 
