@@ -1,31 +1,38 @@
 
 
-# Why Vacation Days Don't Show in Shift Scheduling
+# Add Clock In/Out for Managers on Mobile Dashboard
 
-## Investigation Findings
+## Problem
+Managers use the regular dashboard (adapted to mobile via `MobileBottomNav`), not the staff view (`StaffHome`). The clock-in/out buttons only exist in `StaffHome.tsx`. Managers who work on-location have no way to clock in/out from their mobile view.
 
-**The database data is correct:**
-- Razvan Parvan has an approved time-off request (ID: `8d94a27e`) with specific dates: Mar 23, 24, 27, 28, 31, Apr 1
-- Two dates fall within the displayed week (Mar 30 – Apr 5): **Mar 31 (Tue)** and **Apr 1 (Wed)**
+## Solution
+Add a compact **Clock In/Out card** to the mobile dashboard view. When a manager is on mobile and has an employee profile (meaning they're also assigned as staff at a location), show a small attendance card at the top of the dashboard with QR scan clock-in/out functionality.
 
-**The code logic is correct:**
-- `useTimeOffRequests` uses proper overlap logic to fetch requests touching the displayed week
-- `isDateInTimeOffRequest` checks the `time_off_request_dates` child table first, with range fallback
-- `getTimeOffForLocationAndDay` correctly includes employees by profile location AND shift assignments
-- The Time Off row renders correctly when data is present (line 1481)
+## How It Works
 
-**The problem:** The network logs show **zero** `time_off_requests` queries were made. This means the latest code changes (overlap logic fix, `time_off_request_dates` join) haven't been deployed to the preview yet. The user is still running the old code.
+1. **Create a new component**: `ManagerClockInCard` — a compact card that:
+   - Checks if the current user has an `employees` record (meaning they work at a location)
+   - Fetches their today's shift assignment and attendance log (same logic as `StaffHome`)
+   - Shows current status: "Not clocked in" / "Clocked in at HH:MM" / "Shift completed"
+   - Has a single QR scan button that navigates to `/staff/scan-attendance`
+   - Only renders on mobile (`useIsMobile()`)
 
-## Fix
+2. **Add it to the Dashboard page** (`src/pages/Dashboard.tsx`):
+   - Import and render `<ManagerClockInCard />` above the existing dashboard content
+   - The component self-hides if the user has no employee record or if on desktop
 
-No code changes needed — the logic is already correct. The fix is to ensure the latest build deploys. However, to be safe and provide immediate feedback, I'll add a small defensive improvement:
+3. **No routing changes needed** — `/staff/scan-attendance` is already a `ProtectedRoute` accessible to any authenticated user
 
-1. **Add `console.log` temporarily** in `getTimeOffForLocationAndDay` to confirm data flow when debugging (remove after verification)
-2. **Verify the build deploys** by checking the preview after this message
+## Files
 
-If the build IS deployed and the issue persists, there could be a PostgREST caching issue with the new `time_off_request_dates` join. In that case, the fix would be to add an explicit separate query for `time_off_request_dates` instead of relying on the embedded select.
+| File | Change |
+|------|--------|
+| `src/components/dashboard/ManagerClockInCard.tsx` | **New** — compact attendance card with QR scan button |
+| `src/pages/Dashboard.tsx` | Add `<ManagerClockInCard />` at top of page content |
 
-## Recommended Action
-
-Refresh the preview page (Cmd+Shift+R) after this message to pick up the latest build. If the Time Off row still doesn't appear, I'll switch to a separate query approach for the date data.
+## UI Design
+- Small card with gradient accent, showing location name, shift time, and status
+- Single prominent "Scan QR to Clock In" / "Scan QR to Clock Out" button
+- Automatically hidden on desktop and for users without employee profiles
+- Matches existing mobile dashboard styling
 
