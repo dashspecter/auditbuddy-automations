@@ -360,11 +360,14 @@ export const EnhancedShiftWeekView = () => {
     );
     
     // Also include employees who have shifts at this location during the week
-    const employeesWithShiftsAtLocation = new Set(
-      shifts
-        .filter(s => s.location_id === locationId)
-        .map(s => s.employee_id)
-    );
+    const employeesWithShiftsAtLocation = new Set<string>();
+    shifts
+      .filter(s => s.location_id === locationId)
+      .forEach(s => {
+        s.shift_assignments?.forEach((sa: any) => {
+          if (sa.staff_id) employeesWithShiftsAtLocation.add(sa.staff_id);
+        });
+      });
     
     const allLocationEmployeeIds = new Set([
       ...locationEmployeeIdsByProfile,
