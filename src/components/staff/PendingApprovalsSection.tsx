@@ -187,8 +187,8 @@ export function PendingApprovalsSection() {
                       </Badge>
                     </div>
                     <div className="text-sm text-muted-foreground mt-1">
-                      {format(new Date(request.start_date), "MMM d")} – {format(new Date(request.end_date), "MMM d")}
-                      <span className="ml-1">({calculateDays(request.start_date, request.end_date)}d)</span>
+                      {formatRequestDates(request)}
+                      <span className="ml-1">({calculateDays(request)}d)</span>
                     </div>
                     {request.reason && (
                       <p className="text-xs text-muted-foreground mt-1 italic line-clamp-2">"{request.reason}"</p>
