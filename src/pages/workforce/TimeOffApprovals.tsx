@@ -570,8 +570,8 @@ const TimeOffApprovals = () => {
               <div className="bg-muted p-3 rounded-lg">
                 <div className="font-medium">{revokingRequest.employees.full_name}</div>
                 <div className="text-sm text-muted-foreground">
-                  {format(new Date(revokingRequest.start_date), "MMM d")} - {format(new Date(revokingRequest.end_date), "MMM d, yyyy")}
-                  ({calculateDays(revokingRequest.start_date, revokingRequest.end_date)} days)
+                  {formatRequestDates(revokingRequest)}
+                  ({calculateDays(revokingRequest)} days)
                 </div>
               </div>
 
