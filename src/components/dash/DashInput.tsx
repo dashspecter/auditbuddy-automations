@@ -1,11 +1,12 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
-import { Send, Loader2, X, Paperclip } from "lucide-react";
+import { Send, Loader2, X, Paperclip, Mic, MicOff } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCompanyContext } from "@/contexts/CompanyContext";
 import { toast } from "sonner";
+import { useSpeechRecognition } from "@/hooks/useSpeechRecognition";
 
 export interface DashAttachment {
   name: string;
@@ -28,15 +29,54 @@ const ALLOWED_TYPES = [
   "text/csv",
 ];
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+const MAX_LENGTH = 2000;
+
+/** Detect locale from browser — prefer Romanian if set */
+function detectLocale(): "ro-RO" | "en-US" {
+  if (typeof navigator === "undefined") return "en-US";
+  const lang = navigator.language || (navigator as any).userLanguage || "";
+  return lang.startsWith("ro") ? "ro-RO" : "en-US";
+}
 
 export function DashInput({ onSend, isLoading, onCancel, placeholder, className }: DashInputProps) {
   const [input, setInput] = useState("");
   const [uploading, setUploading] = useState(false);
   const [attachedFiles, setAttachedFiles] = useState<DashAttachment[]>([]);
+  const [interimText, setInterimText] = useState<string | null>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { user } = useAuth();
   const { company } = useCompanyContext();
+
+  // Track the input value before voice started so we can append to it
+  const preVoiceInputRef = useRef("");
+
+  const handleVoiceResult = useCallback((transcript: string) => {
+    const base = preVoiceInputRef.current;
+    const separator = base && !base.endsWith(" ") ? " " : "";
+    const combined = (base + separator + transcript).substring(0, MAX_LENGTH);
+    setInput(combined);
+    setInterimText(null);
+  }, []);
+
+  const handleVoiceInterim = useCallback((interimTranscript: string) => {
+    const base = preVoiceInputRef.current;
+    const separator = base && !base.endsWith(" ") ? " " : "";
+    setInterimText((base + separator + interimTranscript).substring(0, MAX_LENGTH));
+  }, []);
+
+  const { isSupported: voiceSupported, isListening, error: voiceError, toggle: toggleVoice } = useSpeechRecognition({
+    locale: detectLocale(),
+    onResult: handleVoiceResult,
+    onInterim: handleVoiceInterim,
+  });
+
+  // Show voice errors as toasts
+  useEffect(() => {
+    if (voiceError) {
+      toast.error(voiceError);
+    }
+  }, [voiceError]);
 
   useEffect(() => {
     if (!isLoading && inputRef.current) {
@@ -90,8 +130,6 @@ export function DashInput({ onSend, isLoading, onCancel, placeholder, className 
     setAttachedFiles(prev => prev.filter((_, i) => i !== idx));
   };
 
-  const MAX_LENGTH = 2000;
-
   const handleSubmit = () => {
     if ((!input.trim() && attachedFiles.length === 0) || isLoading || uploading) return;
 
@@ -100,6 +138,7 @@ export function DashInput({ onSend, isLoading, onCancel, placeholder, className 
     onSend(trimmed, attachedFiles.length > 0 ? attachedFiles : undefined);
     setInput("");
     setAttachedFiles([]);
+    setInterimText(null);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -108,6 +147,17 @@ export function DashInput({ onSend, isLoading, onCancel, placeholder, className 
       handleSubmit();
     }
   };
+
+  const handleToggleVoice = () => {
+    if (!isListening) {
+      // Capture current input so voice transcript appends to it
+      preVoiceInputRef.current = input;
+    }
+    toggleVoice();
+  };
+
+  // Display text: show interim (live) while listening, otherwise the committed input
+  const displayValue = isListening && interimText !== null ? interimText : input;
 
   return (
     <div className={cn("space-y-2", className)}>
@@ -123,6 +173,14 @@ export function DashInput({ onSend, isLoading, onCancel, placeholder, className 
               </button>
             </div>
           ))}
+        </div>
+      )}
+
+      {/* Listening indicator */}
+      {isListening && (
+        <div className="flex items-center gap-2 px-2 text-xs text-red-500 animate-pulse">
+          <span className="inline-block h-2 w-2 rounded-full bg-red-500" />
+          Listening... speak now ({detectLocale() === "ro-RO" ? "Română" : "English"})
         </div>
       )}
 
@@ -143,7 +201,7 @@ export function DashInput({ onSend, isLoading, onCancel, placeholder, className 
           variant="ghost"
           className="h-[42px] w-[42px] shrink-0 rounded-xl"
           onClick={() => fileInputRef.current?.click()}
-          disabled={isLoading || uploading}
+          disabled={isLoading || uploading || isListening}
           title="Attach file"
         >
           {uploading ? (
@@ -153,19 +211,44 @@ export function DashInput({ onSend, isLoading, onCancel, placeholder, className 
           )}
         </Button>
 
+        {/* Voice input button — only rendered if browser supports it */}
+        {voiceSupported && (
+          <Button
+            size="icon"
+            variant={isListening ? "destructive" : "ghost"}
+            className={cn(
+              "h-[42px] w-[42px] shrink-0 rounded-xl transition-colors",
+              isListening && "animate-pulse"
+            )}
+            onClick={handleToggleVoice}
+            disabled={isLoading || uploading}
+            title={isListening ? "Stop recording" : "Voice input"}
+          >
+            {isListening ? (
+              <MicOff className="h-4 w-4" />
+            ) : (
+              <Mic className="h-4 w-4" />
+            )}
+          </Button>
+        )}
+
         <div className="flex-1 relative">
           <textarea
             ref={inputRef}
-            value={input}
+            value={displayValue}
             onChange={e => {
               const val = e.target.value;
               if (val.length <= MAX_LENGTH) setInput(val);
             }}
             onKeyDown={handleKeyDown}
             disabled={isLoading}
+            readOnly={isListening}
             placeholder={placeholder ?? "Ask Dash anything about your operations..."}
             rows={1}
-            className="w-full resize-none rounded-xl border border-input bg-background px-3 py-2.5 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 disabled:opacity-50 min-h-[42px] max-h-[120px]"
+            className={cn(
+              "w-full resize-none rounded-xl border border-input bg-background px-3 py-2.5 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 disabled:opacity-50 min-h-[42px] max-h-[120px]",
+              isListening && "border-red-300 bg-red-50/30 dark:bg-red-950/10"
+            )}
             style={{ height: "auto", overflow: "hidden" }}
             onInput={e => {
               const t = e.currentTarget;
@@ -173,9 +256,9 @@ export function DashInput({ onSend, isLoading, onCancel, placeholder, className 
               t.style.height = Math.min(t.scrollHeight, 120) + "px";
             }}
           />
-          {input.length > MAX_LENGTH * 0.8 && (
-            <span className={`absolute bottom-1 right-2 text-[10px] ${input.length >= MAX_LENGTH ? "text-destructive" : "text-muted-foreground"}`}>
-              {input.length}/{MAX_LENGTH}
+          {displayValue.length > MAX_LENGTH * 0.8 && (
+            <span className={`absolute bottom-1 right-2 text-[10px] ${displayValue.length >= MAX_LENGTH ? "text-destructive" : "text-muted-foreground"}`}>
+              {displayValue.length}/{MAX_LENGTH}
             </span>
           )}
         </div>
@@ -185,7 +268,7 @@ export function DashInput({ onSend, isLoading, onCancel, placeholder, className 
             <X className="h-4 w-4" />
           </Button>
         ) : (
-          <Button size="icon" onClick={handleSubmit} disabled={!input.trim() && attachedFiles.length === 0} className="h-[42px] w-[42px] shrink-0 rounded-xl">
+          <Button size="icon" onClick={handleSubmit} disabled={(!input.trim() && attachedFiles.length === 0) || isListening} className="h-[42px] w-[42px] shrink-0 rounded-xl">
             <Send className="h-4 w-4" />
           </Button>
         )}
