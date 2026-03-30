@@ -115,14 +115,19 @@ export const EmployeeMultiWeekView = ({
   };
 
   const getTimeOffForDay = (date: Date) => {
-    return timeOffRequests.find(
-      (req) =>
-        req.status === "approved" &&
-        isWithinInterval(date, {
-          start: parseISO(req.start_date),
-          end: parseISO(req.end_date),
-        })
-    );
+    const dateStr = format(date, "yyyy-MM-dd");
+    return timeOffRequests.find((req) => {
+      if (req.status !== "approved") return false;
+      // Use specific dates from child table if available
+      if ((req as any).time_off_request_dates?.length > 0) {
+        return (req as any).time_off_request_dates.some((d: any) => d.date === dateStr);
+      }
+      // Fallback to range for legacy requests
+      return isWithinInterval(date, {
+        start: parseISO(req.start_date),
+        end: parseISO(req.end_date),
+      });
+    });
   };
 
   const dayHeaders = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
