@@ -174,21 +174,44 @@ const TimeOffApprovals = () => {
   };
 
   const submitEditDates = async () => {
-    if (!editingRequest || !editStartDate || !editEndDate) return;
-    if (editEndDate < editStartDate) {
-      toast.error("End date must be after start date");
-      return;
-    }
+    if (!editingRequest || editSelectedDates.length === 0) return;
     try {
       setIsSubmitting(true);
+      const sortedDates = [...editSelectedDates].sort((a, b) => a.getTime() - b.getTime());
+      const newStart = format(sortedDates[0], "yyyy-MM-dd");
+      const newEnd = format(sortedDates[sortedDates.length - 1], "yyyy-MM-dd");
+      const dateStrings = sortedDates.map(d => format(d, "yyyy-MM-dd"));
+
+      // Update parent request
       const { error } = await supabase
         .from("time_off_requests")
-        .update({
-          start_date: format(editStartDate, "yyyy-MM-dd"),
-          end_date: format(editEndDate, "yyyy-MM-dd"),
-        })
+        .update({ start_date: newStart, end_date: newEnd })
         .eq("id", editingRequest.id);
       if (error) throw error;
+
+      // Replace child date rows
+      await supabase
+        .from("time_off_request_dates")
+        .delete()
+        .eq("request_id", editingRequest.id);
+
+      const { data: reqData } = await supabase
+        .from("time_off_requests")
+        .select("company_id")
+        .eq("id", editingRequest.id)
+        .single();
+
+      if (reqData) {
+        const { error: datesError } = await supabase
+          .from("time_off_request_dates")
+          .insert(dateStrings.map(d => ({
+            request_id: editingRequest.id,
+            date: d,
+            company_id: reqData.company_id,
+          })));
+        if (datesError) throw datesError;
+      }
+
       toast.success("Vacation dates updated successfully");
       setEditDialogOpen(false);
       loadRequests();
