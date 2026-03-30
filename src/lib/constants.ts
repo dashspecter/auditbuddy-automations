@@ -26,12 +26,16 @@ export const STALE_TIME = {
 export const DEFAULT_PAGE_SIZE = 20;
 export const MAX_PAGE_SIZE = 100;
 
-// Date formats
-export const DATE_FORMAT = 'yyyy-MM-dd';
-export const DATETIME_FORMAT = 'yyyy-MM-dd HH:mm';
-export const TIME_FORMAT = 'HH:mm';
-export const DISPLAY_DATE_FORMAT = 'MMM dd, yyyy';
-export const DISPLAY_DATETIME_FORMAT = 'MMM dd, yyyy HH:mm';
+// Date formats — use these everywhere instead of inline format strings
+// to ensure consistent date display across the entire platform.
+export const DATE_FORMAT = 'yyyy-MM-dd';           // DB / API (e.g. "2026-03-30")
+export const DATETIME_FORMAT = 'yyyy-MM-dd HH:mm'; // DB / API with time
+export const TIME_FORMAT = 'HH:mm';                // Time only (e.g. "14:30")
+export const DISPLAY_DATE_FORMAT = 'MMM dd, yyyy'; // UI dates (e.g. "Mar 30, 2026")
+export const DISPLAY_DATE_SHORT = 'MMM d, yyyy';   // Compact (e.g. "Mar 3, 2026")
+export const DISPLAY_DATETIME_FORMAT = 'MMM dd, yyyy HH:mm'; // UI with time
+export const DISPLAY_MONTH_YEAR = 'MMMM yyyy';     // Month headers (e.g. "March 2026")
+export const DISPLAY_DAY_FULL = 'EEEE, MMMM d, yyyy'; // Full day name (kiosk, e.g. "Monday, March 30, 2026")
 
 // Status values
 export const AUDIT_STATUS = {

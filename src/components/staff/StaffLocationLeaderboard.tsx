@@ -5,7 +5,7 @@ import { Trophy, Medal, Award, TrendingUp, Info } from "lucide-react";
 import { useLocationPerformanceScores } from "@/hooks/useLocationPerformanceScores";
 import { format, startOfMonth, endOfMonth } from "date-fns";
 import { UserAvatar } from "@/components/UserAvatar";
-import { computeKioskLeaderboardScores, type KioskEmployeeScore } from "@/lib/kioskEffectiveScore";
+import { computeEffectiveScores, type EffectiveEmployeeScore } from "@/lib/effectiveScore";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { TierBadge } from "@/components/staff/TierBadge";
 
@@ -41,16 +41,11 @@ export const StaffLocationLeaderboard = ({ locationId, currentEmployeeId }: Staf
 
   const { data: allScores = [], isLoading } = useLocationPerformanceScores(locationId, startDate, endDate);
 
-  // Compute kiosk effective scores - only average components with real data
+  // Use canonical effective scores — same engine as EmployeeDossier and WorkforceAnalytics
   const kioskScores = useMemo(() => {
     if (!allScores.length) return [];
-    
-    return computeKioskLeaderboardScores(allScores)
-      .sort((a, b) => {
-        const scoreA = a.kiosk_effective_overall_score ?? -1;
-        const scoreB = b.kiosk_effective_overall_score ?? -1;
-        return scoreB - scoreA;
-      });
+    return computeEffectiveScores(allScores, true)
+      .sort((a, b) => (b.effective_score ?? -1) - (a.effective_score ?? -1));
   }, [allScores]);
 
   if (isLoading) {
@@ -80,7 +75,7 @@ export const StaffLocationLeaderboard = ({ locationId, currentEmployeeId }: Staf
   );
 
   // Helper to get component breakdown text
-  const getComponentsText = (emp: KioskEmployeeScore) => {
+  const getComponentsText = (emp: EffectiveEmployeeScore) => {
     const components: string[] = [];
     if (emp.attendance_used) components.push(`Attendance: ${Math.round(emp.attendance_score)}`);
     if (emp.punctuality_used) components.push(`Punctuality: ${Math.round(emp.punctuality_score)}`);
@@ -116,7 +111,7 @@ export const StaffLocationLeaderboard = ({ locationId, currentEmployeeId }: Staf
       <div className="space-y-2">
         {employees.map((employee, index) => {
           const isCurrentUser = employee.employee_id === currentEmployeeId;
-          const effectiveScore = employee.kiosk_effective_overall_score;
+          const effectiveScore = employee.effective_score;
           
           return (
             <TooltipProvider key={employee.employee_id}>
@@ -183,11 +178,11 @@ export const StaffLocationLeaderboard = ({ locationId, currentEmployeeId }: Staf
               <div className="flex items-center gap-1">
                 <span className="text-xs text-muted-foreground">{currentEmployee.role}</span>
                 <span className="text-xs text-muted-foreground">•</span>
-                <TierBadge score={currentEmployee.kiosk_effective_overall_score} size="sm" showLabel={false} />
+                <TierBadge score={currentEmployee.effective_score} size="sm" showLabel={false} />
               </div>
             </div>
-            <div className={`font-bold text-lg ${currentEmployee.kiosk_effective_overall_score !== null ? getScoreColor(currentEmployee.kiosk_effective_overall_score) : "text-muted-foreground"}`}>
-              {currentEmployee.kiosk_effective_overall_score !== null ? Math.round(currentEmployee.kiosk_effective_overall_score) : "—"}
+            <div className={`font-bold text-lg ${currentEmployee.effective_score !== null ? getScoreColor(currentEmployee.effective_score) : "text-muted-foreground"}`}>
+              {currentEmployee.effective_score !== null ? Math.round(currentEmployee.effective_score) : "—"}
             </div>
           </div>
         </div>

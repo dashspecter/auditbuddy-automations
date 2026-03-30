@@ -1,20 +1,21 @@
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Download, TrendingUp, TrendingDown, Minus } from "lucide-react";
-import { useStaffAudits } from "@/hooks/useStaffAudits";
-import { useEmployees } from "@/hooks/useEmployees";
-import { useEmployeeScore } from "@/hooks/useStaffAudits";
+import { useEmployeePerformance } from "@/hooks/useEmployeePerformance";
+import { computeEffectiveScores, formatEffectiveScore } from "@/lib/effectiveScore";
 import { useMemo, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { LocationSelector } from "@/components/LocationSelector";
 import { DateRangeFilter } from "@/components/filters/DateRangeFilter";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
-import { addBrandedHeader, addBrandedFooter, getBrandedTableStyles, addSectionTitle, BRAND_COLORS, BRAND_FONT } from "@/lib/pdfBranding";
+import { addBrandedHeader, addBrandedFooter, getBrandedTableStyles, addSectionTitle } from "@/lib/pdfBranding";
 import { EmployeePerformanceDetail } from "@/components/EmployeePerformanceDetail";
-import { supabase } from "@/integrations/supabase/client";
-import { useQuery } from "@tanstack/react-query";
 import { subMonths, format, startOfDay, endOfDay } from "date-fns";
+
+// StaffLeaderboard uses the CANONICAL effective score calculation (computeEffectiveScore)
+// — the same engine used by EmployeeDossier and WorkforceAnalytics.
+// Never compute scores inline here; always delegate to computeEffectiveScores().
 
 export const StaffLeaderboard = () => {
   const [filterLocationId, setFilterLocationId] = useState<string>("__all__");
@@ -25,143 +26,64 @@ export const StaffLeaderboard = () => {
     name: string;
     role: string;
   } | null>(null);
-  const { data: audits } = useStaffAudits(
-    undefined, 
-    filterLocationId === "__all__" ? undefined : filterLocationId
-  );
-  const { data: employees } = useEmployees(
-    filterLocationId === "__all__" ? undefined : filterLocationId
-  );
 
-  // Fetch all test submissions
-  const { data: testSubmissions } = useQuery({
-    queryKey: ["all-test-submissions"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("test_submissions")
-        .select("id, employee_id, score, completed_at")
-        .not("employee_id", "is", null)
-        .not("score", "is", null)
-        .order("completed_at", { ascending: false });
-      
-      if (error) throw error;
-      return data;
-    },
-  });
+  const startDate = dateFrom ? format(startOfDay(dateFrom), "yyyy-MM-dd") : undefined;
+  const endDate = dateTo ? format(endOfDay(dateTo), "yyyy-MM-dd") : undefined;
+  const locationId = filterLocationId === "__all__" ? undefined : filterLocationId;
+
+  const { data: rawScores = [], isLoading } = useEmployeePerformance(startDate, endDate, locationId);
 
   const leaderboardData = useMemo(() => {
-    if (!audits || !employees) return [];
+    if (!rawScores.length) return [];
 
-    // Filter data by date range
-    const filterByDateRange = (date: Date) => {
-      if (dateFrom && date < startOfDay(dateFrom)) return false;
-      if (dateTo && date > endOfDay(dateTo)) return false;
-      return true;
-    };
+    // Use canonical effective score — same as EmployeeDossier and WorkforceAnalytics
+    const effectiveScores = computeEffectiveScores(rawScores, true); // filterInactive=true
 
-    // Group employees by location
-    const locationGroups = new Map<string, any[]>();
-
-    employees
-      .filter(e => e.status === "active")
-      .forEach((employee) => {
-        const locationName = employee.locations?.name || "Unknown";
-        
-        // Get employee's staff audits filtered by date
-        const employeeAudits = audits
-          .filter((a) => a.employee_id === employee.id && filterByDateRange(new Date(a.audit_date)))
-          .sort((a, b) => new Date(b.audit_date).getTime() - new Date(a.audit_date).getTime())
-          .map(a => ({ score: a.score, date: new Date(a.audit_date) }));
-
-        // Get employee's test submissions filtered by date
-        const employeeTests = (testSubmissions || [])
-          .filter((t) => t.employee_id === employee.id && t.completed_at && filterByDateRange(new Date(t.completed_at)))
-          .map(t => ({ score: t.score!, date: new Date(t.completed_at!) }));
-
-        // Combine and sort all scores by date
-        const allScores = [...employeeAudits, ...employeeTests]
-          .sort((a, b) => b.date.getTime() - a.date.getTime())
-          .slice(0, 5);
-
-        if (allScores.length === 0) {
-          return;
-        }
-
-        const scores = allScores.map((s) => s.score);
-        const average = scores.reduce((a, b) => a + b, 0) / scores.length;
-
-        // Calculate trend
-        let trend: "up" | "down" | "neutral" = "neutral";
-        if (scores.length >= 2) {
-          const recentAvg = (scores[0] + (scores[1] || scores[0])) / Math.min(2, scores.length);
-          const olderScores = scores.slice(-2);
-          const olderAvg = olderScores.reduce((a, b) => a + b, 0) / olderScores.length;
-          if (recentAvg > olderAvg + 5) trend = "up";
-          else if (recentAvg < olderAvg - 5) trend = "down";
-        }
-
-        const employeeData = {
-          id: employee.id,
-          name: employee.full_name,
-          role: employee.role,
-          location: locationName,
-          average,
-          trend,
-          auditCount: allScores.length,
-        };
-
-        if (!locationGroups.has(locationName)) {
-          locationGroups.set(locationName, []);
-        }
-        locationGroups.get(locationName)!.push(employeeData);
-      });
-
-    // Sort employees within each location by score (descending)
-    locationGroups.forEach((employees) => {
-      employees.sort((a, b) => b.average - a.average);
+    // Group by location
+    const locationGroups = new Map<string, typeof effectiveScores>();
+    effectiveScores.forEach((emp) => {
+      const loc = emp.location_name || "Unknown";
+      if (!locationGroups.has(loc)) locationGroups.set(loc, []);
+      locationGroups.get(loc)!.push(emp);
     });
 
-    // Convert to array and sort locations by average score
-    const locationArray = Array.from(locationGroups.entries()).map(([location, employees]) => {
-      const locationAvg = 
-        employees.reduce((sum, emp) => sum + emp.average, 0) / employees.length;
-      return { location, employees, locationAvg };
+    // Sort employees within each location by effective score (desc)
+    locationGroups.forEach((emps) => {
+      emps.sort((a, b) => (b.effective_score ?? -1) - (a.effective_score ?? -1));
     });
 
-    locationArray.sort((a, b) => b.locationAvg - a.locationAvg);
-
-    return locationArray;
-  }, [audits, employees, testSubmissions, dateFrom, dateTo]);
+    // Build location array sorted by average effective score
+    return Array.from(locationGroups.entries())
+      .map(([location, employees]) => {
+        const validScores = employees.filter(e => e.effective_score !== null);
+        const locationAvg = validScores.length
+          ? validScores.reduce((sum, e) => sum + (e.effective_score ?? 0), 0) / validScores.length
+          : 0;
+        return { location, employees, locationAvg };
+      })
+      .sort((a, b) => b.locationAvg - a.locationAvg);
+  }, [rawScores]);
 
   const generatePDF = () => {
     const doc = new jsPDF();
-    
-    // Add branded header
-    addBrandedHeader(doc, "Staff Performance Leaderboard", filterLocationId && filterLocationId !== "__all__" ? leaderboardData[0]?.location : undefined);
-    
+    addBrandedHeader(doc, "Staff Performance Leaderboard", locationId ? leaderboardData[0]?.location : undefined);
     let yPosition = 55;
 
     leaderboardData.forEach((locationGroup) => {
-      // Check for page break
-      if (yPosition > 250) {
-        doc.addPage();
-        yPosition = 20;
-      }
-      
-      // Add section title
+      if (yPosition > 250) { doc.addPage(); yPosition = 20; }
       yPosition = addSectionTitle(doc, `${locationGroup.location} (Avg: ${locationGroup.locationAvg.toFixed(1)}%)`, yPosition);
 
       const tableData = locationGroup.employees.map((emp, index) => [
         index + 1,
-        emp.name,
+        emp.employee_name,
         emp.role,
-        `${emp.average.toFixed(1)}%`,
-        emp.trend === "up" ? "↑ Up" : emp.trend === "down" ? "↓ Down" : "→ Stable",
+        `${formatEffectiveScore(emp.effective_score)}%`,
+        emp.used_components_count,
       ]);
 
       autoTable(doc, {
         startY: yPosition,
-        head: [["Rank", "Name", "Role", "Score", "Trend"]],
+        head: [["Rank", "Name", "Role", "Score", "Components"]],
         body: tableData,
         ...getBrandedTableStyles(),
         margin: { left: 15, right: 15 },
@@ -174,18 +96,12 @@ export const StaffLeaderboard = () => {
     doc.save(`staff-leaderboard-${new Date().toISOString().split("T")[0]}.pdf`);
   };
 
-  const getTrendIcon = (trend: string) => {
-    if (trend === "up") return <TrendingUp className="h-4 w-4 text-green-500" />;
-    if (trend === "down") return <TrendingDown className="h-4 w-4 text-red-500" />;
-    return <Minus className="h-4 w-4 text-muted-foreground" />;
-  };
-
   return (
     <Card className="p-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
         <div>
           <h2 className="text-2xl font-bold">Employee Performance</h2>
-          <p className="text-muted-foreground mt-1">Rankings based on performance records (audits & tests)</p>
+          <p className="text-muted-foreground mt-1">Effective score — weighted average of active components</p>
         </div>
         <Button onClick={generatePDF} variant="outline">
           <Download className="mr-2 h-4 w-4" />
@@ -209,10 +125,10 @@ export const StaffLeaderboard = () => {
       </div>
 
       <div className="space-y-6">
-        {leaderboardData.length === 0 ? (
-          <p className="text-center py-8 text-muted-foreground">
-            No staff audit data available
-          </p>
+        {isLoading ? (
+          <p className="text-center py-8 text-muted-foreground">Loading...</p>
+        ) : leaderboardData.length === 0 ? (
+          <p className="text-center py-8 text-muted-foreground">No performance data available for this period</p>
         ) : (
           leaderboardData.map((locationGroup) => (
             <div key={locationGroup.location} className="space-y-3">
@@ -220,43 +136,42 @@ export const StaffLeaderboard = () => {
                 <div>
                   <h3 className="font-bold text-lg">{locationGroup.location}</h3>
                   <p className="text-sm text-muted-foreground">
-                    {locationGroup.employees.length} employee{locationGroup.employees.length !== 1 ? 's' : ''}
+                    {locationGroup.employees.length} employee{locationGroup.employees.length !== 1 ? "s" : ""}
                   </p>
                 </div>
                 <Badge variant="outline" className="text-lg px-3 py-1">
                   Avg: {locationGroup.locationAvg.toFixed(1)}%
                 </Badge>
               </div>
-              
+
               {locationGroup.employees.map((emp, index) => (
                 <div
-                  key={emp.id}
+                  key={emp.employee_id}
                   className="flex items-center justify-between p-4 ml-4 rounded-lg border bg-card hover:bg-accent/50 transition-colors cursor-pointer"
-                  onClick={() => setSelectedEmployee({ id: emp.id, name: emp.name, role: emp.role })}
+                  onClick={() => setSelectedEmployee({ id: emp.employee_id, name: emp.employee_name, role: emp.role })}
                 >
                   <div className="flex items-center gap-4">
                     <div className="flex items-center justify-center w-10 h-10 rounded-full bg-primary/10 font-bold text-primary">
                       #{index + 1}
                     </div>
                     <div>
-                      <p className="font-semibold">{emp.name}</p>
+                      <p className="font-semibold">{emp.employee_name}</p>
                       <p className="text-sm text-muted-foreground">{emp.role}</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-4">
                     <Badge
                       variant={
-                        emp.average >= 80
+                        (emp.effective_score ?? 0) >= 80
                           ? "default"
-                          : emp.average >= 60
+                          : (emp.effective_score ?? 0) >= 60
                           ? "secondary"
                           : "destructive"
                       }
                       className="text-lg px-3 py-1"
                     >
-                      {emp.average.toFixed(1)}%
+                      {formatEffectiveScore(emp.effective_score)}%
                     </Badge>
-                    {getTrendIcon(emp.trend)}
                   </div>
                 </div>
               ))}

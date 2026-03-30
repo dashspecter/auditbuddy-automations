@@ -46,9 +46,11 @@ export const useRealtimeShifts = () => {
             }
           }
           
-          // Invalidate queries to refresh data
-          queryClient.invalidateQueries({ queryKey: ["shifts"] });
-          queryClient.invalidateQueries({ queryKey: ["employee-shifts-multiweek"] });
+          // exact:false ensures ALL parameterized shift queries get invalidated
+          // (e.g. ["shifts", locationId, startDate, endDate] and ["kiosk-shifts", ...])
+          queryClient.invalidateQueries({ queryKey: ["shifts"], exact: false });
+          queryClient.invalidateQueries({ queryKey: ["kiosk-shifts"], exact: false });
+          queryClient.invalidateQueries({ queryKey: ["employee-shifts-multiweek"], exact: false });
         }
       )
       .on(

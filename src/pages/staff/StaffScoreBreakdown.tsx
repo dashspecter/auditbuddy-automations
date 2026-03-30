@@ -17,7 +17,6 @@ import { BadgesSection } from "@/components/staff/BadgesSection";
 import { ScoreHistoryChart } from "@/components/staff/ScoreHistoryChart";
 import { useMonthlyScores } from "@/hooks/useMonthlyScores";
 import { computeEarnedBadges, type MonthlyScoreRecord } from "@/lib/performanceBadges";
-import { computeKioskLeaderboardScores } from "@/lib/kioskEffectiveScore";
 import { useBadgeConfigurations } from "@/hooks/useBadgeConfigurations";
 
 const COMPONENTS = [

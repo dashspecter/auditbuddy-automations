@@ -24,16 +24,21 @@ export interface LocationPerformanceData {
 }
 
 /**
- * Generates a branded PDF report for a location's employee performance
+ * Generates a branded PDF report showing EMPLOYEE effective scores at a location.
+ *
+ * NOTE: This report shows employee-level performance (attendance, tasks, tests,
+ * punctuality, reviews — weighted via computeEffectiveScore). It does NOT show
+ * location audit scores. For location audit averages, see the Audits Reports PDF.
+ * The title "Employee Performance Report" accurately reflects this content.
  */
 export const generateLocationPerformancePDF = (data: LocationPerformanceData) => {
   const doc = new jsPDF();
   const pageWidth = doc.internal.pageSize.getWidth();
-  
-  // Add branded header
-  const subtitle = data.dateRange 
-    ? `Performance Report • ${data.dateRange.label}`
-    : 'Performance Report';
+
+  // Title clearly states EMPLOYEE performance to distinguish from location audit reports
+  const subtitle = data.dateRange
+    ? `Employee Performance Report • ${data.dateRange.label}`
+    : 'Employee Performance Report';
   addBrandedHeader(doc, data.location_name, subtitle);
   
   let yPosition = 55;

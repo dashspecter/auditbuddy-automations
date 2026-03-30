@@ -152,8 +152,12 @@ export interface CAFilters {
 
 export function useCorrectiveActions(filters?: CAFilters) {
   const { user } = useAuth();
+  // Stable cache key: sort keys so { locationId, status } and { status, locationId } hit the same entry
+  const stableKey = filters
+    ? Object.keys(filters).sort().map(k => `${k}:${(filters as any)[k]}`).join("|")
+    : "";
   return useQuery({
-    queryKey: ["corrective_actions", filters],
+    queryKey: ["corrective_actions", stableKey],
     enabled: !!user?.id,
     queryFn: async (): Promise<CorrectiveAction[]> => {
       const companyId = await getCompanyId(user!.id);

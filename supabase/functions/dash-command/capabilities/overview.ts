@@ -26,16 +26,28 @@ export async function getLocationOverview(
   }
   if (!locationId) return capabilityError("Please provide a location name or ID");
 
+  // Fetch last 30 audits to compute both latest score and 30-day average
   const [empRes, auditRes, caRes, taskRes] = await Promise.all([
     sb.from("employees").select("id", { count: "exact", head: true }).eq("location_id", locationId).eq("status", "active"),
-    sb.from("location_audits").select("overall_score").eq("location_id", locationId).in("status", AUDIT_FINISHED_STATUSES).not("overall_score", "is", null).order("audit_date", { ascending: false }).limit(1),
+    sb.from("location_audits").select("overall_score, audit_date").eq("location_id", locationId).in("status", AUDIT_FINISHED_STATUSES).not("overall_score", "is", null).order("audit_date", { ascending: false }).limit(30),
     sb.from("corrective_actions").select("id", { count: "exact", head: true }).eq("location_id", locationId).in("status", ["open", "in_progress"]),
     sb.from("tasks").select("id", { count: "exact", head: true }).eq("location_id", locationId).eq("company_id", companyId),
   ]);
+
+  const auditScores: number[] = (auditRes.data ?? []).map((a: any) => a.overall_score);
+  const latestAuditScore: number | null = auditScores[0] ?? null;
+  const avgAuditScore: number | null = auditScores.length > 0
+    ? Math.round(auditScores.reduce((s, v) => s + v, 0) / auditScores.length)
+    : null;
+
   return success({
     location: { id: locationId, name: locationName },
     employees_active: empRes.count ?? 0,
-    latest_audit_score: auditRes.data?.[0]?.overall_score ?? null,
+    // latest_audit_score: most recent completed audit — use when asking "what was the last audit?"
+    latest_audit_score: latestAuditScore,
+    // avg_audit_score: average of last 30 audits — consistent with dashboard cards
+    avg_audit_score: avgAuditScore,
+    audit_count: auditScores.length,
     open_corrective_actions: caRes.count ?? 0,
     total_tasks: taskRes.count ?? 0,
   });
