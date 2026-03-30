@@ -396,9 +396,9 @@ const TimeOffApprovals = () => {
                     </div>
 
                     <div className="text-sm text-muted-foreground">
-                      {format(new Date(request.start_date), "MMM d")} - {format(new Date(request.end_date), "MMM d, yyyy")}
+                      {formatRequestDates(request)}
                       <Badge variant="secondary" className="ml-2">
-                        {calculateDays(request.start_date, request.end_date)} days
+                        {calculateDays(request)} days
                       </Badge>
                     </div>
 
