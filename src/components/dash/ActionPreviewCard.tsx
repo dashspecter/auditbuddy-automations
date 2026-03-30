@@ -69,6 +69,7 @@ export function ActionPreviewCard({
       }
     };
 
+    // Set the execute function — handleUndo will clear this to prevent race conditions
     executeRef.current = doExecute;
     // Start ticking every second
     let remaining = 5;
@@ -76,7 +77,11 @@ export function ActionPreviewCard({
       remaining--;
       setCountdown(remaining);
       if (remaining <= 0) {
-        doExecute();
+        // Only execute if Undo wasn't clicked (executeRef guards against race)
+        if (executeRef.current) {
+          executeRef.current();
+          executeRef.current = null;
+        }
       } else {
         countdownRef.current = setTimeout(tick, 1000);
       }

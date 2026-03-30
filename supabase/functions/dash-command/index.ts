@@ -300,20 +300,96 @@ function resolveCanonicalModule(toolName: string): string {
 
 // ─── Risk classification ────────────────────────────────────
 const ACTION_RISK: Record<string, "low" | "medium" | "high"> = {
-  create_employee_draft: "medium",
-  create_audit_template_draft: "medium",
+  // Shifts
   create_shift_draft: "medium",
-  execute_employee_creation: "medium",
-  execute_audit_template_creation: "medium",
   execute_shift_creation: "medium",
+  update_shift_draft: "medium",
+  execute_shift_update: "medium",
+  delete_shift_draft: "high",
+  execute_shift_deletion: "high",
+  swap_shift_draft: "high",
+  execute_shift_swap: "high",
+  // Employees
+  create_employee_draft: "medium",
+  execute_employee_creation: "medium",
+  update_employee_draft: "medium",
+  execute_employee_update: "medium",
+  deactivate_employee_draft: "high",
+  execute_employee_deactivation: "high",
+  // Attendance
+  correct_attendance_draft: "medium",
+  execute_attendance_correction: "medium",
+  excuse_late_draft: "low",
+  execute_excuse_late: "low",
+  // Audits
+  create_audit_template_draft: "medium",
+  execute_audit_template_creation: "medium",
+  schedule_audit_draft: "medium",
+  execute_audit_scheduling: "medium",
+  cancel_scheduled_audit_draft: "medium",
+  execute_cancel_scheduled_audit: "medium",
+  // Corrective Actions
   reassign_corrective_action: "high",
   execute_ca_reassignment: "high",
+  create_ca_draft: "medium",
+  execute_ca_creation: "medium",
+  update_ca_status_draft: "medium",
+  execute_ca_status_update: "medium",
+  // Time-Off
   create_time_off_request_draft: "medium",
   execute_time_off_request: "medium",
   approve_time_off_request_draft: "medium",
   execute_time_off_approval: "medium",
   reject_time_off_request_dash: "medium",
   cancel_time_off_request_dash: "medium",
+  // Work Orders
+  create_work_order_draft: "medium",
+  execute_work_order_creation: "medium",
+  update_wo_status_draft: "low",
+  execute_wo_status_update: "low",
+  // Tasks
+  create_task_draft: "low",
+  execute_task_creation: "low",
+  update_task_draft: "low",
+  execute_task_update: "low",
+  delete_task_draft: "high",
+  execute_task_deletion: "high",
+  complete_task_draft: "low",
+  execute_task_completion: "low",
+  // Training
+  create_training_assignment_draft: "medium",
+  execute_training_assignment: "medium",
+  update_training_status_draft: "low",
+  execute_training_status_update: "low",
+  create_training_program_draft: "medium",
+  execute_training_program_creation: "medium",
+  // Locations
+  create_location_draft: "medium",
+  execute_location_creation: "medium",
+  update_location_draft: "medium",
+  execute_location_update: "medium",
+  deactivate_location_draft: "high",
+  execute_location_deactivation: "high",
+  // Departments
+  create_department_draft: "low",
+  execute_create_department: "low",
+  update_department_draft: "low",
+  execute_update_department: "low",
+  delete_department_draft: "high",
+  execute_delete_department: "high",
+  // Documents
+  link_document_draft: "medium",
+  execute_document_link: "medium",
+  create_document_category_draft: "low",
+  execute_document_category_creation: "low",
+  delete_document_draft: "high",
+  execute_document_deletion: "high",
+  // Notifications
+  send_notification_draft: "medium",
+  execute_notification_send: "medium",
+  // Alerts
+  resolve_alert_draft: "medium",
+  execute_alert_resolution: "medium",
 };
 
 // ─── Permission Context Builder ─────────────────────────────
@@ -898,7 +974,7 @@ async function executeToolInner(
       const days = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1;
 
       // Store pending action
-      const { data: paData } = await sbService.from("dash_pending_actions").insert({
+      const { data: paData, error: paError } = await sbService.from("dash_pending_actions").insert({
         company_id: companyId,
         user_id: userId,
         action_name: "create_time_off_request",
@@ -907,6 +983,10 @@ async function executeToolInner(
         preview_json: draft,
         status: "pending",
       }).select("id").single();
+      if (paError || !paData?.id) {
+        console.error("[Dash] create_time_off_request_draft: pending action insert failed:", paError?.message);
+        return resultToToolResponse(capabilityError(`Failed to create time-off draft: ${paError?.message || "database error"}. Please try again.`));
+      }
 
       const conflictWarning = conflicts.ok && conflicts.data.has_conflicts
         ? ` ⚠️ Conflicts detected: ${conflicts.data.employee_overlaps.length} personal overlap(s), ${conflicts.data.team_overlaps.length} team overlap(s).`
@@ -1015,7 +1095,7 @@ async function executeToolInner(
         request_type: requestInfo.request_type,
       };
 
-      const { data: paData } = await sbService.from("dash_pending_actions").insert({
+      const { data: paData, error: paError2 } = await sbService.from("dash_pending_actions").insert({
         company_id: companyId,
         user_id: userId,
         action_name: "approve_time_off_request",
@@ -1024,6 +1104,10 @@ async function executeToolInner(
         preview_json: draft,
         status: "pending",
       }).select("id").single();
+      if (paError2 || !paData?.id) {
+        console.error("[Dash] approve_time_off_request_draft: pending action insert failed:", paError2?.message);
+        return resultToToolResponse(capabilityError(`Failed to create approval draft: ${paError2?.message || "database error"}. Please try again.`));
+      }
 
       const days = Math.ceil((new Date(requestInfo.end_date).getTime() - new Date(requestInfo.start_date).getTime()) / (1000 * 60 * 60 * 24)) + 1;
 
@@ -1178,7 +1262,7 @@ ${generateCapabilityDocs()}
 ### Draft & Execute (APPROVAL-GATED WRITES)
 You can now create AND execute records in the platform:
 
-**CRITICAL — STOP AFTER DRAFT**: After calling ANY draft tool (create_employee_draft, create_audit_template_draft, create_shift_draft, update_shift_draft, delete_shift_draft, swap_shift_draft, reassign_corrective_action, create_ca_draft, update_ca_status_draft, update_employee_draft, deactivate_employee_draft, correct_attendance_draft, excuse_late_draft, create_work_order_draft, update_wo_status_draft, create_task_draft, create_training_assignment_draft, update_training_status_draft), you MUST immediately STOP making tool calls and present the draft preview to the user. Do NOT call any execute tool in the same response. The approval card UI will handle the approval flow. You must wait for the NEXT user message containing explicit approval before executing.
+**CRITICAL — STOP AFTER DRAFT**: After calling ANY draft tool (create_employee_draft, create_audit_template_draft, create_shift_draft, update_shift_draft, delete_shift_draft, swap_shift_draft, reassign_corrective_action, create_ca_draft, update_ca_status_draft, update_employee_draft, deactivate_employee_draft, correct_attendance_draft, excuse_late_draft, create_work_order_draft, update_wo_status_draft, create_task_draft, update_task_draft, delete_task_draft, complete_task_draft, create_training_assignment_draft, update_training_status_draft, create_training_program_draft, schedule_audit_draft, cancel_scheduled_audit_draft, create_location_draft, update_location_draft, deactivate_location_draft, create_department_draft, update_department_draft, delete_department_draft, link_document_draft, create_document_category_draft, delete_document_draft, send_notification_draft, resolve_alert_draft, create_time_off_request_draft, approve_time_off_request_draft), you MUST immediately STOP making tool calls and present the draft preview to the user. Do NOT call any execute tool in the same response. The approval card UI will handle the approval flow. You must wait for the NEXT user message containing explicit approval before executing.
 
 **Employee Creation Flow:**
 1. Use \`create_employee_draft\` to prepare the draft and show preview
@@ -1678,6 +1762,9 @@ serve(async (req) => {
         finalContent = "I'm ready to help — could you clarify what you'd like me to do next?";
       }
 
+      // ─── Extract last user message (used by both fallback checks below) ───
+      const lastUserMsg = messages?.[messages.length - 1]?.content || "";
+
       // ─── FALLBACK: Model refused to call get_employee_shifts for shift query ───
       const SHIFT_QUERY_PATTERN = /\b(show|list|get|what|give me|display)\b.{0,30}\bshift(s)?\b.{0,30}\b(for|of|by)\b|\b(schedule|roster|rota)\b.{0,30}\bfor\b|\bwhat.{0,20}(working|scheduled)\b/i;
       const SHIFT_REFUSAL_PATTERN = /can'?t\s+(directly\s+)?show|cannot\s+show|don'?t\s+have.*ability|not\s+able\s+to\s+show|unable\s+to\s+show/i;
@@ -1703,7 +1790,6 @@ serve(async (req) => {
       }
 
       // ─── FALLBACK: Model refused to call tool when file was attached ───
-      const lastUserMsg = messages?.[messages.length - 1]?.content || "";
       const hasFileAttachment = typeof lastUserMsg === "string" && lastUserMsg.includes("[File URLs:");
       const looksLikeRefusal = /unable to parse|cannot (create|parse|process|read|extract)|can't (create|parse|process|read)|don't have the ability|not able to/i.test(finalContent);
       if (hasFileAttachment && looksLikeRefusal && toolsUsed.length === 0) {
