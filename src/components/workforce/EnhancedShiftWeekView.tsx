@@ -329,14 +329,24 @@ export const EnhancedShiftWeekView = () => {
     );
   };
 
+  const isDateInTimeOffRequest = (req: any, date: Date): boolean => {
+    const dateStr = format(date, "yyyy-MM-dd");
+    // Use specific dates from child table if available
+    if (req.time_off_request_dates && req.time_off_request_dates.length > 0) {
+      return req.time_off_request_dates.some((d: any) => d.date === dateStr);
+    }
+    // Fallback to range check for legacy requests without child rows
+    return isWithinInterval(date, {
+      start: parseISO(req.start_date),
+      end: parseISO(req.end_date),
+    });
+  };
+
   const getTimeOffForEmployeeAndDay = (employeeId: string, date: Date) => {
     return timeOffRequests.find(req =>
       req.employee_id === employeeId &&
-      isWithinInterval(date, {
-        start: parseISO(req.start_date),
-        end: parseISO(req.end_date)
-      }) &&
-      req.status === "approved"
+      req.status === "approved" &&
+      isDateInTimeOffRequest(req, date)
     );
   };
 
@@ -348,11 +358,8 @@ export const EnhancedShiftWeekView = () => {
     
     return timeOffRequests.filter(req =>
       locationEmployeeIds.includes(req.employee_id) &&
-      isWithinInterval(date, {
-        start: parseISO(req.start_date),
-        end: parseISO(req.end_date)
-      }) &&
-      req.status === "approved"
+      req.status === "approved" &&
+      isDateInTimeOffRequest(req, date)
     );
   };
 
