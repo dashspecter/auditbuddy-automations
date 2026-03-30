@@ -67,12 +67,13 @@ const Dashboard = () => {
       <OnboardingDialog open={showOnboarding} onOpenChange={setShowOnboarding} />
       
       <PullToRefresh onRefresh={handleRefresh}>
-    <RoleBasedView
-              admin={<AdminDashboard />}
-              manager={<ManagerDashboard />}
-              checker={<CheckerDashboard />}
-              fallback={<CheckerDashboard />}
-            />
+        <ManagerClockInCard />
+        <RoleBasedView
+          admin={<AdminDashboard />}
+          manager={<ManagerDashboard />}
+          checker={<CheckerDashboard />}
+          fallback={<CheckerDashboard />}
+        />
       </PullToRefresh>
       
       <BackToTop />
