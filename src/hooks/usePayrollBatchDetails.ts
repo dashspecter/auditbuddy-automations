@@ -131,7 +131,7 @@ export function usePayrollBatchDetails(
 
       // 3. Attendance logs already fetched above (with location filter)
 
-      // 4. Get time-off requests (approved)
+      // 4. Get time-off requests (approved) — for absence checking
       const { data: timeOffRequests, error: toError } = await supabase
         .from("time_off_requests")
         .select("id, employee_id, start_date, end_date, request_type, status")
@@ -139,6 +139,26 @@ export function usePayrollBatchDetails(
         .lte("start_date", periodEnd)
         .gte("end_date", periodStart);
       if (toError) throw toError;
+
+      // 4b. Get individual time-off dates (source of truth for day counts)
+      const { data: timeOffDateRows, error: todError } = await supabase
+        .from("time_off_request_dates")
+        .select("request_id, date")
+        .gte("date", periodStart)
+        .lte("date", periodEnd);
+      if (todError) throw todError;
+
+      // Build lookup: request_id -> request_type
+      const requestTypeMap = new Map<string, string>();
+      for (const req of timeOffRequests || []) {
+        requestTypeMap.set(req.id, req.request_type || '');
+      }
+
+      // Build lookup: request_id -> employee_id
+      const requestEmployeeMap = new Map<string, string>();
+      for (const req of timeOffRequests || []) {
+        requestEmployeeMap.set(req.id, req.employee_id);
+      }
 
       // 5. Get recorded absences from workforce_exceptions
       const { data: absenceExceptions, error: absErr } = await supabase
