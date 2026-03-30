@@ -476,6 +476,100 @@ const TimeOffApprovals = () => {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Edit Dates Dialog */}
+      <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Vacation Dates</DialogTitle>
+            <DialogDescription>
+              Update the start and end dates for this approved time off request.
+            </DialogDescription>
+          </DialogHeader>
+
+          {editingRequest && (
+            <div className="space-y-4">
+              <div className="bg-muted p-3 rounded-lg">
+                <div className="font-medium">{editingRequest.employees.full_name}</div>
+                <div className="text-sm text-muted-foreground capitalize">{editingRequest.request_type}</div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Start Date</Label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button variant="outline" className={cn("w-full justify-start text-left font-normal", !editStartDate && "text-muted-foreground")}>
+                        <Calendar className="h-4 w-4 mr-2" />
+                        {editStartDate ? format(editStartDate, "MMM d, yyyy") : "Pick date"}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <CalendarPicker mode="single" selected={editStartDate} onSelect={setEditStartDate} initialFocus className={cn("p-3 pointer-events-auto")} />
+                    </PopoverContent>
+                  </Popover>
+                </div>
+                <div className="space-y-2">
+                  <Label>End Date</Label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button variant="outline" className={cn("w-full justify-start text-left font-normal", !editEndDate && "text-muted-foreground")}>
+                        <Calendar className="h-4 w-4 mr-2" />
+                        {editEndDate ? format(editEndDate, "MMM d, yyyy") : "Pick date"}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <CalendarPicker mode="single" selected={editEndDate} onSelect={setEditEndDate} initialFocus className={cn("p-3 pointer-events-auto")} />
+                    </PopoverContent>
+                  </Popover>
+                </div>
+              </div>
+
+              <div className="flex gap-2">
+                <Button variant="outline" className="flex-1" onClick={() => setEditDialogOpen(false)}>
+                  Cancel
+                </Button>
+                <Button className="flex-1" onClick={submitEditDates} disabled={isSubmitting}>
+                  {isSubmitting ? "Saving..." : "Save Changes"}
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Revoke Dialog */}
+      <Dialog open={revokeDialogOpen} onOpenChange={setRevokeDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Revoke Time Off</DialogTitle>
+            <DialogDescription>
+              This will cancel the approved time off request. The vacation days will no longer be counted.
+            </DialogDescription>
+          </DialogHeader>
+
+          {revokingRequest && (
+            <div className="space-y-4">
+              <div className="bg-muted p-3 rounded-lg">
+                <div className="font-medium">{revokingRequest.employees.full_name}</div>
+                <div className="text-sm text-muted-foreground">
+                  {format(new Date(revokingRequest.start_date), "MMM d")} - {format(new Date(revokingRequest.end_date), "MMM d, yyyy")}
+                  ({calculateDays(revokingRequest.start_date, revokingRequest.end_date)} days)
+                </div>
+              </div>
+
+              <div className="flex gap-2">
+                <Button variant="outline" className="flex-1" onClick={() => setRevokeDialogOpen(false)}>
+                  Cancel
+                </Button>
+                <Button variant="destructive" className="flex-1" onClick={submitRevoke} disabled={isSubmitting}>
+                  {isSubmitting ? "Revoking..." : "Revoke Request"}
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
