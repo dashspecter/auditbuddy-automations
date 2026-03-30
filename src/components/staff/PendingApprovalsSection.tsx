@@ -66,7 +66,8 @@ export function PendingApprovalsSection() {
         .from("time_off_requests")
         .select(`
           id, start_date, end_date, status, reason, request_type, created_at,
-          employees:employee_id (id, full_name, avatar_url, annual_vacation_days)
+          employees:employee_id (id, full_name, avatar_url, annual_vacation_days),
+          time_off_request_dates(date)
         `)
         .eq("company_id", companyData.company_id)
         .eq("status", "pending")
