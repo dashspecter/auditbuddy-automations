@@ -5,7 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Calendar, Check, X, Clock, User } from "lucide-react";
+import { Calendar, Check, X, Clock, User, Pencil, Undo2 } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
 import {
