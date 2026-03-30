@@ -353,16 +353,23 @@ export function usePayrollBatchDetails(
           }
         }
 
-        // Time-off days
-        let vacationDays = 0;
-        let medicalDays = 0;
+        // Time-off days — deduplicate overlapping approved requests
+        const vacationDateSet = new Set<string>();
+        const medicalDateSet = new Set<string>();
         for (const req of empTimeOff) {
           const start = parseISO(req.start_date) < parseISO(periodStart) ? parseISO(periodStart) : parseISO(req.start_date);
           const end = parseISO(req.end_date) > parseISO(periodEnd) ? parseISO(periodEnd) : parseISO(req.end_date);
-          const days = eachDayOfInterval({ start, end }).length;
-          if (req.request_type === "vacation" || req.request_type === "annual_leave") vacationDays += days;
-          else if (req.request_type === "medical" || req.request_type === "sick_leave") medicalDays += days;
+          for (const day of eachDayOfInterval({ start, end })) {
+            const key = format(day, 'yyyy-MM-dd');
+            if (req.request_type === "vacation" || req.request_type === "annual_leave") {
+              vacationDateSet.add(key);
+            } else if (req.request_type === "medical" || req.request_type === "sick_leave") {
+              medicalDateSet.add(key);
+            }
+          }
         }
+        const vacationDays = vacationDateSet.size;
+        const medicalDays = medicalDateSet.size;
 
         const hasActivity = empShifts.length > 0 || empAttendance.length > 0 || empTimeOff.length > 0;
         if (!hasActivity) continue;
