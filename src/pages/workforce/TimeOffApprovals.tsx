@@ -155,6 +155,63 @@ const TimeOffApprovals = () => {
     }
   };
 
+  const handleEditDates = (request: TimeOffRequest) => {
+    setEditingRequest(request);
+    setEditStartDate(new Date(request.start_date));
+    setEditEndDate(new Date(request.end_date));
+    setEditDialogOpen(true);
+  };
+
+  const submitEditDates = async () => {
+    if (!editingRequest || !editStartDate || !editEndDate) return;
+    if (editEndDate < editStartDate) {
+      toast.error("End date must be after start date");
+      return;
+    }
+    try {
+      setIsSubmitting(true);
+      const { error } = await supabase
+        .from("time_off_requests")
+        .update({
+          start_date: format(editStartDate, "yyyy-MM-dd"),
+          end_date: format(editEndDate, "yyyy-MM-dd"),
+        })
+        .eq("id", editingRequest.id);
+      if (error) throw error;
+      toast.success("Vacation dates updated successfully");
+      setEditDialogOpen(false);
+      loadRequests();
+    } catch (error: any) {
+      toast.error("Failed to update dates: " + error.message);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleRevoke = (request: TimeOffRequest) => {
+    setRevokingRequest(request);
+    setRevokeDialogOpen(true);
+  };
+
+  const submitRevoke = async () => {
+    if (!revokingRequest) return;
+    try {
+      setIsSubmitting(true);
+      const { error } = await supabase
+        .from("time_off_requests")
+        .update({ status: "cancelled" })
+        .eq("id", revokingRequest.id);
+      if (error) throw error;
+      toast.success("Time off request revoked");
+      setRevokeDialogOpen(false);
+      loadRequests();
+    } catch (error: any) {
+      toast.error("Failed to revoke request: " + error.message);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   const calculateDays = (start: string, end: string) => {
     const startDate = new Date(start);
     const endDate = new Date(end);
