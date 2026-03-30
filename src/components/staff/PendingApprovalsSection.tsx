@@ -240,8 +240,8 @@ export function PendingApprovalsSection() {
               <div className="bg-muted p-3 rounded-lg">
                 <div className="font-medium">{selectedRequest.employees.full_name}</div>
                 <div className="text-sm text-muted-foreground">
-                  {format(new Date(selectedRequest.start_date), "MMM d")} – {format(new Date(selectedRequest.end_date), "MMM d, yyyy")}
-                  ({calculateDays(selectedRequest.start_date, selectedRequest.end_date)} days)
+                  {formatRequestDates(selectedRequest)}
+                  ({calculateDays(selectedRequest)} days)
                 </div>
               </div>
 
