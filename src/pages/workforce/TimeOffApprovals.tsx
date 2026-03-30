@@ -37,6 +37,7 @@ interface TimeOffRequest {
     avatar_url: string | null;
     annual_vacation_days: number;
   };
+  time_off_request_dates?: Array<{ date: string }>;
 }
 
 const TimeOffApprovals = () => {
