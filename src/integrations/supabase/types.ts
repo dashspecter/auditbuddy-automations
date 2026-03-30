@@ -10206,6 +10206,45 @@ export type Database = {
           },
         ]
       }
+      time_off_request_dates: {
+        Row: {
+          company_id: string
+          created_at: string
+          date: string
+          id: string
+          request_id: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          date: string
+          id?: string
+          request_id: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          date?: string
+          id?: string
+          request_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "time_off_request_dates_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "time_off_request_dates_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "time_off_requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       time_off_requests: {
         Row: {
           approved_at: string | null
