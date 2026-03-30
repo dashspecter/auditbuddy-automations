@@ -1,59 +1,48 @@
 
 
-# Fix: Payroll Vacation Days — Deduplicate Overlapping Approved Requests
+# Add Edit and Revoke Actions for Approved Time-Off Requests
 
-## Confirmed Business Rule
+## Problem
+Admins/managers cannot modify approved vacation days. The only option is to delete from the schedule grid, with no way to edit dates or formally revoke a request.
 
-Vacation days are **only** counted from the approved time-off request flow: Employee requests → Manager approves. The query already correctly filters `status = "approved"`. No other source of vacation days exists.
+## Solution
+Add two actions to approved requests in the **History tab** of the Time Off Approvals page (`/workforce/time-off`):
 
-## The Bug
+1. **Edit Dates** — Opens a dialog to change start/end dates on an approved request, keeping the same record
+2. **Revoke** — Changes status back to "cancelled", effectively removing the vacation days
 
-When an employee has **two overlapping approved requests** (e.g., Mar 20–Apr 1 and Mar 23–Apr 1), the current code sums each request's days independently, double-counting the overlap. Razvan Parvan shows 21 days instead of the correct 12.
+## Changes
 
-## Fix — One File Change
+### File: `src/pages/workforce/TimeOffApprovals.tsx`
 
-**File: `src/hooks/usePayrollBatchDetails.ts`** (lines 356-365)
+**History tab cards for approved requests** — Add two action buttons:
+- **Edit** (pencil icon): Opens a dialog with date pickers for start/end date, pre-filled with current values. On save, updates the record via `supabase.update()` and reloads.
+- **Revoke** (undo icon): Opens a confirmation dialog. On confirm, sets `status = 'cancelled'` and reloads.
 
-Replace the naive per-request day counter with a `Set<string>` that collects unique calendar dates, eliminating any overlap:
+**New state:**
+- `editDialogOpen`, `editingRequest`, `editStartDate`, `editEndDate` for the edit flow
+- `revokeDialogOpen`, `revokingRequest` for the revoke confirmation
 
-```typescript
-// Time-off days — deduplicate overlapping approved requests
-const vacationDateSet = new Set<string>();
-const medicalDateSet = new Set<string>();
+**Edit dialog:** Two date inputs (start, end) with validation that end >= start. Submit updates `start_date`, `end_date` on the existing record.
 
-for (const req of empTimeOff) {
-  const start = parseISO(req.start_date) < parseISO(periodStart) 
-    ? parseISO(periodStart) : parseISO(req.start_date);
-  const end = parseISO(req.end_date) > parseISO(periodEnd) 
-    ? parseISO(periodEnd) : parseISO(req.end_date);
+**Revoke dialog:** Simple confirmation with employee name and date range shown. Submit sets `status = 'cancelled'`.
 
-  for (const day of eachDayOfInterval({ start, end })) {
-    const key = format(day, 'yyyy-MM-dd');
-    if (req.request_type === "vacation" || req.request_type === "annual_leave") {
-      vacationDateSet.add(key);
-    } else if (req.request_type === "medical" || req.request_type === "sick_leave") {
-      medicalDateSet.add(key);
-    }
-  }
-}
+Both actions are only shown on cards with `status === 'approved'` in the history tab.
 
-const vacationDays = vacationDateSet.size;
-const medicalDays = medicalDateSet.size;
-```
+### File: `src/hooks/useTimeOffRequests.ts`
 
-## Expected Results After Fix
-
-| Employee | Before (wrong) | After (correct) |
-|----------|----------------|-----------------|
-| Razvan Parvan | 21 | 12 |
-| Grecea Alexandru | 7 | 7 (no overlap, unchanged) |
-| Gabriela Mitan | 1 | 1 (unchanged) |
+No changes needed — the existing `useUpdateTimeOffRequest` hook already supports updating any fields including dates and status.
 
 ## Scope
 
 | File | Change |
 |------|--------|
-| `src/hooks/usePayrollBatchDetails.ts` | Deduplicate overlapping date ranges using Set |
+| `src/pages/workforce/TimeOffApprovals.tsx` | Add Edit Dates dialog, Revoke confirmation dialog, and action buttons on approved history cards |
 
-**Note**: Weekends (Sat/Sun) are currently included in the count. This matches the business rule as stated — if the approved request spans a weekend, those days count. If you want weekends excluded, that's a separate decision.
+## UI Behavior
+
+- History tab shows approved requests with "Edit" and "Revoke" buttons (right-aligned, small)
+- Edit opens a dialog with date pickers pre-filled → save updates dates → success toast → list refreshes
+- Revoke opens confirmation → confirm sets status to "cancelled" → success toast → list refreshes
+- Rejected requests show no action buttons (read-only)
 
