@@ -324,12 +324,12 @@ const App = () => {
                 </AuthProvider>
               } />
               
-              {/* Lightweight public routes — no heavy providers */}
-              <Route path="/go" element={<RouteErrorBoundary><LandingNFX /></RouteErrorBoundary>} />
-              <Route path="/landing" element={<RouteErrorBoundary><LandingNFX /></RouteErrorBoundary>} />
-              <Route path="/full-presentation" element={<RouteErrorBoundary><FullPresentation /></RouteErrorBoundary>} />
-              <Route path="/full" element={<RouteErrorBoundary><FullPresentation /></RouteErrorBoundary>} />
-              <Route path="/sales-offer" element={<RouteErrorBoundary><SalesOffer /></RouteErrorBoundary>} />
+              {/* Public routes that need auth context for nav (Sign In vs Avatar) */}
+              <Route path="/go" element={<AuthProvider><RouteErrorBoundary><LandingNFX /></RouteErrorBoundary></AuthProvider>} />
+              <Route path="/landing" element={<AuthProvider><RouteErrorBoundary><LandingNFX /></RouteErrorBoundary></AuthProvider>} />
+              <Route path="/full-presentation" element={<AuthProvider><RouteErrorBoundary><FullPresentation /></RouteErrorBoundary></AuthProvider>} />
+              <Route path="/full" element={<AuthProvider><RouteErrorBoundary><FullPresentation /></RouteErrorBoundary></AuthProvider>} />
+              <Route path="/sales-offer" element={<AuthProvider><RouteErrorBoundary><SalesOffer /></RouteErrorBoundary></AuthProvider>} />
               <Route path="/forgot-password" element={<RouteErrorBoundary><ForgotPassword /></RouteErrorBoundary>} />
               <Route path="/reset-password" element={<RouteErrorBoundary><ResetPassword /></RouteErrorBoundary>} />
 
