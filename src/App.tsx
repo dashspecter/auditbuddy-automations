@@ -324,7 +324,16 @@ const App = () => {
                 </AuthProvider>
               } />
               
-              {/* All other routes */}
+              {/* Lightweight public routes — no heavy providers */}
+              <Route path="/go" element={<RouteErrorBoundary><LandingNFX /></RouteErrorBoundary>} />
+              <Route path="/landing" element={<RouteErrorBoundary><LandingNFX /></RouteErrorBoundary>} />
+              <Route path="/full-presentation" element={<RouteErrorBoundary><FullPresentation /></RouteErrorBoundary>} />
+              <Route path="/full" element={<RouteErrorBoundary><FullPresentation /></RouteErrorBoundary>} />
+              <Route path="/sales-offer" element={<RouteErrorBoundary><SalesOffer /></RouteErrorBoundary>} />
+              <Route path="/forgot-password" element={<RouteErrorBoundary><ForgotPassword /></RouteErrorBoundary>} />
+              <Route path="/reset-password" element={<RouteErrorBoundary><ResetPassword /></RouteErrorBoundary>} />
+
+              {/* Auth-aware routes */}
               <Route path="/*" element={
                 <AuthProvider>
                   <AppVisibilityManager />
@@ -333,14 +342,7 @@ const App = () => {
                       <PWAInstallPrompt />
                       <Routes>
                         <Route path="/" element={<RouteErrorBoundary><Index /></RouteErrorBoundary>} />
-                        <Route path="/go" element={<RouteErrorBoundary><LandingNFX /></RouteErrorBoundary>} />
-                        <Route path="/landing" element={<RouteErrorBoundary><LandingNFX /></RouteErrorBoundary>} />
-                        <Route path="/full-presentation" element={<RouteErrorBoundary><FullPresentation /></RouteErrorBoundary>} />
-                        <Route path="/full" element={<RouteErrorBoundary><FullPresentation /></RouteErrorBoundary>} />
-                        <Route path="/sales-offer" element={<RouteErrorBoundary><SalesOffer /></RouteErrorBoundary>} />
                         <Route path="/auth" element={<RouteErrorBoundary><Auth /></RouteErrorBoundary>} />
-                        <Route path="/forgot-password" element={<RouteErrorBoundary><ForgotPassword /></RouteErrorBoundary>} />
-                        <Route path="/reset-password" element={<RouteErrorBoundary><ResetPassword /></RouteErrorBoundary>} />
                         <Route path="/staff-login" element={<RouteErrorBoundary><StaffLogin /></RouteErrorBoundary>} />
                         
                         {/* Staff portal */}

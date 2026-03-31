@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import LandingNFX from "./LandingNFX";
-import { useCompanyContext } from "@/contexts/CompanyContext";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertTriangle, RefreshCw } from "lucide-react";
 import { Link, Navigate } from "react-router-dom";
@@ -13,12 +12,14 @@ import { useCompany } from "@/hooks/useCompany";
 const Index = () => {
   const { t } = useTranslation();
   const { user, loading, isStaff, staffCheckComplete } = useAuth();
-  const { isAccountPaused, isLoading: companyLoading } = useCompanyContext();
-  const { data: company } = useCompany();
+  const { data: company, isLoading: companyLoading } = useCompany();
   const isMobile = useIsMobile();
   const [loadingTooLong, setLoadingTooLong] = useState(false);
 
-  const isLoading = loading || companyLoading || !staffCheckComplete;
+  // For anonymous visitors, only wait for auth loading
+  const isLoading = user
+    ? loading || companyLoading || !staffCheckComplete
+    : loading;
 
   useEffect(() => {
     if (!isLoading) {
@@ -49,7 +50,7 @@ const Index = () => {
                   if ('serviceWorker' in navigator) {
                     navigator.serviceWorker.getRegistrations().then(regs => regs.forEach(r => r.unregister()));
                   }
-                  window.location.href = window.location.pathname + '?resetApp=1';
+                  window.location.href = '/?resetApp=1';
                 }}
               >
                 <RefreshCw className="mr-2 h-4 w-4" />
@@ -62,8 +63,8 @@ const Index = () => {
     );
   }
 
-  // Show account paused state
-  if (user && isAccountPaused) {
+  // Show account paused state (only when user exists and company data loaded)
+  if (user && company?.isPaused) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background p-4">
         <Alert variant="destructive" className="max-w-md">
