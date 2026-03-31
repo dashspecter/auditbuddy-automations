@@ -68,7 +68,8 @@
         // Hide as soon as the app mounts.
         var obs = new MutationObserver(function () {
           if (isMounted()) {
-            el.style.display = 'none';
+            var fallback = document.getElementById('boot-fallback');
+            if (fallback) fallback.style.display = 'none';
             window.clearTimeout(t);
             obs.disconnect();
           }
