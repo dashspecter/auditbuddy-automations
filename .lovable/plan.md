@@ -1,31 +1,31 @@
 
 
-# Fix Build Errors
+# Fix Login Crash + Build Errors
 
-## 5 Errors to Fix
+## What Broke & Why
 
-### 1. `check-task-notifications/index.ts` — implicit `any` type
-Line 163: `(e) => e.id` needs type annotation → `(e: any) => e.id`
+Both issues were introduced by recent changes:
+- **Login crash**: The new `ManagerClockInCard` component runs queries during auth transition, causing a React DOM reconciliation error ("removeChild"). Users see "Something went wrong" after entering correct credentials.
+- **Build failure**: The `workforce.test.ts` mock methods don't accept arguments, blocking deployment.
 
-### 2. `workforce.test.ts` — mock chain doesn't support arguments
-The mock's `select()`, `eq()` etc. accept no args but tests pass args. Fix: add `..._args: any[]` params to mock chain methods.
+## Fixes
 
-### 3. `DashMessageList.tsx` — boolean in table rows
-`rows` contains booleans but type expects `(string | number)[][]`. Fix: cast or convert booleans to strings in the data.
+### 1. `src/components/dashboard/ManagerClockInCard.tsx`
+- Import `loading` (as `authLoading`) from `useAuth()`
+- Guard the `useEffect` to skip fetching while `authLoading` is true
+- Add `cancelled` flag in the effect cleanup to prevent state updates on unmounted component
+- Add `authLoading` to the dependency array
 
-### 4. `DashLocaleContext.tsx` — `t` type mismatch (ro vs en literal strings)
-`t` is typed as `typeof DASH_STRINGS["en"]` but Romanian strings have different literal types. Fix: widen the type to `(typeof DASH_STRINGS)[DashLocale]` or use a non-const interface.
+### 2. `supabase/functions/dash-command/capabilities/workforce.test.ts`
+- In the hardcoded `from()` mock (lines 36-59), add `..._args: any[]` to every chained method: `select`, `eq`, `ilike`, `or`, `order`, `limit`
 
-### 5. `useDashChat.ts` — `invalidate_keys` not in type
-The `execution_result` event data type doesn't include `invalidate_keys`. Fix: extend the type or use optional chaining with type assertion.
-
-## Files
+## Result
+- Login works exactly as before (toast → redirect → dashboard)
+- Build succeeds → edge functions deploy automatically
+- No other files or flows are affected
 
 | File | Change |
 |------|--------|
-| `supabase/functions/check-task-notifications/index.ts` | Add `: any` type to map callback |
-| `supabase/functions/dash-command/capabilities/workforce.test.ts` | Fix mock to accept arguments |
-| `src/components/dash/DashMessageList.tsx` | Fix boolean type in table rows |
-| `src/contexts/DashLocaleContext.tsx` | Widen `t` type to support both locales |
-| `src/hooks/useDashChat.ts` | Add type assertion for `invalidate_keys` |
+| `src/components/dashboard/ManagerClockInCard.tsx` | Add auth loading guard + effect cleanup |
+| `supabase/functions/dash-command/capabilities/workforce.test.ts` | Add `..._args: any[]` to hardcoded mock methods |
 
