@@ -13,7 +13,8 @@ import { useCompany } from "@/hooks/useCompany";
 const Index = () => {
   const { t } = useTranslation();
   const { user, loading, isStaff, staffCheckComplete } = useAuth();
-  const { data: company, isLoading: companyLoading } = useCompany();
+  const { isAccountPaused, isLoading: companyLoading } = useCompanyContext();
+  const { data: company } = useCompany();
   const isMobile = useIsMobile();
   const [loadingTooLong, setLoadingTooLong] = useState(false);
 
