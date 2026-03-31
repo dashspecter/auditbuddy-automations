@@ -74,9 +74,9 @@ const navLinks = [
 const StickyNav = ({ onBookDemo }: { onBookDemo: () => void }) => {
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
-  const { user, isStaff } = useAuth();
+  const { user, isStaff } = useSafeAuth();
   const isMobile = useIsMobile();
-  const { data: company } = useCompany();
+  const { data: company } = useSafeCompany();
   const isOwnerOrAdmin = company?.userRole === 'company_owner' || company?.userRole === 'company_admin';
   const dashboardPath = isStaff ? "/staff" : (isMobile && isOwnerOrAdmin) ? "/command" : "/dashboard";
   const userInitials = user?.email?.substring(0, 2).toUpperCase() || "U";
