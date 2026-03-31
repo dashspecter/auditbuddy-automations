@@ -1,10 +1,10 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import LandingNFX from "./LandingNFX";
 import { useCompanyContext } from "@/contexts/CompanyContext";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertTriangle, RefreshCw } from "lucide-react";
-import { Link, Navigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useTranslation } from "react-i18next";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -16,9 +16,26 @@ const Index = () => {
   const { isAccountPaused, isLoading: companyLoading } = useCompanyContext();
   const { data: company } = useCompany();
   const isMobile = useIsMobile();
+  const navigate = useNavigate();
   const [loadingTooLong, setLoadingTooLong] = useState(false);
 
   const isLoading = loading || companyLoading || !staffCheckComplete;
+
+  const redirectTarget = useMemo(() => {
+    if (!user || isAccountPaused) return null;
+    const isOwnerOrAdmin = company?.userRole === 'company_owner' || company?.userRole === 'company_admin';
+    return isStaff
+      ? '/staff'
+      : isOwnerOrAdmin
+      ? (isMobile ? '/command' : '/dash')
+      : '/dashboard';
+  }, [user, isAccountPaused, isStaff, company?.userRole, isMobile]);
+
+  useEffect(() => {
+    if (!isLoading && redirectTarget) {
+      navigate(redirectTarget, { replace: true });
+    }
+  }, [isLoading, redirectTarget, navigate]);
 
   useEffect(() => {
     if (!isLoading) {
@@ -82,17 +99,8 @@ const Index = () => {
     );
   }
 
-  // Redirect to staff home for staff users. Company owners/admins default to Dash
-  // on desktop and the mobile command view on mobile.
-  if (user) {
-    const isOwnerOrAdmin = company?.userRole === 'company_owner' || company?.userRole === 'company_admin';
-    const target = isStaff
-      ? "/staff"
-      : isOwnerOrAdmin
-        ? (isMobile ? "/command" : "/dash")
-        : "/dashboard";
-    return <Navigate to={target} replace />;
-  }
+  // Redirect fires in useEffect above — return null while effect is pending
+  if (!isLoading && redirectTarget) return null;
 
   // Otherwise show landing
   return <LandingNFX />;
