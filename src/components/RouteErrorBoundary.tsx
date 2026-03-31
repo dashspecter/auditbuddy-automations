@@ -9,12 +9,14 @@ interface Props {
 interface State {
   hasError: boolean;
   error?: Error;
+  showErrorUI: boolean;
 }
 
 export class RouteErrorBoundary extends Component<Props, State> {
-  public state: State = { hasError: false };
+  public state: State = { hasError: false, showErrorUI: false };
+  private delayTimer: ReturnType<typeof setTimeout> | null = null;
 
-  public static getDerivedStateFromError(error: Error): State {
+  public static getDerivedStateFromError(error: Error): Partial<State> {
     return { hasError: true, error };
   }
 
@@ -31,6 +33,15 @@ export class RouteErrorBoundary extends Component<Props, State> {
       }
       sessionStorage.removeItem("chunk-reload");
     }
+
+    // Delay showing error UI to give bootstrap/retry time to resolve
+    this.delayTimer = setTimeout(() => {
+      this.setState({ showErrorUI: true });
+    }, 2000);
+  }
+
+  public componentWillUnmount() {
+    if (this.delayTimer) clearTimeout(this.delayTimer);
   }
 
   private isChunkLoadError(error: Error): boolean {
@@ -44,17 +55,22 @@ export class RouteErrorBoundary extends Component<Props, State> {
   }
 
   private handleGoBack = () => {
-    this.setState({ hasError: false, error: undefined });
+    this.setState({ hasError: false, error: undefined, showErrorUI: false });
     window.history.back();
   };
 
   private handleReload = () => {
-    this.setState({ hasError: false, error: undefined });
+    this.setState({ hasError: false, error: undefined, showErrorUI: false });
     window.location.reload();
   };
 
   public render() {
     if (this.state.hasError) {
+      // Don't show error UI until the delay has passed
+      if (!this.state.showErrorUI) {
+        return null;
+      }
+
       return (
         <div className="flex flex-col items-center justify-center py-16 px-4 text-center">
           <AlertTriangle className="h-12 w-12 text-destructive mb-4" />

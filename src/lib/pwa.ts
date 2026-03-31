@@ -1,8 +1,8 @@
 /**
- * PWA Service Worker Registration & Update Handler
- * Uses workbox-window for robust lifecycle management.
+ * PWA Install Prompt Handler
+ * Service worker registration is handled by the bootstrap script.
+ * This file only manages the install prompt for Add to Home Screen.
  */
-import { toast } from "sonner";
 
 let deferredPrompt: Event | null = null;
 
@@ -33,38 +33,5 @@ export async function triggerInstallPrompt(): Promise<boolean> {
     return outcome === "accepted";
   } catch {
     return false;
-  }
-}
-
-export async function registerServiceWorker() {
-  if (!("serviceWorker" in navigator)) return;
-
-  // Only register in production builds
-  if (import.meta.env.DEV) return;
-
-  try {
-    const { Workbox } = await import("workbox-window");
-    const wb = new Workbox("/sw.js");
-
-    wb.addEventListener("waiting", () => {
-      toast.info("A new version is available", {
-        duration: Infinity,
-        action: {
-          label: "Update now",
-          onClick: () => {
-            wb.messageSkipWaiting();
-            window.location.reload();
-          },
-        },
-      });
-    });
-
-    wb.addEventListener("controlling", () => {
-      // New SW controlling - page will reload via the toast action
-    });
-
-    await wb.register();
-  } catch (err) {
-    console.warn("[PWA] Service worker registration failed:", err);
   }
 }
