@@ -1,68 +1,67 @@
 
 
-# Fix Mobile Blank Page and Desktop Error Flash
+# Fix: Mobile Error + Desktop "removeChild" Flash
 
-## Root Cause
+## Root Cause Analysis
 
-I visited dashspect.com with the browser tool and confirmed the blank page. The console shows:
+Two distinct bugs traced through the full boot flow:
 
+### Flow
+
+```text
+index.html loads
+  ├─ Inline script: MutationObserver watches #root, shows boot-fallback after 1.2s
+  ├─ build-bootstrap-v3.js (deferred):
+  │     1. ensureLatestVersion() → fetches version.json + build-manifest.json
+  │     2. clearAllCaches() ← runs on EVERY boot, even when no mismatch
+  │     3. fetchManifestEntry() ← fetches build-manifest.json AGAIN (2nd time)
+  │     4. injectModuleScript() → appends <script> to body
+  │     5. If manifest fails → fallback: injectModuleScript("/src/main.tsx") ← BROKEN
+  │
+  └─ main.tsx loads:
+        1. document.getElementById("boot-fallback")?.remove() ← removes node
+        2. createRoot(#root).render(<App />)
+        3. MutationObserver fires, tries to hide already-removed boot-fallback
 ```
-[Bootstrap] Version mismatch: URL=none → 1774941884856. Clearing caches...
-```
 
-The app has **three redundant version-checking/cache-busting systems** that fight each other, causing a multi-reload cycle that never completes on mobile:
+### Bug 1: Mobile — "The object can not be found here"
+When `fetchManifestEntry()` fails on mobile (slow network, timeout), the bootstrap falls back to injecting `/src/main.tsx` (line 204). **This file doesn't exist in production** — Vite compiles it into hashed chunks. The 404 error propagates to the `ErrorBoundary`.
 
-1. **`build-bootstrap-v3.js`** — checks `version.json`, redirects to add `?v=` to URL, clears SW/caches
-2. **`main.tsx` `checkBuildVersion()`** — does the exact same thing again after bootstrap already handled it
-3. **VitePWA `registerSW.js`** — auto-registers a service worker, which bootstrap then finds and unregisters on the next session, triggering yet another reload
-
-On every fresh session (no `?v=` in URL), the bootstrap redirects. After redirect, pre-clean finds the SW (registered by VitePWA), cleans it, reloads again. Then `main.tsx` may trigger a third redirect. On mobile, this 2-3 reload cycle results in a permanent blank page because the boot-fallback gets destroyed by each `window.location.replace()`.
-
-The brief "Something went wrong" on desktop is the `RouteErrorBoundary` flashing during the redirect cycle when chunk imports fail momentarily.
+### Bug 2: Desktop — "Failed to execute 'removeChild'"
+The `clearAllCaches()` call on line 190 runs on **every single page load**, clearing any in-flight cache/SW state. Combined with `main.tsx` removing `boot-fallback` from the DOM while the MutationObserver is still watching `#root`, React's Suspense boundary encounters a DOM state mismatch during lazy component resolution, causing the `removeChild` error. The 2-second delay in `RouteErrorBoundary` isn't enough because this error is caught by the top-level `ErrorBoundary` instead.
 
 ## Fix Strategy
 
-**Simplify to a single, reliable version check.** The bootstrap script alone is sufficient — remove all redundant checks.
+### 1. `public/build-bootstrap-v3.js` — Fix broken fallback + remove redundant work
 
-### Changes
+- **Remove the `/src/main.tsx` fallback** — in production this file doesn't exist. Instead, if manifest fetch fails, retry once, then show the boot-fallback with reload/reset buttons (already exists in HTML).
+- **Remove unconditional `clearAllCaches()`** on line 190 — only clear caches during an actual version mismatch (already done inside `ensureLatestVersion`). Running it on every boot is disruptive and causes race conditions with lazy chunk loading.
+- **Remove duplicate `fetchManifestEntry()` call** — the manifest is already fetched inside `ensureLatestVersion()`. Cache the result and reuse it in `boot()`.
 
-**1. `src/main.tsx` — Remove redundant `checkBuildVersion()` and SW cleanup**
-- Delete the entire `checkBuildVersion()` function (lines 85-215) — bootstrap v3 already handles this
-- Delete `cleanupServiceWorkersAndCaches()` (lines 24-46) — bootstrap v3 already does this
-- Remove the calls to both functions in the boot sequence (lines 237-243)
-- Keep `resetAppCacheIfRequested()` and `restoreDeepLinkIfNeeded()` (still useful)
+### 2. `index.html` — Fix MutationObserver race
 
-**2. `src/main.tsx` — Remove `registerServiceWorker()` call**
-- Delete the `registerServiceWorker()` call at line 253 and its import at line 3
-- The VitePWA plugin's auto-generated `registerSW.js` should also be disabled (see #4)
-- Service workers are the primary source of stale cache issues; removing them eliminates the problem
+- In the inline script, check if `boot-fallback` still exists before trying to hide it (defensive null check)
+- This prevents any edge case where the observer fires after `main.tsx` has already removed the element
 
-**3. `public/build-bootstrap-v3.js` — Stop redirecting with `?v=` param**
-- The `?v=` URL redirect is unnecessary: `_headers` already sets `no-cache` on all HTML/JSON, and Vite hashes asset filenames
-- Change `ensureLatestVersion()` to only compare build versions and reload (no URL redirect), using the existing `FORCE_RELOAD_KEY` guard to prevent loops
-- This eliminates the visible URL change and one full redirect cycle
+### 3. `src/main.tsx` — Safer boot-fallback removal
 
-**4. `vite.config.ts` — Disable VitePWA entirely**
-- Remove `VitePWA()` from plugins — it generates `registerSW.js` and `sw.js` which conflict with the anti-SW logic
-- The `manifest.json` in `/public` still provides installability (Add to Home Screen) without a service worker
+- Instead of `element.remove()`, use `element.style.display = 'none'` to hide it, then remove it after React has mounted (via `requestIdleCallback` or `setTimeout`). This prevents DOM conflicts with the MutationObserver.
 
-**5. `src/components/RouteErrorBoundary.tsx` — Add delay before showing error**
-- Add a 2-second delay before rendering the error UI to give the bootstrap/retry cycle time to complete
-- If the chunk-reload mechanism resolves the issue during the delay, the error never shows
+### 4. `src/components/ErrorBoundary.tsx` — Add delay like RouteErrorBoundary
+
+- Add the same 2-second delay mechanism from `RouteErrorBoundary` to the top-level `ErrorBoundary`. The "removeChild" error is transient — if we delay showing the error UI, the app has time to recover via `lazyWithRetry`.
 
 ## Files
 
 | File | Change |
 |------|--------|
-| `src/main.tsx` | Remove `checkBuildVersion`, `cleanupServiceWorkersAndCaches`, `registerServiceWorker` — keep only `resetAppCacheIfRequested` and `restoreDeepLinkIfNeeded` |
-| `public/build-bootstrap-v3.js` | Replace `?v=` URL redirect with simple reload-once on version mismatch |
-| `vite.config.ts` | Remove `VitePWA()` plugin entirely |
-| `src/lib/pwa.ts` | Keep file but remove SW registration; keep install prompt logic |
-| `src/components/RouteErrorBoundary.tsx` | Add 2s delay before showing error UI |
+| `public/build-bootstrap-v3.js` | Remove `/src/main.tsx` fallback (show boot-fallback instead), remove unconditional `clearAllCaches()`, deduplicate manifest fetch |
+| `index.html` | Add null check in MutationObserver callback |
+| `src/main.tsx` | Hide boot-fallback instead of removing it, defer actual removal |
+| `src/components/ErrorBoundary.tsx` | Add 2-second delay before showing error UI (same pattern as RouteErrorBoundary) |
 
 ## Result
-- Mobile: App loads on first try (no redirect cycle)
-- Desktop: No more "Something went wrong" flash
-- Cache busting still works via build-manifest hash comparison in bootstrap
-- App still installable via manifest.json (no SW needed for that)
+- Mobile: If manifest fails, users see the existing boot-fallback spinner with Reload/Reset buttons instead of a cryptic error
+- Desktop: No more "removeChild" flash — transient errors are absorbed by the delayed ErrorBoundary
+- No more unnecessary cache clearing on every page load
 
