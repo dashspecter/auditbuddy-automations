@@ -1,31 +1,45 @@
 
 
-# Fix Login Crash + Build Errors
+# Fix: Brief "Something Went Wrong" Flash on Site Load
 
-## What Broke & Why
+## Root Cause
 
-Both issues were introduced by recent changes:
-- **Login crash**: The new `ManagerClockInCard` component runs queries during auth transition, causing a React DOM reconciliation error ("removeChild"). Users see "Something went wrong" after entering correct credentials.
-- **Build failure**: The `workforce.test.ts` mock methods don't accept arguments, blocking deployment.
+When a new version is deployed, the JS chunk filenames change (Vite adds content hashes). Users who have the old `index.html` cached (by the service worker or browser cache) try to load chunk files that no longer exist on the server. The dynamic `import()` fails with a network/404 error, and `RouteErrorBoundary` catches it, briefly showing "Something went wrong."
 
-## Fixes
+This is a well-known issue with lazy-loaded SPAs after deployments.
 
-### 1. `src/components/dashboard/ManagerClockInCard.tsx`
-- Import `loading` (as `authLoading`) from `useAuth()`
-- Guard the `useEffect` to skip fetching while `authLoading` is true
-- Add `cancelled` flag in the effect cleanup to prevent state updates on unmounted component
-- Add `authLoading` to the dependency array
+## Solution
 
-### 2. `supabase/functions/dash-command/capabilities/workforce.test.ts`
-- In the hardcoded `from()` mock (lines 36-59), add `..._args: any[]` to every chained method: `select`, `eq`, `ilike`, `or`, `order`, `limit`
+Two changes to make it self-healing:
 
-## Result
-- Login works exactly as before (toast → redirect → dashboard)
-- Build succeeds → edge functions deploy automatically
-- No other files or flows are affected
+### 1. Add a retry wrapper for lazy imports (`src/lib/lazyWithRetry.ts`)
+Create a utility that wraps `React.lazy()` to catch chunk load errors and automatically reload the page once (using a sessionStorage flag to prevent infinite reload loops).
+
+```text
+lazy(() => import("./pages/Index"))
+  ↓ becomes ↓
+lazyWithRetry(() => import("./pages/Index"))
+```
+
+If the import fails:
+- Check sessionStorage for a `chunk-reload` flag
+- If not set: set the flag, call `window.location.reload()` (fetches fresh index.html with correct chunk URLs)
+- If already set: clear the flag, let the error propagate to the error boundary (genuine error, not a stale chunk)
+
+### 2. Update `src/App.tsx` — replace `lazy()` with `lazyWithRetry()`
+Change all ~100 `lazy(() => import(...))` calls to use the new wrapper.
+
+### 3. Improve `RouteErrorBoundary` — auto-recover for chunk errors
+Add detection for chunk load errors (message contains "Failed to fetch dynamically imported module" or "Loading chunk") and auto-reload instead of showing the error UI.
+
+## Files
 
 | File | Change |
 |------|--------|
-| `src/components/dashboard/ManagerClockInCard.tsx` | Add auth loading guard + effect cleanup |
-| `supabase/functions/dash-command/capabilities/workforce.test.ts` | Add `..._args: any[]` to hardcoded mock methods |
+| `src/lib/lazyWithRetry.ts` | **New** — retry wrapper for dynamic imports |
+| `src/App.tsx` | Replace `lazy()` with `lazyWithRetry()` on all imports |
+| `src/components/RouteErrorBoundary.tsx` | Add chunk error detection with auto-reload fallback |
+
+## Result
+Users will never see the "Something went wrong" flash after a deployment. The page silently reloads once to fetch the correct chunks.
 
