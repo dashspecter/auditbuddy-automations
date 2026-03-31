@@ -160,7 +160,8 @@ export function useCorrectiveActions(filters?: CAFilters) {
     queryKey: ["corrective_actions", stableKey],
     enabled: !!user?.id,
     queryFn: async (): Promise<CorrectiveAction[]> => {
-      const companyId = await getCompanyId(user!.id);
+      if (!user?.id) return [];
+      const companyId = await getCompanyId(user.id);
       if (!companyId) return [];
 
       let q = supabase
@@ -552,8 +553,8 @@ export function useLocationRiskState(locationId: string | undefined) {
     queryKey: ["location_risk_state", locationId],
     enabled: !!locationId && !!user?.id,
     queryFn: async (): Promise<LocationRiskState | null> => {
-      if (!locationId) return null;
-      const companyId = await getCompanyId(user!.id);
+      if (!locationId || !user?.id) return null;
+      const companyId = await getCompanyId(user.id);
       if (!companyId) return null;
 
       const { data } = await supabase
@@ -574,7 +575,8 @@ export function useAllLocationRiskStates() {
     queryKey: ["location_risk_state_all"],
     enabled: !!user?.id,
     queryFn: async (): Promise<LocationRiskState[]> => {
-      const companyId = await getCompanyId(user!.id);
+      if (!user?.id) return [];
+      const companyId = await getCompanyId(user.id);
       if (!companyId) return [];
       const { data } = await supabase
         .from("location_risk_state")
@@ -595,7 +597,8 @@ export function useCorrectiveActionRules() {
     queryKey: ["corrective_action_rules"],
     enabled: !!user?.id,
     queryFn: async (): Promise<CorrectiveActionRule[]> => {
-      const companyId = await getCompanyId(user!.id);
+      if (!user?.id) return [];
+      const companyId = await getCompanyId(user.id);
       if (!companyId) return [];
       const { data, error } = await supabase
         .from("corrective_action_rules")

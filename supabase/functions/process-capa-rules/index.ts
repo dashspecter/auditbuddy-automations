@@ -29,8 +29,11 @@ Deno.serve(async (req) => {
     return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: corsHeaders });
   }
 
-  // Get company
-  const { data: cu } = await supabase.from("company_users").select("company_id").eq("user_id", user.id).maybeSingle();
+  // Get company — check error separately from null data to distinguish network errors from missing records
+  const { data: cu, error: cuError } = await supabase.from("company_users").select("company_id").eq("user_id", user.id).maybeSingle();
+  if (cuError) {
+    return new Response(JSON.stringify({ error: "Failed to resolve company" }), { status: 500, headers: corsHeaders });
+  }
   const companyId = cu?.company_id;
   if (!companyId) {
     return new Response(JSON.stringify({ error: "No company" }), { status: 400, headers: corsHeaders });

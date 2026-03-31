@@ -114,11 +114,34 @@ const PerformAudit = () => {
   const doComplete = async () => {
     if (!id) return;
 
-    const totalScore = responses?.reduce((sum, response) => {
-      const value = response.response_value;
-      if (typeof value === "number") return sum + value;
-      return sum;
-    }, 0) || 0;
+    // Compute a normalized 0-100 score from field responses.
+    // Scoring rules per field type:
+    //   rating  → value / max (max from options.max, default 5)
+    //   checkbox → value (1 or 0)
+    //   number  → value / max (max from options.max, default 100)
+    //   other field types → not scored (text, textarea, photo, etc.)
+    // Average of all scored fields × 100.
+    const scoredResponses: number[] = [];
+
+    for (const field of fields || []) {
+      const response = responses?.find(r => r.field_id === field.id);
+      const val = response?.response_value;
+      if (typeof val !== "number") continue;
+
+      if (field.field_type === "rating") {
+        const max = (field.options as any)?.max || 5;
+        scoredResponses.push(val / max);
+      } else if (field.field_type === "checkbox") {
+        scoredResponses.push(val); // 0 or 1
+      } else if (field.field_type === "number") {
+        const max = (field.options as any)?.max;
+        scoredResponses.push(max ? val / max : 0);
+      }
+    }
+
+    const totalScore = scoredResponses.length > 0
+      ? Math.round((scoredResponses.reduce((s, v) => s + v, 0) / scoredResponses.length) * 100)
+      : 0;
 
     await completeAudit.mutateAsync({ auditId: id, totalScore });
     navigate(`/audits/${id}`);
@@ -203,8 +226,17 @@ const PerformAudit = () => {
                     fieldId={field.id}
                     auditId={id!}
                     sectionId={currentSection.id}
+                    field={field}
                     fieldResponse={fieldResponse}
                     onObservationChange={(value) => handleObservationChange(field.id, value)}
+                    onScoreChange={(value) => {
+                      saveFieldResponse.mutate({
+                        auditId: id!,
+                        fieldId: field.id,
+                        sectionId: currentSection.id,
+                        responseValue: value,
+                      });
+                    }}
                     onEnsureFieldResponse={async () => {
                       if (fieldResponse?.id) return fieldResponse.id;
                       try {

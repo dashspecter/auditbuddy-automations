@@ -171,7 +171,7 @@ export function useUnifiedTasks(options: UseUnifiedTasksOptions = {}): UnifiedTa
       }));
     },
     enabled: rawTasks.length > 0,
-    staleTime: 0,
+    staleTime: 60_000, // 1 min — completions are near-realtime via refetchInterval or invalidation
     refetchInterval: completionsPollInterval,
   });
 
@@ -357,7 +357,7 @@ export function useUnifiedTasksForDate(
       }));
     },
     enabled: rawTasks.length > 0,
-    staleTime: 0,
+    staleTime: 60_000, // 1 min — completions are near-realtime via refetchInterval or invalidation
   });
 
   // Build completions lookup map using shared helper

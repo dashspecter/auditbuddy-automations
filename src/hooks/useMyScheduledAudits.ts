@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { STALE_TIME } from '@/lib/constants';
 
 /**
  * Hook to fetch scheduled audits for the current user on mobile.
@@ -47,9 +48,7 @@ export const useMyScheduledAudits = () => {
       return deduped;
     },
     enabled: !!user,
-    staleTime: 0,
-    refetchOnMount: 'always',
-    refetchOnWindowFocus: true,
+    staleTime: STALE_TIME.SHORT,
   });
 };
 
@@ -93,8 +92,6 @@ export const useMyAudits = () => {
       return deduped;
     },
     enabled: !!user,
-    staleTime: 0,
-    refetchOnMount: 'always',
-    refetchOnWindowFocus: true,
+    staleTime: STALE_TIME.SHORT,
   });
 };

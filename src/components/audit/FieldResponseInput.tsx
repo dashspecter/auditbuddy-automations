@@ -3,8 +3,11 @@ import { useDebouncedSave } from "@/hooks/useDebouncedSave";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   Dialog,
   DialogContent,
@@ -18,16 +21,21 @@ import {
   FileText,
   X,
   Download,
+  Star,
 } from "lucide-react";
 import { useUploadFieldPhoto, useUploadFieldAttachment, useDeleteFieldPhoto, useDeleteFieldAttachment, AuditFieldResponse } from "@/hooks/useAuditFieldResponses";
 import { Skeleton } from "@/components/ui/skeleton";
+import { AuditField } from "@/hooks/useAuditFields";
 
 interface FieldResponseInputProps {
   auditId: string;
   fieldId: string;
   sectionId: string;
+  /** The field definition — used to render the appropriate input for each field type */
+  field?: AuditField;
   fieldResponse?: AuditFieldResponse;
   onObservationChange: (value: string) => void;
+  onScoreChange?: (value: number | null) => void;
   /** Must return a valid field_response ID. Called before upload if fieldResponse is missing. */
   onEnsureFieldResponse?: () => Promise<string | null>;
   disabled?: boolean;
@@ -37,13 +45,24 @@ export default function FieldResponseInput({
   auditId,
   fieldId,
   sectionId,
+  field,
   fieldResponse,
   onObservationChange,
+  onScoreChange,
   onEnsureFieldResponse,
   disabled = false,
 }: FieldResponseInputProps) {
   const [observations, setObservations] = useState(fieldResponse?.observations || "");
   const [showObservations, setShowObservations] = useState(false);
+  const [ratingHover, setRatingHover] = useState(0);
+
+  const currentScore = typeof fieldResponse?.response_value === "number"
+    ? fieldResponse.response_value
+    : null;
+
+  const handleScoreChange = (val: number | null) => {
+    onScoreChange?.(val);
+  };
   const photoInputRef = useRef<HTMLInputElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [pendingPhotoFile, setPendingPhotoFile] = useState<File | null>(null);
@@ -106,8 +125,118 @@ export default function FieldResponseInput({
   const photos = fieldResponse?.audit_field_photos || [];
   const attachments = fieldResponse?.audit_field_attachments || [];
 
+  // Render the primary input control based on field type
+  const renderFieldInput = () => {
+    if (!field) return null;
+    const { field_type, options } = field;
+
+    if (field_type === "rating") {
+      const maxStars = (options as any)?.max || 5;
+      return (
+        <div className="space-y-1">
+          <Label className="text-xs text-muted-foreground">Rating (1–{maxStars})</Label>
+          <div className="flex gap-1">
+            {Array.from({ length: maxStars }, (_, i) => i + 1).map((star) => (
+              <button
+                key={star}
+                type="button"
+                disabled={disabled}
+                className="p-0.5 transition-colors"
+                onMouseEnter={() => setRatingHover(star)}
+                onMouseLeave={() => setRatingHover(0)}
+                onClick={() => handleScoreChange(currentScore === star ? null : star)}
+              >
+                <Star
+                  className={`h-7 w-7 transition-colors ${
+                    star <= (ratingHover || currentScore || 0)
+                      ? "fill-yellow-400 text-yellow-400"
+                      : "text-muted-foreground"
+                  }`}
+                />
+              </button>
+            ))}
+            {currentScore !== null && (
+              <span className="self-center text-sm font-semibold ml-1">{currentScore}/{maxStars}</span>
+            )}
+          </div>
+        </div>
+      );
+    }
+
+    if (field_type === "checkbox") {
+      const isChecked = currentScore === 1;
+      return (
+        <div className="flex items-center gap-2">
+          <Checkbox
+            id={`field-${fieldId}`}
+            disabled={disabled}
+            checked={isChecked}
+            onCheckedChange={(checked) => handleScoreChange(checked ? 1 : 0)}
+          />
+          <label htmlFor={`field-${fieldId}`} className="text-sm cursor-pointer">
+            {isChecked ? "Yes / Compliant" : "No / Non-compliant"}
+          </label>
+        </div>
+      );
+    }
+
+    if (field_type === "number") {
+      return (
+        <div className="space-y-1">
+          <Label className="text-xs text-muted-foreground">Score</Label>
+          <Input
+            type="number"
+            className="w-32"
+            disabled={disabled}
+            value={currentScore ?? ""}
+            min={(options as any)?.min ?? 0}
+            max={(options as any)?.max ?? undefined}
+            onChange={(e) => {
+              const val = e.target.value === "" ? null : Number(e.target.value);
+              handleScoreChange(val);
+            }}
+          />
+        </div>
+      );
+    }
+
+    if (field_type === "text" || field_type === "textarea") {
+      // Text fields store a string — no numeric score, observations textarea handles this
+      return null;
+    }
+
+    if (field_type === "select" || field_type === "multiselect") {
+      const selectOptions: string[] = (options as any)?.choices || [];
+      if (selectOptions.length === 0) return null;
+      return (
+        <div className="space-y-1">
+          <Label className="text-xs text-muted-foreground">Select</Label>
+          <Select
+            disabled={disabled}
+            value={typeof fieldResponse?.response_value === "string" ? fieldResponse.response_value : ""}
+            onValueChange={(val) => onScoreChange?.(null)}
+          >
+            <SelectTrigger className="w-48">
+              <SelectValue placeholder="Choose…" />
+            </SelectTrigger>
+            <SelectContent>
+              {selectOptions.map((opt) => (
+                <SelectItem key={opt} value={opt}>{opt}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      );
+    }
+
+    return null;
+  };
+
   return (
     <div className="space-y-2">
+      {/* Field-type-specific input (rating, checkbox, number, etc.) */}
+      {renderFieldInput()}
+
       {/* Action Buttons */}
       <div className="flex gap-2 flex-wrap">
         <Button

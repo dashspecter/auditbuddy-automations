@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { STALE_TIME } from '@/lib/constants';
 
 export const useUserRole = () => {
   const { user } = useAuth();
@@ -67,9 +68,8 @@ export const useUserRole = () => {
     enabled: !!user,
     retry: 1,
     retryDelay: 500,
-    refetchOnMount: 'always',
-    refetchOnWindowFocus: true,
-    staleTime: 0, // Always refetch to ensure fresh role data
-    gcTime: 60 * 1000, // Keep in cache for 1 minute
+    // Roles change rarely — cache for 15 minutes, let auth events trigger manual invalidation
+    staleTime: STALE_TIME.LONG,
+    gcTime: STALE_TIME.VERY_LONG,
   });
 };

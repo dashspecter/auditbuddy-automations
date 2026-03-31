@@ -125,14 +125,14 @@ Deno.serve(async (req) => {
 
     // Handle status callback
     if (messageSid && messageStatus) {
-      // Find the outbound message
-      const { data: msg } = await supabase
+      // Find the outbound message — check error before accessing data
+      const { data: msg, error: msgError } = await supabase
         .from("outbound_messages")
         .select("id")
         .eq("provider_message_sid", messageSid)
-        .single();
+        .maybeSingle();
 
-      if (msg) {
+      if (!msgError && msg) {
         const now = new Date().toISOString();
         const updateData: Record<string, any> = { status: messageStatus };
 

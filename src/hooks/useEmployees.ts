@@ -60,9 +60,12 @@ export interface Employee {
   }>;
 }
 
-export const useEmployees = (locationId?: string, statusFilter?: string) => {
+export const useEmployees = (locationId?: string | null, statusFilter?: string | null) => {
+  // Normalize optional params so undefined/null/'' all map to the same cache key entry
+  const normLocationId = locationId || null;
+  const normStatusFilter = statusFilter || null;
   return useQuery({
-    queryKey: ["employees", locationId, statusFilter],
+    queryKey: ["employees", normLocationId, normStatusFilter],
     queryFn: async () => {
       let query = supabase
         .from("employees")

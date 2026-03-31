@@ -29,15 +29,27 @@ Deno.serve(async (req) => {
     return new Response(null, { headers: corsHeaders })
   }
 
-  let cronSecret = req.headers.get('x-cron-secret')
+  // Check cron secret — header takes priority; fall back to body for manual triggers.
+  // IMPORTANT: check for presence separately from correctness so undefined !== validSecret
+  // never accidentally passes when CRON_SECRET env var is also undefined.
+  const expectedSecret = Deno.env.get('CRON_SECRET');
+  if (!expectedSecret) {
+    console.error('CRON_SECRET env var not set')
+    return new Response(
+      JSON.stringify({ success: false, error: 'Server misconfiguration' }),
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    )
+  }
+
+  let cronSecret: string | undefined = req.headers.get('x-cron-secret') ?? undefined;
   if (!cronSecret) {
     try {
       const body = await req.clone().json()
-      cronSecret = body.cron_secret
+      cronSecret = typeof body.cron_secret === 'string' ? body.cron_secret : undefined;
     } catch { /* No body */ }
   }
-  
-  if (cronSecret !== Deno.env.get('CRON_SECRET')) {
+
+  if (!cronSecret || cronSecret !== expectedSecret) {
     console.error('Unauthorized: Invalid or missing cron secret')
     return new Response(
       JSON.stringify({ success: false, error: 'Unauthorized' }),
@@ -64,105 +76,112 @@ Deno.serve(async (req) => {
     let totalAutoClocked = 0
     let totalAlerts = 0
 
-    for (const company of companies || []) {
-      const delayMinutes = company.auto_clockout_delay_minutes || 30
+    // Fetch ALL open logs across all companies in one query, joining shifts inline.
+    // We'll handle per-company delayMinutes via a lookup map.
+    const companyDelayMap = new Map<string, number>(
+      (companies || []).map(c => [c.id, c.auto_clockout_delay_minutes || 30])
+    )
 
-      const { data: logs, error: logsError } = await supabase
-        .from('attendance_logs')
-        .select(`
-          id,
-          staff_id,
-          shift_id,
-          check_in_at,
-          shifts!inner(
-            shift_date,
-            start_time,
-            end_time,
-            company_id,
-            location_id
-          )
-        `)
-        .is('check_out_at', null)
-        .eq('shifts.company_id', company.id)
+    const { data: allLogs, error: logsError } = await supabase
+      .from('attendance_logs')
+      .select(`
+        id,
+        staff_id,
+        shift_id,
+        check_in_at,
+        shifts!inner(
+          shift_date,
+          start_time,
+          end_time,
+          company_id,
+          location_id
+        )
+      `)
+      .is('check_out_at', null)
+      .is('auto_clocked_out', null)
 
-      if (logsError) {
-        console.error(`Error fetching logs for company ${company.id}:`, logsError)
-        continue
+    if (logsError) {
+      console.error('Error fetching attendance logs:', logsError)
+      throw logsError
+    }
+
+    // Identify which logs actually need clocking out, then pre-fetch employee
+    // and location names in bulk to eliminate N+1 queries.
+    const now = new Date()
+    const logsToProcess: Array<{ log: any; shift: any; clockOutTime: string; hoursShort: number; companyId: string }> = []
+
+    for (const log of allLogs || []) {
+      const shift = (log as any).shifts
+      if (!shift) continue
+      const companyId: string = shift.company_id
+      const delayMinutes = companyDelayMap.get(companyId) ?? 30
+
+      const shiftEndUtc = localToUtc(shift.shift_date, shift.end_time, 'Europe/Bucharest')
+      const autoClockoutTime = new Date(shiftEndUtc.getTime() + delayMinutes * 60 * 1000)
+
+      if (now > autoClockoutTime) {
+        const shiftStartUtc = localToUtc(shift.shift_date, shift.start_time, 'Europe/Bucharest')
+        let scheduledMs = shiftEndUtc.getTime() - shiftStartUtc.getTime()
+        if (scheduledMs <= 0) scheduledMs += 86400000
+        const scheduledHours = scheduledMs / 3600000
+        const actualHours = (autoClockoutTime.getTime() - new Date(log.check_in_at).getTime()) / 3600000
+        const hoursShort = Math.max(0, Math.round((scheduledHours - actualHours) * 10) / 10)
+        logsToProcess.push({ log, shift, clockOutTime: autoClockoutTime.toISOString(), hoursShort, companyId })
       }
+    }
 
-      for (const log of logs || []) {
-        const shift = (log as any).shifts
-        if (!shift) continue
+    if (logsToProcess.length > 0) {
+      // Pre-fetch all needed employee names and location names in two bulk queries
+      const staffIds = [...new Set(logsToProcess.map(x => x.log.staff_id))]
+      const locationIds = [...new Set(logsToProcess.map(x => x.shift.location_id).filter(Boolean))]
 
-        const shiftEndUtc = localToUtc(shift.shift_date, shift.end_time, 'Europe/Bucharest')
-        const autoClockoutTime = new Date(shiftEndUtc.getTime() + delayMinutes * 60 * 1000)
-        const now = new Date()
+      const [empResult, locResult] = await Promise.all([
+        supabase.from('employees').select('id, full_name').in('id', staffIds),
+        supabase.from('locations').select('id, name').in('id', locationIds),
+      ])
 
-        if (now > autoClockoutTime) {
-          const clockOutTime = autoClockoutTime.toISOString()
+      const empMap = new Map<string, string>((empResult.data || []).map(e => [e.id, e.full_name]))
+      const locMap = new Map<string, string>((locResult.data || []).map(l => [l.id, l.name]))
 
-          // Calculate hours_short: scheduled - actual
-          const shiftStartUtc = localToUtc(shift.shift_date, shift.start_time, 'Europe/Bucharest')
-          let scheduledMs = shiftEndUtc.getTime() - shiftStartUtc.getTime()
-          if (scheduledMs <= 0) scheduledMs += 86400000 // overnight shift
-          const scheduledHours = scheduledMs / 3600000
+      for (const { log, shift, clockOutTime, hoursShort, companyId } of logsToProcess) {
+        const { error: updateError } = await supabase
+          .from('attendance_logs')
+          .update({
+            check_out_at: clockOutTime,
+            auto_clocked_out: true,
+            hours_short: hoursShort > 0 ? hoursShort : null,
+            notes: `Auto clocked out ${companyDelayMap.get(companyId) ?? 30} minutes after shift end`,
+          })
+          .eq('id', log.id)
 
-          const checkInTime = new Date(log.check_in_at)
-          const actualHours = (autoClockoutTime.getTime() - checkInTime.getTime()) / 3600000
-          const hoursShort = Math.max(0, Math.round((scheduledHours - actualHours) * 10) / 10)
+        if (updateError) {
+          console.error(`Error auto clocking out log ${log.id}:`, updateError)
+          continue
+        }
 
-          const { error: updateError } = await supabase
-            .from('attendance_logs')
-            .update({ 
-              check_out_at: clockOutTime,
-              auto_clocked_out: true,
-              hours_short: hoursShort > 0 ? hoursShort : null,
-              notes: `Auto clocked out ${delayMinutes} minutes after shift end`
-            })
-            .eq('id', log.id)
+        console.log(`Auto clocked out attendance log ${log.id}`)
+        totalAutoClocked++
 
-          if (updateError) {
-            console.error(`Error auto clocking out log ${log.id}:`, updateError)
-          } else {
-            console.log(`Auto clocked out attendance log ${log.id}`)
-            totalAutoClocked++
+        const empName = empMap.get(log.staff_id) || 'Unknown employee'
+        const locName = locMap.get(shift.location_id) || 'Unknown location'
 
-            // Fetch employee name for alert message
-            const { data: empData } = await supabase
-              .from('employees')
-              .select('full_name')
-              .eq('id', log.staff_id)
-              .single()
+        const { error: alertError } = await supabase
+          .from('alerts')
+          .insert({
+            company_id: companyId,
+            location_id: shift.location_id,
+            severity: 'warning',
+            category: 'attendance',
+            source: 'missing_checkout',
+            title: `Shift without check-out — to be verified`,
+            message: `${empName} did not check out for their shift at ${locName} on ${shift.shift_date}. Auto clocked out after ${companyDelayMap.get(companyId) ?? 30} min delay.`,
+            resolved: false,
+          })
 
-            const { data: locData } = await supabase
-              .from('locations')
-              .select('name')
-              .eq('id', shift.location_id)
-              .single()
-
-            const empName = empData?.full_name || 'Unknown employee'
-            const locName = locData?.name || 'Unknown location'
-
-            // Create "missing checkout" alert
-            const { error: alertError } = await supabase
-              .from('alerts')
-              .insert({
-                company_id: company.id,
-                location_id: shift.location_id,
-                severity: 'warning',
-                category: 'attendance',
-                source: 'missing_checkout',
-                title: `Shift without check-out — to be verified`,
-                message: `${empName} did not check out for their shift at ${locName} on ${shift.shift_date}. Auto clocked out after ${delayMinutes} min delay.`,
-                resolved: false,
-              })
-
-            if (alertError) {
-              console.error(`Error creating alert for log ${log.id}:`, alertError)
-            } else {
-              totalAlerts++
-            }
-          }
+        if (alertError) {
+          console.error(`Error creating alert for log ${log.id}:`, alertError)
+        } else {
+          totalAlerts++
         }
       }
     }

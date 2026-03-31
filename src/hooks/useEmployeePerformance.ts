@@ -2,6 +2,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useEffect } from "react";
 import { WarningContribution } from "./useWarningPenalty";
+import { useCompany } from "@/hooks/useCompany";
 
 export interface EmployeePerformanceScore {
   employee_id: string;
@@ -89,36 +90,45 @@ export const useEmployeePerformance = (
   locationId?: string
 ) => {
   const queryClient = useQueryClient();
+  const { company } = useCompany();
 
-  // Realtime subscriptions for performance-related tables
+  // Realtime subscriptions for performance-related tables — scoped to this company
   useEffect(() => {
-    if (!startDate || !endDate) return;
+    if (!startDate || !endDate || !company?.id) return;
+
+    const companyId = company.id;
+    const invalidate = () => {
+      queryClient.invalidateQueries({ queryKey: ['employee-performance'], exact: false });
+    };
 
     const channels = [
       supabase
-        .channel('attendance_logs_performance')
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'attendance_logs' }, () => {
-          queryClient.invalidateQueries({ queryKey: ['employee-performance'] });
-        })
+        .channel(`attendance_logs_performance_${companyId}`)
+        .on('postgres_changes', {
+          event: '*', schema: 'public', table: 'attendance_logs',
+          filter: `company_id=eq.${companyId}`,
+        }, invalidate)
         .subscribe(),
       supabase
-        .channel('tasks_performance')
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'tasks' }, () => {
-          queryClient.invalidateQueries({ queryKey: ['employee-performance'] });
-        })
+        .channel(`tasks_performance_${companyId}`)
+        .on('postgres_changes', {
+          event: '*', schema: 'public', table: 'tasks',
+          filter: `company_id=eq.${companyId}`,
+        }, invalidate)
         .subscribe(),
       supabase
-        .channel('test_submissions_performance')
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'test_submissions' }, () => {
-          queryClient.invalidateQueries({ queryKey: ['employee-performance'] });
-        })
+        .channel(`test_submissions_performance_${companyId}`)
+        .on('postgres_changes', {
+          event: '*', schema: 'public', table: 'test_submissions',
+          filter: `company_id=eq.${companyId}`,
+        }, invalidate)
         .subscribe(),
     ];
 
     return () => {
       channels.forEach(channel => supabase.removeChannel(channel));
     };
-  }, [startDate, endDate, queryClient]);
+  }, [startDate, endDate, company?.id, queryClient]);
 
   return useQuery({
     queryKey: ["employee-performance", startDate, endDate, locationId],

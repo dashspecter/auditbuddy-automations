@@ -1,4 +1,4 @@
-import React, { createContext, useContext, ReactNode, useEffect, useRef } from 'react';
+import React, { createContext, useContext, ReactNode, useEffect, useRef, useMemo, useCallback } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { PricingTier, canAccessModule } from '@/config/pricingTiers';
 import { useCompany, useCompanyModules } from '@/hooks/useCompany';
@@ -43,25 +43,34 @@ export const CompanyProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [company?.id, companyLoading, modulesLoading, modules.length]);
 
-  const tier: PricingTier = (company?.subscription_tier as PricingTier) || 'starter';
+  const tier: PricingTier = useMemo(
+    () => (company?.subscription_tier as PricingTier) || 'starter',
+    [company?.subscription_tier]
+  );
 
-  const hasModule = (moduleName: string) => {
-    return modules.some(m => m.module_name === moduleName && m.is_active);
-  };
+  const hasModule = useCallback(
+    (moduleName: string) => modules.some(m => m.module_name === moduleName && m.is_active),
+    [modules]
+  );
 
-  const canAccessModuleFn = (moduleName: string) => {
-    return canAccessModule(tier, moduleName) && hasModule(moduleName);
-  };
+  const canAccessModuleFn = useCallback(
+    (moduleName: string) => canAccessModule(tier, moduleName) && hasModule(moduleName),
+    [tier, hasModule]
+  );
 
-  // Calculate trial status
-  const isAccountPaused = company?.status === 'paused';
-  const isPendingApproval = company?.status === 'pending';
-  const trialEndsAt = company?.trial_ends_at ? new Date(company.trial_ends_at) : null;
-  const now = new Date();
-  const isTrialExpired = trialEndsAt ? trialEndsAt < now : false;
-  const trialDaysRemaining = trialEndsAt 
-    ? Math.max(0, Math.ceil((trialEndsAt.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)))
-    : 0;
+  // Calculate trial status — memoized so downstream components don't re-render on unrelated changes
+  const { isAccountPaused, isPendingApproval, isTrialExpired, trialDaysRemaining } = useMemo(() => {
+    const trialEndsAt = company?.trial_ends_at ? new Date(company.trial_ends_at) : null;
+    const now = new Date();
+    return {
+      isAccountPaused: company?.status === 'paused',
+      isPendingApproval: company?.status === 'pending',
+      isTrialExpired: trialEndsAt ? trialEndsAt < now : false,
+      trialDaysRemaining: trialEndsAt
+        ? Math.max(0, Math.ceil((trialEndsAt.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)))
+        : 0,
+    };
+  }, [company?.status, company?.trial_ends_at]);
 
   // Redirect to pending approval page if company is pending (SPA navigation)
   React.useEffect(() => {
@@ -70,20 +79,26 @@ export const CompanyProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [isPendingApproval, location.pathname, navigate]);
 
+  const isLoading = companyLoading || modulesLoading;
+
+  const contextValue = useMemo(
+    () => ({
+      company,
+      isLoading,
+      modules,
+      hasModule,
+      tier,
+      canAccessModule: canAccessModuleFn,
+      isTrialExpired,
+      trialDaysRemaining,
+      isAccountPaused,
+    }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [company, isLoading, modules, hasModule, tier, canAccessModuleFn, isTrialExpired, trialDaysRemaining, isAccountPaused]
+  );
+
   return (
-    <CompanyContext.Provider
-      value={{
-        company,
-        isLoading: companyLoading || modulesLoading,
-        modules,
-        hasModule,
-        tier,
-        canAccessModule: canAccessModuleFn,
-        isTrialExpired,
-        trialDaysRemaining,
-        isAccountPaused,
-      }}
-    >
+    <CompanyContext.Provider value={contextValue}>
       {children}
     </CompanyContext.Provider>
   );

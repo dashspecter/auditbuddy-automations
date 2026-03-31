@@ -44,38 +44,66 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Extract company_id from path (first segment)
-    const companyId = storagePath.split("/")[0];
+    // SECURITY: Resolve company_id from the database, NOT from user-controlled path.
+    // Extracting companyId from storagePath would let any user forge a path to
+    // pass the company membership check.
+    const serviceClientForLookup = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+    );
 
-    // Check if caller is the assigned scout or an org manager
+    const { data: mediaRecord, error: mediaError } = await serviceClientForLookup
+      .from("scout_media")
+      .select("id, scout_submissions(scout_jobs(company_id, assigned_scout_id))")
+      .eq("storage_path", storagePath)
+      .maybeSingle();
+
+    if (mediaError || !mediaRecord) {
+      return new Response(JSON.stringify({ error: "Media not found" }), {
+        status: 404,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const job = (mediaRecord as any).scout_submissions?.scout_jobs;
+    const companyId: string | null = job?.company_id ?? null;
+
+    if (!companyId) {
+      return new Response(JSON.stringify({ error: "Media not associated with a company" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Check if caller is the assigned scout for this job or an org manager
+    const assignedScoutId: string | null = job?.assigned_scout_id ?? null;
+
     const { data: scout } = await supabase
       .from("scouts")
-      .select("id")
+      .select("id, user_id")
       .eq("user_id", userId)
-      .single();
+      .maybeSingle();
 
     const { data: companyUser } = await supabase
       .from("company_users")
       .select("company_role")
       .eq("user_id", userId)
       .eq("company_id", companyId)
-      .single();
+      .maybeSingle();
 
-    const isScout = !!scout;
+    // Scout must be the one assigned to this job
+    const isAssignedScout = !!scout && (assignedScoutId === scout.id || assignedScoutId === userId);
     const isManager = !!companyUser;
 
-    if (!isScout && !isManager) {
+    if (!isAssignedScout && !isManager) {
       return new Response(JSON.stringify({ error: "Forbidden" }), {
         status: 403,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    // Create signed view URL (10-min expiry)
-    const serviceClient = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
-    );
+    // Reuse the service client already created for the media lookup
+    const serviceClient = serviceClientForLookup;
 
     const { data: signedData, error: signError } = await serviceClient.storage
       .from("scout-evidence")
@@ -94,7 +122,7 @@ Deno.serve(async (req) => {
       action: "view_evidence",
       entity_type: "scout_media",
       entity_id: storagePath,
-      metadata: { storagePath, viewerType: isScout ? "scout" : "manager" },
+      metadata: { storagePath, viewerType: isAssignedScout ? "scout" : "manager" },
     });
 
     return new Response(

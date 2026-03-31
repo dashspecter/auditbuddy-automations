@@ -1,7 +1,9 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { useCompany } from '@/hooks/useCompany';
 import { useEffect } from 'react';
+import { STALE_TIME } from '@/lib/constants';
 
 export interface LocationAudit {
   id: string;
@@ -55,24 +57,25 @@ export interface LocationAudit {
 
 export const useLocationAudits = () => {
   const { user } = useAuth();
+  const { company } = useCompany();
   const queryClient = useQueryClient();
-  
-  // Set up realtime subscription for location_audits
+
+  // Set up realtime subscription — scoped to this company only
   useEffect(() => {
-    if (!user) return;
+    if (!user || !company?.id) return;
 
     const channel = supabase
-      .channel('location_audits_changes')
+      .channel(`location_audits_changes_${company.id}`)
       .on(
         'postgres_changes',
         {
           event: '*',
           schema: 'public',
-          table: 'location_audits'
+          table: 'location_audits',
+          filter: `company_id=eq.${company.id}`,
         },
         () => {
-          // Invalidate queries to refetch data
-          queryClient.invalidateQueries({ queryKey: ['location_audits'] });
+          queryClient.invalidateQueries({ queryKey: ['location_audits'], exact: false });
         }
       )
       .subscribe();
@@ -80,7 +83,7 @@ export const useLocationAudits = () => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [user, queryClient]);
+  }, [user, company?.id, queryClient]);
   
   return useQuery({
     queryKey: ['location_audits'],
@@ -99,9 +102,8 @@ export const useLocationAudits = () => {
       return data as LocationAudit[];
     },
     enabled: !!user,
-    staleTime: 0, // Always fetch fresh data
-    refetchOnMount: 'always',
-    refetchOnWindowFocus: true,
+    // Realtime subscription keeps this fresh — no need for staleTime:0
+    staleTime: STALE_TIME.MEDIUM,
   });
 };
 
@@ -140,9 +142,7 @@ export const useLocationAudit = (id: string) => {
       } as LocationAudit;
     },
     enabled: !!id,
-    staleTime: 0, // Always fetch fresh data
-    refetchOnMount: 'always',
-    refetchOnWindowFocus: true,
+    staleTime: STALE_TIME.SHORT,
   });
 };
 

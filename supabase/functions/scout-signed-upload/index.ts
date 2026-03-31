@@ -83,8 +83,32 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Build storage path
-    const ext = fileName.split(".").pop() || "jpg";
+    // Validate submissionId belongs to this job — prevents a scout from attaching
+    // media to another scout's submission by supplying a foreign submissionId
+    const { data: submission, error: submissionError } = await supabase
+      .from("scout_submissions")
+      .select("id")
+      .eq("id", submissionId)
+      .eq("job_id", jobId)
+      .maybeSingle();
+
+    if (submissionError || !submission) {
+      return new Response(JSON.stringify({ error: "Submission not found or does not belong to this job" }), {
+        status: 403,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Build storage path — whitelist extensions to prevent non-media uploads
+    const ALLOWED_EXTENSIONS = new Set(["jpg", "jpeg", "png", "gif", "webp", "heic", "mp4", "mov", "avi", "webm"]);
+    const rawExt = (fileName.split(".").pop() || "").toLowerCase();
+    const ext = ALLOWED_EXTENSIONS.has(rawExt) ? rawExt : null;
+    if (!ext) {
+      return new Response(JSON.stringify({ error: "File type not allowed" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
     const mediaId = crypto.randomUUID();
     const storagePath = `${job.company_id}/${jobId}/${submissionId}/${mediaId}.${ext}`;
 
