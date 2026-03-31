@@ -1,20 +1,17 @@
 /*
-  Stable build bootstrap loader v4 - Simplified single version check
+  Stable build bootstrap loader v5 - Single version check, no SW conflicts
 
-  This is the ONLY version-checking system. No service workers, no redundant
-  checks in main.tsx. One simple flow:
+  Flow:
   1. Fetch version.json (never cached)
   2. Compare against localStorage
-  3. If mismatch on first visit in session → clear caches, reload once
-  4. Inject app entry from build-manifest.json
-
-  This file lives in /public so it is served as-is (not hashed).
+  3. If mismatch → clear caches, reload once (guarded by sessionStorage)
+  4. Fetch build-manifest.json and inject app entry
+  5. If manifest fails → show boot-fallback (no broken /src/main.tsx fallback)
 */
 
 (function () {
   var BUILD_MANIFEST_URL = "/build-manifest.json";
   var BUILD_ID_KEY = "app_build_manifest_id";
-  var RELOAD_GUARD_KEY = "bootstrap:reloaded";
   var SESSION_MARKER_KEY = "bootstrap:session";
   var VERSION_URL = "/version.json";
   var VERSION_KEY = "app_build_version";
@@ -54,7 +51,6 @@
   // Clear session guards on fresh browser sessions
   if (!sessionStorage.getItem(SESSION_MARKER_KEY)) {
     sessionStorage.setItem(SESSION_MARKER_KEY, Date.now().toString());
-    sessionStorage.removeItem(RELOAD_GUARD_KEY);
     sessionStorage.removeItem(VERSION_RELOAD_GUARD);
   }
 
@@ -95,22 +91,12 @@
     return { entry: entry, buildId: buildId, versionToken: versionToken };
   }
 
-  /**
-   * Simple version check: compare server version with stored version.
-   * If mismatch, clear caches and reload ONCE (no URL redirect).
-   */
+  // Cached manifest result to avoid duplicate fetches
+  var cachedManifestInfo = null;
+
   async function ensureLatestVersion() {
     try {
-      // Explicit reset flow
-      var url = new URL(window.location.href);
-      if (url.searchParams.get("resetApp") === "1") {
-        var returnTo = url.searchParams.get("returnTo") || "/";
-        await clearAllCaches();
-        window.location.replace(returnTo);
-        return true;
-      }
-
-      // Prevent reload loops — if we already reloaded this session, stop
+      // Prevent reload loops
       if (sessionStorage.getItem(VERSION_RELOAD_GUARD) === "1") {
         return false;
       }
@@ -121,14 +107,14 @@
         ? String(data.buildTime && data.buildTime !== "__BUILD_TIME__" ? data.buildTime : "")
         : "";
 
-      var manifestInfo = await fetchManifestEntry();
-      var serverVersion = versionFromJson || (manifestInfo ? manifestInfo.versionToken : "");
+      cachedManifestInfo = await fetchManifestEntry();
+      var serverVersion = versionFromJson || (cachedManifestInfo ? cachedManifestInfo.versionToken : "");
       if (!serverVersion) return false;
 
       var storedVersion = "";
       try { storedVersion = localStorage.getItem(VERSION_KEY) || ""; } catch (e) { /* ignore */ }
 
-      // Pin to highest version seen (prevents bouncing between CDN edges)
+      // Pin to highest version seen
       var storedNum = parseNumericVersion(storedVersion);
       var serverNum = parseNumericVersion(serverVersion);
       var pinnedVersion =
@@ -160,6 +146,11 @@
     }
   }
 
+  function showBootFallback() {
+    var el = document.getElementById("boot-fallback");
+    if (el) el.style.display = "flex";
+  }
+
   function injectStylesheets(cssFiles, buildId) {
     if (!Array.isArray(cssFiles)) return;
     cssFiles.forEach(function (cssFile) {
@@ -186,12 +177,19 @@
       var reloading = await ensureLatestVersion();
       if (reloading) return;
 
-      // STEP 2: Clear any stale SW/caches silently (no reload)
-      await clearAllCaches();
+      // STEP 2: Use cached manifest or fetch if not cached yet
+      var manifestInfo = cachedManifestInfo || await fetchManifestEntry();
+      if (!manifestInfo) {
+        // Retry once after a short delay
+        await new Promise(function (r) { setTimeout(r, 1000); });
+        manifestInfo = await fetchManifestEntry();
+      }
 
-      // STEP 3: Fetch build manifest and inject app
-      var manifestInfo = await fetchManifestEntry();
-      if (!manifestInfo) throw new Error("manifest missing entry.file");
+      if (!manifestInfo) {
+        console.warn("[Bootstrap] Could not load build manifest. Showing fallback.");
+        showBootFallback();
+        return;
+      }
 
       var entry = manifestInfo.entry;
       var buildId = manifestInfo.buildId;
@@ -200,8 +198,8 @@
       injectStylesheets(entry.css, buildId);
       injectModuleScript(entry.file, buildId);
     } catch (e) {
-      console.warn("[Bootstrap] Error, falling back to dev mode:", e);
-      injectModuleScript("/src/main.tsx", String(Date.now()));
+      console.warn("[Bootstrap] Error:", e);
+      showBootFallback();
     }
   }
 
