@@ -57,7 +57,7 @@ export interface LocationAudit {
 
 export const useLocationAudits = () => {
   const { user } = useAuth();
-  const { company } = useCompany();
+  const { data: company } = useCompany();
   const queryClient = useQueryClient();
 
   // Set up realtime subscription — scoped to this company only

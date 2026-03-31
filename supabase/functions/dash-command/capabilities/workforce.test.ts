@@ -31,32 +31,10 @@ function makeMockSb(overrides: Record<string, any> = {}) {
 
   return {
     from(table: string) {
-      if (table === "employees") {
-        return {
-          select: (..._args: any[]) => ({
-            eq: (..._args: any[]) => ({
-              ilike: (..._args: any[]) => ({
-                limit: async (..._args: any[]) => ({ data: data.employees, error: null }),
-              }),
-              or: (..._args: any[]) => ({
-                limit: async (..._args: any[]) => ({ data: data.employees, error: null }),
-              }),
-            }),
-          }),
-        };
-      }
-      if (table === "shift_assignments") {
-        return {
-          select: (..._args: any[]) => ({
-            eq: (..._args: any[]) => ({
-              order: (..._args: any[]) => ({
-                limit: async (..._args: any[]) => ({ data: data.shift_assignments, error: null }),
-              }),
-            }),
-          }),
-        };
-      }
-      return { select: (..._args: any[]) => ({ eq: (..._args: any[]) => ({ limit: async (..._args: any[]) => ({ data: [], error: null }) }) }) };
+      const tableData = table === "employees" ? data.employees
+        : table === "shift_assignments" ? data.shift_assignments
+        : [];
+      return chainable({ data: tableData, error: null });
     },
   };
 }
