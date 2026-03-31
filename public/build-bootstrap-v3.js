@@ -1,21 +1,32 @@
 /*
-  Stable build bootstrap loader v5 - Single version check, no SW conflicts
+  Stable build bootstrap loader v6
 
-  Flow:
-  1. Fetch version.json (never cached)
-  2. Compare against localStorage
-  3. If mismatch → clear caches, reload once (guarded by sessionStorage)
-  4. Fetch build-manifest.json and inject app entry
-  5. If manifest fails → show boot-fallback (no broken /src/main.tsx fallback)
+  In preview/dev → skip manifest, load /src/main.tsx directly (Vite serves it).
+  In production  → fetch build-manifest.json, inject hashed entry.
+  Version check  → only clear caches on actual version mismatch.
 */
 
 (function () {
+  if (window.__BOOTSTRAP_INJECTED__) return;
+
   var BUILD_MANIFEST_URL = "/build-manifest.json";
-  var BUILD_ID_KEY = "app_build_manifest_id";
-  var SESSION_MARKER_KEY = "bootstrap:session";
   var VERSION_URL = "/version.json";
   var VERSION_KEY = "app_build_version";
   var VERSION_RELOAD_GUARD = "bootstrap:version-reloaded";
+  var SESSION_MARKER_KEY = "bootstrap:session";
+
+  // Detect preview / dev environments
+  function isDevOrPreview() {
+    var h = location.hostname;
+    return (
+      h === "localhost" ||
+      h === "127.0.0.1" ||
+      h.endsWith(".lovableproject.com") ||
+      h.endsWith(".lovable.app") && h.includes("-preview--")
+    );
+  }
+
+  // --- Utility helpers ---
 
   var parseNumericVersion = function (v) {
     if (!v) return null;
@@ -36,7 +47,7 @@
   };
 
   var fetchJsonNoStore = async function (url) {
-    var res = await fetch(url + "?ts=" + Date.now() + "&r=" + Math.random(), {
+    var res = await fetch(url + "?ts=" + Date.now(), {
       cache: "no-store",
       headers: { "Cache-Control": "no-cache, no-store, must-revalidate" },
     });
@@ -91,17 +102,12 @@
     return { entry: entry, buildId: buildId, versionToken: versionToken };
   }
 
-  // Cached manifest result to avoid duplicate fetches
   var cachedManifestInfo = null;
 
   async function ensureLatestVersion() {
     try {
-      // Prevent reload loops
-      if (sessionStorage.getItem(VERSION_RELOAD_GUARD) === "1") {
-        return false;
-      }
+      if (sessionStorage.getItem(VERSION_RELOAD_GUARD) === "1") return false;
 
-      // Fetch server version
       var data = await fetchJsonNoStore(VERSION_URL);
       var versionFromJson = data
         ? String(data.buildTime && data.buildTime !== "__BUILD_TIME__" ? data.buildTime : "")
@@ -114,7 +120,6 @@
       var storedVersion = "";
       try { storedVersion = localStorage.getItem(VERSION_KEY) || ""; } catch (e) { /* ignore */ }
 
-      // Pin to highest version seen
       var storedNum = parseNumericVersion(storedVersion);
       var serverNum = parseNumericVersion(serverVersion);
       var pinnedVersion =
@@ -124,16 +129,14 @@
 
       if (!pinnedVersion) return false;
 
-      // First visit — just store version
       if (!storedVersion) {
         try { localStorage.setItem(VERSION_KEY, pinnedVersion); } catch (e) { /* ignore */ }
         return false;
       }
 
-      // Same version — no action
       if (storedVersion === pinnedVersion) return false;
 
-      // Version mismatch — clear caches and reload once
+      // Real version mismatch — clear caches and reload once
       console.info("[Bootstrap] Version mismatch: " + storedVersion + " → " + pinnedVersion + ". Reloading...");
       sessionStorage.setItem(VERSION_RELOAD_GUARD, "1");
       try { localStorage.setItem(VERSION_KEY, pinnedVersion); } catch (e) { /* ignore */ }
@@ -151,11 +154,11 @@
     if (el) el.style.display = "flex";
   }
 
-  function injectStylesheets(cssFiles, buildId) {
+  function injectStylesheets(cssFiles) {
     if (!Array.isArray(cssFiles)) return;
     cssFiles.forEach(function (cssFile) {
-      var href = normalizeAssetPath(cssFile) + "?v=" + encodeURIComponent(buildId);
-      if (document.querySelector('link[rel="stylesheet"][href^="' + normalizeAssetPath(cssFile) + '"]')) return;
+      var href = normalizeAssetPath(cssFile);
+      if (document.querySelector('link[rel="stylesheet"][href^="' + href + '"]')) return;
       var link = document.createElement("link");
       link.rel = "stylesheet";
       link.href = href;
@@ -163,8 +166,8 @@
     });
   }
 
-  function injectModuleScript(file, buildId) {
-    var src = normalizeAssetPath(file) + "?v=" + encodeURIComponent(buildId);
+  function injectModuleScript(file) {
+    var src = normalizeAssetPath(file);
     var s = document.createElement("script");
     s.type = "module";
     s.src = src;
@@ -172,16 +175,24 @@
   }
 
   async function boot() {
+    // Guard: only inject once
+    if (window.__BOOTSTRAP_INJECTED__) return;
+
+    // DEV / PREVIEW: skip manifest entirely, Vite serves /src/main.tsx
+    if (isDevOrPreview()) {
+      window.__BOOTSTRAP_INJECTED__ = true;
+      injectModuleScript("/src/main.tsx");
+      return;
+    }
+
     try {
-      // STEP 1: Check version, may reload once
+      // PRODUCTION: check version, may reload once
       var reloading = await ensureLatestVersion();
       if (reloading) return;
 
-      // STEP 2: Use cached manifest or fetch if not cached yet
       var manifestInfo = cachedManifestInfo || await fetchManifestEntry();
       if (!manifestInfo) {
-        // Retry once after a short delay
-        await new Promise(function (r) { setTimeout(r, 1000); });
+        await new Promise(function (r) { setTimeout(r, 1500); });
         manifestInfo = await fetchManifestEntry();
       }
 
@@ -191,12 +202,10 @@
         return;
       }
 
+      window.__BOOTSTRAP_INJECTED__ = true;
       var entry = manifestInfo.entry;
-      var buildId = manifestInfo.buildId;
-
-      localStorage.setItem(BUILD_ID_KEY, buildId);
-      injectStylesheets(entry.css, buildId);
-      injectModuleScript(entry.file, buildId);
+      injectStylesheets(entry.css);
+      injectModuleScript(entry.file);
     } catch (e) {
       console.warn("[Bootstrap] Error:", e);
       showBootFallback();

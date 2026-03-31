@@ -14,7 +14,8 @@ console.info(
   `ID: ${CURRENT_BUILD} | Loaded: ${new Date().toISOString()}`
 );
 
-const isSafeInternalPath = (path: string) => path.startsWith("/");
+const isSafeInternalPath = (path: string) =>
+  path.startsWith("/") && !path.startsWith("//") && !path.includes("resetApp");
 
 const resetAppCacheIfRequested = async () => {
   try {
@@ -63,11 +64,10 @@ const restoreDeepLinkIfNeeded = () => {
   await resetAppCacheIfRequested();
   restoreDeepLinkIfNeeded();
 
-  // Hide the pre-boot fallback immediately, defer removal to avoid DOM conflicts
+  // Hide fallback — do NOT remove it from DOM to avoid React reconciliation races
   const bootFallback = document.getElementById("boot-fallback");
   if (bootFallback) {
     bootFallback.style.display = "none";
-    setTimeout(() => bootFallback.remove(), 2000);
   }
 
   createRoot(document.getElementById("root")!).render(<App />);
