@@ -33,13 +33,13 @@ function makeMockSb(overrides: Record<string, any> = {}) {
     from(table: string) {
       if (table === "employees") {
         return {
-          select: () => ({
-            eq: () => ({
-              ilike: () => ({
-                limit: async () => ({ data: data.employees, error: null }),
+          select: (..._args: any[]) => ({
+            eq: (..._args: any[]) => ({
+              ilike: (..._args: any[]) => ({
+                limit: async (..._args: any[]) => ({ data: data.employees, error: null }),
               }),
-              or: () => ({
-                limit: async () => ({ data: data.employees, error: null }),
+              or: (..._args: any[]) => ({
+                limit: async (..._args: any[]) => ({ data: data.employees, error: null }),
               }),
             }),
           }),
@@ -47,16 +47,16 @@ function makeMockSb(overrides: Record<string, any> = {}) {
       }
       if (table === "shift_assignments") {
         return {
-          select: () => ({
-            eq: () => ({
-              order: () => ({
-                limit: async () => ({ data: data.shift_assignments, error: null }),
+          select: (..._args: any[]) => ({
+            eq: (..._args: any[]) => ({
+              order: (..._args: any[]) => ({
+                limit: async (..._args: any[]) => ({ data: data.shift_assignments, error: null }),
               }),
             }),
           }),
         };
       }
-      return { select: () => ({ eq: () => ({ limit: async () => ({ data: [], error: null }) }) }) };
+      return { select: (..._args: any[]) => ({ eq: (..._args: any[]) => ({ limit: async (..._args: any[]) => ({ data: [], error: null }) }) }) };
     },
   };
 }

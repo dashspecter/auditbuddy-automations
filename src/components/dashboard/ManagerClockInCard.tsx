@@ -8,7 +8,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useIsMobile } from "@/hooks/use-mobile";
 
 export function ManagerClockInCard() {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const isMobile = useIsMobile();
   const navigate = useNavigate();
   const [employee, setEmployee] = useState<any>(null);
@@ -17,53 +17,59 @@ export function ManagerClockInCard() {
   const [locationName, setLocationName] = useState<string>("");
 
   useEffect(() => {
-    if (!user?.id || !isMobile) {
-      setLoading(false);
+    if (authLoading || !user?.id || !isMobile) {
+      if (!authLoading) setLoading(false);
       return;
     }
-    fetchData();
-  }, [user?.id, isMobile]);
 
-  const fetchData = async () => {
-    try {
-      // Check if user has an employee record
-      const { data: emp } = await supabase
-        .from("employees")
-        .select("id, location_id, locations(name)")
-        .eq("user_id", user!.id)
-        .maybeSingle();
+    let cancelled = false;
 
-      if (!emp) {
-        setLoading(false);
-        return;
-      }
+    const fetchData = async () => {
+      try {
+        const { data: emp } = await supabase
+          .from("employees")
+          .select("id, location_id, locations(name)")
+          .eq("user_id", user!.id)
+          .maybeSingle();
 
-      setEmployee(emp);
-      setLocationName((emp.locations as any)?.name || "");
+        if (cancelled) return;
 
-      // Check today's attendance
-      const today = new Date().toISOString().split("T")[0];
-      const { data: log } = await supabase
-        .from("attendance_logs")
-        .select("id, check_in_at, check_out_at, locations(name)")
-        .eq("staff_id", emp.id)
-        .gte("check_in_at", `${today}T00:00:00`)
-        .order("check_in_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
-
-      if (log) {
-        setAttendanceLog(log);
-        if ((log.locations as any)?.name) {
-          setLocationName((log.locations as any).name);
+        if (!emp) {
+          setLoading(false);
+          return;
         }
+
+        setEmployee(emp);
+        setLocationName((emp.locations as any)?.name || "");
+
+        const today = new Date().toISOString().split("T")[0];
+        const { data: log } = await supabase
+          .from("attendance_logs")
+          .select("id, check_in_at, check_out_at, locations(name)")
+          .eq("staff_id", emp.id)
+          .gte("check_in_at", `${today}T00:00:00`)
+          .order("check_in_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (cancelled) return;
+
+        if (log) {
+          setAttendanceLog(log);
+          if ((log.locations as any)?.name) {
+            setLocationName((log.locations as any).name);
+          }
+        }
+      } catch (err) {
+        console.error("[ManagerClockInCard] Error:", err);
+      } finally {
+        if (!cancelled) setLoading(false);
       }
-    } catch (err) {
-      console.error("[ManagerClockInCard] Error:", err);
-    } finally {
-      setLoading(false);
-    }
-  };
+    };
+
+    fetchData();
+    return () => { cancelled = true; };
+  }, [user?.id, isMobile, authLoading]);
 
   // Don't render on desktop or if no employee record
   if (!isMobile || loading) return null;
