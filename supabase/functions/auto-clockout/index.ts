@@ -29,15 +29,27 @@ Deno.serve(async (req) => {
     return new Response(null, { headers: corsHeaders })
   }
 
-  let cronSecret = req.headers.get('x-cron-secret')
+  // Check cron secret — header takes priority; fall back to body for manual triggers.
+  // IMPORTANT: check for presence separately from correctness so undefined !== validSecret
+  // never accidentally passes when CRON_SECRET env var is also undefined.
+  const expectedSecret = Deno.env.get('CRON_SECRET');
+  if (!expectedSecret) {
+    console.error('CRON_SECRET env var not set')
+    return new Response(
+      JSON.stringify({ success: false, error: 'Server misconfiguration' }),
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    )
+  }
+
+  let cronSecret: string | undefined = req.headers.get('x-cron-secret') ?? undefined;
   if (!cronSecret) {
     try {
       const body = await req.clone().json()
-      cronSecret = body.cron_secret
+      cronSecret = typeof body.cron_secret === 'string' ? body.cron_secret : undefined;
     } catch { /* No body */ }
   }
-  
-  if (cronSecret !== Deno.env.get('CRON_SECRET')) {
+
+  if (!cronSecret || cronSecret !== expectedSecret) {
     console.error('Unauthorized: Invalid or missing cron secret')
     return new Response(
       JSON.stringify({ success: false, error: 'Unauthorized' }),

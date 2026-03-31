@@ -3,22 +3,25 @@ import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
+import { useCompany } from "@/hooks/useCompany";
 
 export const useRealtimeShifts = () => {
   const queryClient = useQueryClient();
   const { user } = useAuth();
+  const { company } = useCompany();
 
   useEffect(() => {
-    console.log("Setting up realtime shifts subscription");
-    
+    if (!company?.id) return;
+
     const channel = supabase
-      .channel('shifts-realtime')
+      .channel(`shifts-realtime-${company.id}`)
       .on(
         'postgres_changes',
         {
           event: '*',
           schema: 'public',
-          table: 'shifts'
+          table: 'shifts',
+          filter: `company_id=eq.${company.id}`,
         },
         (payload) => {
           console.log('Shift change received:', payload.eventType);

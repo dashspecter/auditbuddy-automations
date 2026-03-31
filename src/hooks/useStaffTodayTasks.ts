@@ -1059,8 +1059,7 @@ export function useKioskTodayTasks(options: {
     refetchInterval: completionsPollInterval,
     refetchIntervalInBackground: true,
     refetchOnReconnect: true,
-    refetchOnWindowFocus: true,
-    staleTime: 0,
+    staleTime: 30_000, // 30s — polling + realtime keeps this fresh without staleTime:0
     // CRITICAL: Keep previous completions data when queryKey changes (e.g. taskIdsKey
     // recomputes during rawTasks refetch). Without this, completions briefly becomes []
     // causing overdue banner to flash for ~1s before new data arrives.
@@ -1101,7 +1100,7 @@ export function useKioskTodayTasks(options: {
     enabled,
     refetchInterval: legacyPollInterval,
     refetchIntervalInBackground: true,
-    staleTime: 0,
+    staleTime: 30_000,
   });
 
   // ======================================================================

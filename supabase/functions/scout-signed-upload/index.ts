@@ -83,8 +83,16 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Build storage path
-    const ext = fileName.split(".").pop() || "jpg";
+    // Build storage path — whitelist extensions to prevent non-media uploads
+    const ALLOWED_EXTENSIONS = new Set(["jpg", "jpeg", "png", "gif", "webp", "heic", "mp4", "mov", "avi", "webm"]);
+    const rawExt = (fileName.split(".").pop() || "").toLowerCase();
+    const ext = ALLOWED_EXTENSIONS.has(rawExt) ? rawExt : null;
+    if (!ext) {
+      return new Response(JSON.stringify({ error: "File type not allowed" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
     const mediaId = crypto.randomUUID();
     const storagePath = `${job.company_id}/${jobId}/${submissionId}/${mediaId}.${ext}`;
 
