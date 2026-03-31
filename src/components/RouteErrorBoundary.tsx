@@ -20,6 +20,27 @@ export class RouteErrorBoundary extends Component<Props, State> {
 
   public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     console.error('Route error boundary caught:', error, errorInfo);
+    
+    // Auto-recover from chunk load failures (stale deployments)
+    if (this.isChunkLoadError(error)) {
+      const hasReloaded = sessionStorage.getItem("chunk-reload");
+      if (!hasReloaded) {
+        sessionStorage.setItem("chunk-reload", "1");
+        window.location.reload();
+        return;
+      }
+      sessionStorage.removeItem("chunk-reload");
+    }
+  }
+
+  private isChunkLoadError(error: Error): boolean {
+    const msg = error.message || "";
+    return (
+      msg.includes("Failed to fetch dynamically imported module") ||
+      msg.includes("Loading chunk") ||
+      msg.includes("Loading CSS chunk") ||
+      msg.includes("Importing a module script failed")
+    );
   }
 
   private handleGoBack = () => {
