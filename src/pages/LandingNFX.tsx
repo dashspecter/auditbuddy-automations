@@ -1,25 +1,24 @@
 import { useState, useEffect, useCallback } from "react";
 import { Link } from "react-router-dom";
 import { BookDemoModal } from "@/components/landing/BookDemoModal";
+import { useAuth } from "@/contexts/AuthContext";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useCompany } from "@/hooks/useCompany";
 
-// Safe auth hook that won't crash if AuthProvider is missing
+// Wrapper that catches if AuthProvider is missing
 const useSafeAuth = () => {
   try {
-    const { useAuth } = require("@/contexts/AuthContext");
     return useAuth();
   } catch {
-    return { user: null, isStaff: null };
+    return { user: null, isStaff: null } as { user: null; isStaff: null };
   }
 };
 
-// Safe company hook
 const useSafeCompany = () => {
   try {
-    const { useCompany } = require("@/hooks/useCompany");
     return useCompany();
   } catch {
-    return { data: null };
+    return { data: null } as { data: null };
   }
 };
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
