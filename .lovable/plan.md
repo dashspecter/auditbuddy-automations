@@ -1,67 +1,90 @@
 
+## Deep-dive diagnosis
 
-# Fix: Mobile Error + Desktop "removeChild" Flash
-
-## Root Cause Analysis
-
-Two distinct bugs traced through the full boot flow:
-
-### Flow
+There are 2 concrete failures happening at the same time, plus 1 startup architecture problem making the blast radius bigger.
 
 ```text
-index.html loads
-  ├─ Inline script: MutationObserver watches #root, shows boot-fallback after 1.2s
-  ├─ build-bootstrap-v3.js (deferred):
-  │     1. ensureLatestVersion() → fetches version.json + build-manifest.json
-  │     2. clearAllCaches() ← runs on EVERY boot, even when no mismatch
-  │     3. fetchManifestEntry() ← fetches build-manifest.json AGAIN (2nd time)
-  │     4. injectModuleScript() → appends <script> to body
-  │     5. If manifest fails → fallback: injectModuleScript("/src/main.tsx") ← BROKEN
-  │
-  └─ main.tsx loads:
-        1. document.getElementById("boot-fallback")?.remove() ← removes node
-        2. createRoot(#root).render(<App />)
-        3. MutationObserver fires, tries to hide already-removed boot-fallback
+Browser opens page
+  -> index.html shows boot-fallback timer
+  -> build-bootstrap-v3.js runs
+     -> in preview/dev it asks for /build-manifest.json
+     -> preview returns HTML, not JSON
+     -> bootstrap never loads app
+     -> user sees permanent Loading screen
+     -> clicking "Reset app cache" nests resetApp URLs and can self-loop
+
+Published site
+  -> bootstrap loads app
+  -> public homepage still boots full app shell
+     (AuthProvider + CompanyProvider + SidebarProvider + PWA prompt)
+  -> lazy Index route renders
+  -> React crashes in the Index chunk (#321) and then DOM cleanup throws removeChild
+  -> user sees the route/global error UI
 ```
 
-### Bug 1: Mobile — "The object can not be found here"
-When `fetchManifestEntry()` fails on mobile (slow network, timeout), the bootstrap falls back to injecting `/src/main.tsx` (line 204). **This file doesn't exist in production** — Vite compiles it into hashed chunks. The 404 error propagates to the `ErrorBoundary`.
+## What is actually wrong
 
-### Bug 2: Desktop — "Failed to execute 'removeChild'"
-The `clearAllCaches()` call on line 190 runs on **every single page load**, clearing any in-flight cache/SW state. Combined with `main.tsx` removing `boot-fallback` from the DOM while the MutationObserver is still watching `#root`, React's Suspense boundary encounters a DOM state mismatch during lazy component resolution, causing the `removeChild` error. The 2-second delay in `RouteErrorBoundary` isn't enough because this error is caught by the top-level `ErrorBoundary` instead.
+1. `public/build-bootstrap-v3.js` is not safe for preview/dev.
+   - In preview, `/build-manifest.json` returns HTML, so the loader stalls on the boot fallback.
+   - The reset button can generate recursive URLs like `/?resetApp=1&returnTo=/?resetApp=1...`.
 
-## Fix Strategy
+2. The public homepage is booting too much application shell.
+   - `/` currently runs through `AuthProvider`, `CompanyProvider`, `SidebarProvider`, `PWAInstallPrompt`, and nested routes.
+   - For an anonymous landing page, that is unnecessary and makes startup fragile.
 
-### 1. `public/build-bootstrap-v3.js` — Fix broken fallback + remove redundant work
+3. We still have manual DOM cleanup in `src/main.tsx`.
+   - Hiding/removing `#boot-fallback` from React boot code is risky.
+   - The `removeChild` error is consistent with the DOM being mutated outside React during the first render / error recovery window.
 
-- **Remove the `/src/main.tsx` fallback** — in production this file doesn't exist. Instead, if manifest fetch fails, retry once, then show the boot-fallback with reload/reset buttons (already exists in HTML).
-- **Remove unconditional `clearAllCaches()`** on line 190 — only clear caches during an actual version mismatch (already done inside `ensureLatestVersion`). Running it on every boot is disruptive and causes race conditions with lazy chunk loading.
-- **Remove duplicate `fetchManifestEntry()` call** — the manifest is already fetched inside `ensureLatestVersion()`. Cache the result and reuse it in `boot()`.
+## Implementation plan
 
-### 2. `index.html` — Fix MutationObserver race
+### 1) Make the bootstrap loader safe
+Update `public/build-bootstrap-v3.js` to:
+- detect preview/dev hosts and bypass manifest/version logic there
+- directly load `/src/main.tsx` only in preview/dev
+- keep manifest/version logic only for published builds
+- add a one-time global guard so the app entry cannot be injected twice
+- stop appending `?v=...` to hashed JS/CSS asset URLs
+- keep cache clearing only for a real version mismatch
 
-- In the inline script, check if `boot-fallback` still exists before trying to hide it (defensive null check)
-- This prevents any edge case where the observer fires after `main.tsx` has already removed the element
+### 2) Fix the reset loop
+Update the reset button flow in `index.html` and `src/main.tsx` so:
+- existing `resetApp` and `returnTo` params are stripped before building a new reset URL
+- `returnTo` always points to a clean internal path
+- repeated taps on “Reset app cache” cannot create nested reset URLs
 
-### 3. `src/main.tsx` — Safer boot-fallback removal
+### 3) Stop mutating boot DOM from React startup
+Simplify `src/main.tsx`:
+- remove the deferred `bootFallback.remove()`
+- do not manually delete siblings around `#root`
+- let bootstrap / fallback visibility control happen outside React without DOM removal races
 
-- Instead of `element.remove()`, use `element.style.display = 'none'` to hide it, then remove it after React has mounted (via `requestIdleCallback` or `setTimeout`). This prevents DOM conflicts with the MutationObserver.
+### 4) Split public routes from the protected app shell
+Refactor `src/App.tsx` so public pages are lightweight:
+- public routes (`/`, `/landing`, `/go`, `/full`, `/sales-offer`, `/auth`, password routes) should use only the providers they actually need
+- protected routes should keep the full chain:
+  `Auth -> Company -> Sidebar -> protected layout`
+- move `PWAInstallPrompt` and other app-shell-only startup pieces out of the public homepage path
 
-### 4. `src/components/ErrorBoundary.tsx` — Add delay like RouteErrorBoundary
+### 5) Remove public homepage dependency on `CompanyContext`
+Refactor `src/pages/Index.tsx` so it does not call `useCompanyContext()` on the public route.
+- derive paused/loading state from `useCompany()` only when a user exists
+- keep anonymous visitors on the landing page without company/module shell dependencies
 
-- Add the same 2-second delay mechanism from `RouteErrorBoundary` to the top-level `ErrorBoundary`. The "removeChild" error is transient — if we delay showing the error UI, the app has time to recover via `lazyWithRetry`.
-
-## Files
+## Files to change
 
 | File | Change |
 |------|--------|
-| `public/build-bootstrap-v3.js` | Remove `/src/main.tsx` fallback (show boot-fallback instead), remove unconditional `clearAllCaches()`, deduplicate manifest fetch |
-| `index.html` | Add null check in MutationObserver callback |
-| `src/main.tsx` | Hide boot-fallback instead of removing it, defer actual removal |
-| `src/components/ErrorBoundary.tsx` | Add 2-second delay before showing error UI (same pattern as RouteErrorBoundary) |
+| `public/build-bootstrap-v3.js` | Add preview/dev bypass, single-inject guard, safer asset loading, keep version logic only for published builds |
+| `index.html` | Fix reset button URL construction; keep fallback display logic simple |
+| `src/main.tsx` | Remove manual fallback deletion / DOM mutation |
+| `src/App.tsx` | Split public routes from protected shell/providers |
+| `src/pages/Index.tsx` | Remove `useCompanyContext()` dependency from public homepage |
 
-## Result
-- Mobile: If manifest fails, users see the existing boot-fallback spinner with Reload/Reset buttons instead of a cryptic error
-- Desktop: No more "removeChild" flash — transient errors are absorbed by the delayed ErrorBoundary
-- No more unnecessary cache clearing on every page load
+## Expected result
 
+- Preview/editor stops getting stuck on the loading screen
+- “Reset app cache” no longer traps users in recursive reset URLs
+- Homepage loads without booting the full protected shell
+- The React `#321` / `removeChild` crash path is eliminated from public startup
+- Published site and mobile startup become stable again
