@@ -90,7 +90,7 @@ export const useEmployeePerformance = (
   locationId?: string
 ) => {
   const queryClient = useQueryClient();
-  const { company } = useCompany();
+  const { data: company } = useCompany();
 
   // Realtime subscriptions for performance-related tables — scoped to this company
   useEffect(() => {

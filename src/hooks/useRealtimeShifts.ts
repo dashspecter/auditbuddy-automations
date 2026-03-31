@@ -8,7 +8,7 @@ import { useCompany } from "@/hooks/useCompany";
 export const useRealtimeShifts = () => {
   const queryClient = useQueryClient();
   const { user } = useAuth();
-  const { company } = useCompany();
+  const { data: company } = useCompany();
 
   useEffect(() => {
     if (!company?.id) return;
