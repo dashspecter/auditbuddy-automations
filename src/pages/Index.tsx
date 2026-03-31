@@ -66,7 +66,7 @@ const Index = () => {
   }
 
   // Show account paused state (only when user exists and company data loaded)
-  if (user && company?.isPaused) {
+  if (user && isAccountPaused) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background p-4">
         <Alert variant="destructive" className="max-w-md">
