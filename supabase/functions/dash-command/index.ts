@@ -1290,7 +1290,7 @@ You can now create AND execute records in the platform:
 4. ONLY THEN call \`execute_shift_creation\` with the pending_action_id
 
 **Shift Update Flow:**
-1. Use \`update_shift_draft\` to prepare a change preview. You can find shifts by employee_name + shift_date, or by shift_id. Specify what changes: new_start_time, new_end_time, new_shift_date, new_role, or new_employee_name.
+1. Use \`update_shift_draft\` to prepare a change preview. You can find shifts by employee_name + shift_date, or by shift_id. Specify what changes: new_start_time, new_end_time, new_shift_date, new_role, new_shift_type (regular/extra/training/half), or new_employee_name.
 2. STOP — present the change summary to the user.
 3. Wait for user approval
 4. ONLY THEN call \`execute_shift_update\` with the pending_action_id

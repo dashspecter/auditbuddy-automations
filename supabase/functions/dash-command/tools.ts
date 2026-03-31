@@ -458,7 +458,7 @@ export const tools = [
     type: "function",
     function: {
       name: "update_shift_draft",
-      description: "Update an existing shift (change time, date, role, or reassign employee). Creates a draft for approval. Use when user says 'change shift', 'move shift', 'update schedule', 'reschedule'.",
+      description: "Update an existing shift (change time, date, role, shift type, or reassign employee). Creates a draft for approval. Use when user says 'change shift', 'move shift', 'update schedule', 'reschedule', 'mark as extra', 'change to training', 'set shift type'.",
       parameters: {
         type: "object",
         properties: {
@@ -470,6 +470,7 @@ export const tools = [
           new_end_time: { type: "string", description: "New end time HH:MM (if changing)" },
           new_shift_date: { type: "string", description: "New date YYYY-MM-DD (if moving to different day)" },
           new_role: { type: "string", description: "New role (if changing)" },
+          new_shift_type: { type: "string", enum: ["regular", "extra", "training", "half"], description: "New shift type: regular, extra, training, or half" },
           new_employee_name: { type: "string", description: "New employee to assign (if reassigning)" },
           reason: { type: "string", description: "Reason for the change" },
         },

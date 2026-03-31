@@ -637,7 +637,7 @@ async function findShift(
   // Direct ID lookup
   if (args.shift_id) {
     const { data: shift } = await sb.from("shifts")
-      .select("id, shift_date, start_time, end_time, role, location_id, locations(name), status, company_id")
+      .select("id, shift_date, start_time, end_time, role, shift_type, location_id, locations(name), status, company_id")
       .eq("id", args.shift_id).maybeSingle();
     if (!shift) return { shift: null, assignment: null, error: "Shift not found." };
     if (shift.company_id !== companyId) return { shift: null, assignment: null, error: "Cross-tenant action rejected." };
@@ -659,7 +659,7 @@ async function findShift(
 
     // Find shift assignments for this employee — filter shift_date in JS to avoid unreliable PostgREST join filter
     const { data: assignments } = await sb.from("shift_assignments")
-      .select("id, shift_id, staff_id, status, shifts(id, shift_date, start_time, end_time, role, location_id, locations(name), status, company_id)")
+      .select("id, shift_id, staff_id, status, shifts(id, shift_date, start_time, end_time, role, shift_type, location_id, locations(name), status, company_id)")
       .eq("staff_id", empId).limit(30);
 
     const makeResult = (a: any) => ({
@@ -758,6 +758,12 @@ export async function updateShiftDraft(
   if (args.new_end_time && args.new_end_time !== shift.end_time) changes.end_time = { from: shift.end_time, to: args.new_end_time };
   if (args.new_shift_date && args.new_shift_date !== shift.shift_date) changes.shift_date = { from: shift.shift_date, to: args.new_shift_date };
   if (args.new_role && args.new_role !== shift.role) changes.role = { from: shift.role, to: args.new_role };
+  const VALID_SHIFT_TYPES = ["regular", "extra", "training", "half"];
+  if (args.new_shift_type) {
+    const normalized = args.new_shift_type.toLowerCase().trim();
+    if (!VALID_SHIFT_TYPES.includes(normalized)) return capabilityError(`Invalid shift type "${args.new_shift_type}". Valid types: regular, extra, training, half.`);
+    if (normalized !== (shift.shift_type || "regular")) changes.shift_type = { from: shift.shift_type || "regular", to: normalized };
+  }
   if (newEmployeeId) changes.employee = { from: assignment?.employees?.full_name || "unassigned", to: newEmployeeName };
 
   if (Object.keys(changes).length === 0) return capabilityError("No changes specified. Please tell me what to change (time, date, role, or employee).");
@@ -821,6 +827,7 @@ export async function executeShiftUpdate(
   if (preview.changes.end_time) updateFields.end_time = preview.changes.end_time.to;
   if (preview.changes.shift_date) updateFields.shift_date = preview.changes.shift_date.to;
   if (preview.changes.role) updateFields.role = preview.changes.role.to;
+  if (preview.changes.shift_type) updateFields.shift_type = preview.changes.shift_type.to;
 
   const { error: updateError } = await sbService.from("shifts")
     .update(updateFields).eq("id", preview.shift_id).eq("company_id", companyId);
