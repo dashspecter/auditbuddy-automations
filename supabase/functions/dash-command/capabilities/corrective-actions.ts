@@ -341,3 +341,235 @@ export async function executeCaStatusUpdate(
   structuredEvents.push(makeStructuredEvent("execution_result", { status: "success", title: "CA Status Updated", summary: `"${draft.ca_title}" status changed to "${draft.new_status}".`, changes: [`Status: ${draft.old_status} → ${draft.new_status}`] }));
   return success({ type: "ca_status_updated", ca_id: draft.ca_id, new_status: draft.new_status, message: `CA "${draft.ca_title}" status updated to "${draft.new_status}".` });
 }
+
+// ─── CA Items ───
+
+export async function listCaItems(
+  sb: any, companyId: string, args: any
+): Promise<CapabilityResult<any>> {
+  // Resolve CA if title given
+  let caId = args.ca_id || null;
+  if (!caId && args.ca_title) {
+    const { data: cas } = await sb.from("corrective_actions").select("id, title").eq("company_id", companyId).ilike("title", `%${args.ca_title}%`).limit(5);
+    if (!cas?.length) return capabilityError(`No corrective action matching "${args.ca_title}".`);
+    if (cas.length > 1) return capabilityError(`Multiple CAs match "${args.ca_title}": ${cas.map((c: any) => c.title).join(", ")}.`);
+    caId = cas[0].id;
+  }
+  if (!caId) return capabilityError("Provide ca_id or ca_title.");
+
+  // Verify CA belongs to company
+  const { data: ca } = await sb.from("corrective_actions").select("id, title, status, company_id").eq("id", caId).maybeSingle();
+  if (!ca || ca.company_id !== companyId) return capabilityError("Corrective action not found.");
+
+  const { data, error } = await sb.from("corrective_action_items")
+    .select("id, title, instructions, status, due_at, assignee_user_id, assignee_role, evidence_required, completed_at, verified_at, verification_notes, completion_notes")
+    .eq("corrective_action_id", caId)
+    .order("created_at", { ascending: true });
+
+  if (error) return capabilityError(error.message);
+
+  return success({
+    ca_id: caId,
+    ca_title: ca.title,
+    ca_status: ca.status,
+    items: (data || []).map((i: any) => ({
+      id: i.id,
+      title: i.title,
+      instructions: i.instructions,
+      status: i.status,
+      due_at: i.due_at,
+      assignee_role: i.assignee_role,
+      evidence_required: i.evidence_required,
+      completed_at: i.completed_at,
+      verified_at: i.verified_at,
+    })),
+    total: data?.length ?? 0,
+  });
+}
+
+export async function updateCaItemStatusDraft(
+  sb: any, sbService: any, companyId: string, userId: string, args: any, structuredEvents: string[],
+  ctx: PermissionContext
+): Promise<CapabilityResult<any>> {
+  const permCheck = checkCapabilityPermission({ action: "update", module: "corrective_actions", ctx });
+  if (!permCheck.ok) return permCheck;
+
+  const VALID_ITEM_STATUSES = ["open", "in_progress", "done", "verified", "rejected"];
+  const newStatus = args.new_status;
+  if (!VALID_ITEM_STATUSES.includes(newStatus)) {
+    return capabilityError(`Invalid status "${newStatus}". Valid: ${VALID_ITEM_STATUSES.join(", ")}.`);
+  }
+
+  const { data: item } = await sb.from("corrective_action_items")
+    .select("id, title, status, corrective_action_id, corrective_actions(title, company_id)")
+    .eq("id", args.item_id)
+    .maybeSingle();
+
+  if (!item) return capabilityError("CA item not found.");
+  if (item.corrective_actions?.company_id !== companyId) return capabilityError("Cross-tenant action rejected.");
+
+  const draft = {
+    item_id: item.id,
+    item_title: item.title,
+    ca_id: item.corrective_action_id,
+    ca_title: item.corrective_actions?.title,
+    old_status: item.status,
+    new_status: newStatus,
+    notes: args.notes || null,
+  };
+
+  const { data: paData, error: paError } = await sbService.from("dash_pending_actions").insert({
+    company_id: companyId, user_id: userId, action_name: "update_ca_item_status",
+    action_type: "write", risk_level: "high", preview_json: draft, status: "pending",
+  }).select("id").single();
+  if (paError || !paData?.id) return capabilityError(`Failed to create draft: ${paError?.message}`);
+
+  structuredEvents.push(makeStructuredEvent("action_preview", {
+    action: "Update CA Item Status",
+    summary: `"${draft.item_title}" → ${newStatus} (CA: "${draft.ca_title}")`,
+    risk: "high",
+    affected: [draft.item_title, draft.ca_title].filter(Boolean),
+    pending_action_id: paData.id,
+    draft,
+    can_approve: true,
+  }));
+
+  return success({ type: "ca_item_status_draft", draft, pending_action_id: paData.id, requires_approval: true });
+}
+
+export async function executeUpdateCaItemStatus(
+  sbService: any, companyId: string, userId: string, args: any, structuredEvents: string[],
+  ctx: PermissionContext
+): Promise<CapabilityResult<any>> {
+  const permCheck = checkCapabilityPermission({ action: "update", module: "corrective_actions", ctx });
+  if (!permCheck.ok) return permCheck;
+
+  const { data: pa } = await sbService.from("dash_pending_actions")
+    .select("id, status, company_id, preview_json").eq("id", args.pending_action_id).maybeSingle();
+  if (!pa) return capabilityError("Pending action not found.");
+  if (pa.company_id !== companyId) return capabilityError("Cross-tenant action rejected.");
+  if (pa.status !== "pending") return capabilityError(`Action already ${pa.status}.`);
+
+  const d = pa.preview_json as any;
+  const now = new Date().toISOString();
+  const updateFields: any = { status: d.new_status };
+  if (d.new_status === "done") { updateFields.completed_by = userId; updateFields.completed_at = now; updateFields.completion_notes = d.notes; }
+  if (d.new_status === "verified") { updateFields.verified_by = userId; updateFields.verified_at = now; updateFields.verification_notes = d.notes; }
+
+  const { error } = await sbService.from("corrective_action_items").update(updateFields).eq("id", d.item_id);
+  if (error) {
+    await sbService.from("dash_pending_actions").update({ status: "failed", execution_result: { error: error.message }, updated_at: now }).eq("id", pa.id);
+    return capabilityError(`Failed: ${error.message}`);
+  }
+
+  await sbService.from("dash_pending_actions").update({
+    status: "executed", approved_at: now, approved_by: userId,
+    execution_result: { success: true }, updated_at: now,
+  }).eq("id", pa.id);
+
+  structuredEvents.push(makeStructuredEvent("execution_result", {
+    status: "success", title: "CA Item Updated",
+    summary: `"${d.item_title}" is now "${d.new_status}".`,
+    changes: [`${d.old_status} → ${d.new_status}`],
+  }));
+
+  return success({ type: "ca_item_updated", item_id: d.item_id, new_status: d.new_status });
+}
+
+export async function addCaItemDraft(
+  sb: any, sbService: any, companyId: string, userId: string, args: any, structuredEvents: string[],
+  ctx: PermissionContext
+): Promise<CapabilityResult<any>> {
+  const permCheck = checkCapabilityPermission({ action: "create", module: "corrective_actions", ctx });
+  if (!permCheck.ok) return permCheck;
+
+  // Resolve CA
+  let caId = args.ca_id || null;
+  let caTitle: string | null = null;
+  if (!caId && args.ca_title) {
+    const { data: cas } = await sb.from("corrective_actions").select("id, title").eq("company_id", companyId).ilike("title", `%${args.ca_title}%`).limit(5);
+    if (!cas?.length) return capabilityError(`No CA matching "${args.ca_title}".`);
+    if (cas.length > 1) return capabilityError(`Multiple CAs match: ${cas.map((c: any) => c.title).join(", ")}.`);
+    caId = cas[0].id; caTitle = cas[0].title;
+  }
+  if (!caId) return capabilityError("Provide ca_id or ca_title.");
+  if (!args.title) return capabilityError("Item title is required.");
+
+  // Verify company ownership
+  if (!caTitle) {
+    const { data: ca } = await sb.from("corrective_actions").select("title, company_id").eq("id", caId).maybeSingle();
+    if (!ca || ca.company_id !== companyId) return capabilityError("CA not found.");
+    caTitle = ca.title;
+  }
+
+  const draft = {
+    corrective_action_id: caId,
+    ca_title: caTitle,
+    title: args.title,
+    instructions: args.instructions || null,
+    assignee_role: args.assignee_role || null,
+    due_at: args.due_at || null,
+    evidence_required: args.evidence_required || false,
+  };
+
+  const { data: paData, error: paError } = await sbService.from("dash_pending_actions").insert({
+    company_id: companyId, user_id: userId, action_name: "add_ca_item",
+    action_type: "write", risk_level: "high", preview_json: draft, status: "pending",
+  }).select("id").single();
+  if (paError || !paData?.id) return capabilityError(`Failed to create draft: ${paError?.message}`);
+
+  structuredEvents.push(makeStructuredEvent("action_preview", {
+    action: "Add CA Action Item",
+    summary: `Add item "${draft.title}" to CA "${caTitle}"${draft.due_at ? ` (due ${draft.due_at})` : ""}`,
+    risk: "high",
+    affected: [caTitle, draft.title],
+    pending_action_id: paData.id,
+    draft,
+    can_approve: true,
+  }));
+
+  return success({ type: "ca_item_draft", draft, pending_action_id: paData.id, requires_approval: true });
+}
+
+export async function executeAddCaItem(
+  sbService: any, companyId: string, userId: string, args: any, structuredEvents: string[],
+  ctx: PermissionContext
+): Promise<CapabilityResult<any>> {
+  const permCheck = checkCapabilityPermission({ action: "create", module: "corrective_actions", ctx });
+  if (!permCheck.ok) return permCheck;
+
+  const { data: pa } = await sbService.from("dash_pending_actions")
+    .select("id, status, company_id, preview_json").eq("id", args.pending_action_id).maybeSingle();
+  if (!pa) return capabilityError("Pending action not found.");
+  if (pa.company_id !== companyId) return capabilityError("Cross-tenant action rejected.");
+  if (pa.status !== "pending") return capabilityError(`Action already ${pa.status}.`);
+
+  const d = pa.preview_json as any;
+  const { data: item, error } = await sbService.from("corrective_action_items").insert({
+    company_id: companyId,
+    corrective_action_id: d.corrective_action_id,
+    title: d.title,
+    instructions: d.instructions || null,
+    assignee_role: d.assignee_role || null,
+    due_at: d.due_at || null,
+    evidence_required: d.evidence_required || false,
+    status: "open",
+  }).select("id").single();
+
+  if (error) {
+    await sbService.from("dash_pending_actions").update({ status: "failed", execution_result: { error: error.message }, updated_at: new Date().toISOString() }).eq("id", pa.id);
+    return capabilityError(`Failed to add item: ${error.message}`);
+  }
+
+  await sbService.from("dash_pending_actions").update({
+    status: "executed", approved_at: new Date().toISOString(), approved_by: userId,
+    execution_result: { success: true, item_id: item.id }, updated_at: new Date().toISOString(),
+  }).eq("id", pa.id);
+
+  structuredEvents.push(makeStructuredEvent("execution_result", {
+    status: "success", title: "CA Item Added",
+    summary: `Item "${d.title}" added to CA "${d.ca_title}".`,
+  }));
+
+  return success({ type: "ca_item_added", item_id: item.id });
+}
