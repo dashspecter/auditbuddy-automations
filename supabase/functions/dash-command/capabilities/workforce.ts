@@ -204,8 +204,14 @@ export async function createEmployeeDraft(
     location_name: args.location_name || null,
     role: args.role || null,
     start_date: args.start_date || null,
+    hire_date: args.hire_date || args.start_date || null,
     phone: args.phone || null,
     email: args.email || null,
+    contract_type: args.contract_type || null,
+    base_salary: args.base_salary != null ? Number(args.base_salary) : null,
+    hourly_rate: args.hourly_rate != null ? Number(args.hourly_rate) : null,
+    emergency_contact_name: args.emergency_contact_name || null,
+    emergency_contact_phone: args.emergency_contact_phone || null,
   };
 
   const missing: string[] = [];
@@ -456,6 +462,7 @@ export async function executeEmployeeCreation(
     location_id: args.location_id,
     status: "active",
     start_date: args.start_date || null,
+    hire_date: args.hire_date || args.start_date || null,
     phone: args.phone || null,
     email: args.email || null,
     cnp: args.cnp || null,
@@ -463,6 +470,11 @@ export async function executeEmployeeCreation(
     id_series: args.id_series || null,
     id_number: args.id_number || null,
     address: args.address || null,
+    contract_type: args.contract_type || null,
+    base_salary: args.base_salary != null ? Number(args.base_salary) : null,
+    hourly_rate: args.hourly_rate != null ? Number(args.hourly_rate) : null,
+    emergency_contact_name: args.emergency_contact_name || null,
+    emergency_contact_phone: args.emergency_contact_phone || null,
   }).select("id, full_name").single();
 
   if (empError) {
@@ -1179,7 +1191,52 @@ export async function listEmployeeWarnings(
   });
 }
 
-export async function issueWarningDraft(
+export async function listStaffEvents(
+  sb: any, companyId: string, args: any
+): Promise<CapabilityResult<any>> {
+  const limit = Math.min(args.limit || 50, 200);
+
+  let employeeIds: string[] | null = null;
+  if (args.employee_name) {
+    const { data: emps } = await sb.from("employees").select("id").eq("company_id", companyId).ilike("full_name", `%${args.employee_name}%`).limit(10);
+    if (!emps?.length) return capabilityError(`No employees matching "${args.employee_name}"`);
+    employeeIds = emps.map((e: any) => e.id);
+  } else {
+    const { data: emps } = await sb.from("employees").select("id").eq("company_id", companyId);
+    employeeIds = (emps || []).map((e: any) => e.id);
+  }
+
+  if (!employeeIds || employeeIds.length === 0) return success({ events: [], total: 0 });
+
+  const VALID_TYPES = ["warning", "coaching_note", "raise", "bonus", "promotion", "demotion", "termination"];
+  let q = sb.from("staff_events")
+    .select("id, staff_id, event_type, event_date, description, metadata, created_at, employees(full_name), locations(name)")
+    .in("staff_id", employeeIds)
+    .order("event_date", { ascending: false })
+    .limit(limit);
+
+  if (args.event_type && VALID_TYPES.includes(args.event_type)) q = q.eq("event_type", args.event_type);
+  if (args.from) q = q.gte("event_date", args.from);
+  if (args.to) q = q.lte("event_date", args.to);
+
+  const { data, error } = await q;
+  if (error) return capabilityError(error.message);
+
+  return success({
+    total: data?.length ?? 0,
+    events: (data || []).map((e: any) => ({
+      id: e.id,
+      employee: e.employees?.full_name,
+      type: e.event_type,
+      date: e.event_date,
+      description: e.description,
+      metadata: e.metadata || {},
+      location: e.locations?.name || null,
+    })),
+  });
+}
+
+export async function issueStaffEventDraft(
   sb: any, sbService: any, companyId: string, userId: string, args: any, structuredEvents: string[],
   ctx: PermissionContext
 ): Promise<CapabilityResult<any>> {
@@ -1198,28 +1255,59 @@ export async function issueWarningDraft(
   }
   if (!empId) return capabilityError("Employee name is required.");
 
-  const eventType = args.event_type === "coaching_note" ? "coaching_note" : "warning";
+  const VALID_EVENT_TYPES = ["warning", "coaching_note", "raise", "bonus", "promotion", "demotion", "termination"];
+  const eventType = VALID_EVENT_TYPES.includes(args.event_type) ? args.event_type : "warning";
   const severity = ["minor", "major", "critical"].includes(args.severity) ? args.severity : "minor";
-  const draft = {
+
+  // Risk level depends on event type
+  const HIGH_RISK_TYPES = ["warning", "demotion", "termination"];
+  const riskLevel = HIGH_RISK_TYPES.includes(eventType) ? "high" : "medium";
+
+  const draft: Record<string, any> = {
     staff_id: empId,
     employee_name: empName,
     event_type: eventType,
-    severity,
     description: args.description,
-    category: args.category || null,
     notes: args.notes || null,
   };
 
+  // Type-specific fields
+  if (eventType === "warning" || eventType === "coaching_note") {
+    draft.severity = severity;
+    draft.category = args.category || null;
+  }
+  if (eventType === "raise" || eventType === "bonus") {
+    draft.amount = args.amount || null;
+    draft.effective_date = args.effective_date || null;
+  }
+  if (eventType === "promotion" || eventType === "demotion") {
+    draft.new_role = args.new_role || null;
+    draft.effective_date = args.effective_date || null;
+  }
+  if (eventType === "termination") {
+    draft.termination_date = args.effective_date || null;
+  }
+
   const { data: paData, error: paError } = await sbService.from("dash_pending_actions").insert({
-    company_id: companyId, user_id: userId, action_name: "issue_warning",
-    action_type: "write", risk_level: "high", preview_json: draft, status: "pending",
+    company_id: companyId, user_id: userId, action_name: "issue_staff_event",
+    action_type: "write", risk_level: riskLevel, preview_json: draft, status: "pending",
   }).select("id").single();
   if (paError || !paData?.id) return capabilityError(`Failed to create draft: ${paError?.message}`);
 
+  const actionLabel: Record<string, string> = {
+    warning: "Issue Warning",
+    coaching_note: "Issue Coaching Note",
+    raise: "Issue Raise",
+    bonus: "Issue Bonus",
+    promotion: "Record Promotion",
+    demotion: "Record Demotion",
+    termination: "Record Termination",
+  };
+
   structuredEvents.push(makeStructuredEvent("action_preview", {
-    action: eventType === "coaching_note" ? "Issue Coaching Note" : "Issue Warning",
-    summary: `${eventType === "warning" ? "⚠️ " : ""}${severity.toUpperCase()} ${eventType.replace("_", " ")} for ${empName}: ${args.description}`,
-    risk: "high",
+    action: actionLabel[eventType] || "Record Staff Event",
+    summary: `${actionLabel[eventType] || eventType} for ${empName}: ${args.description}`,
+    risk: riskLevel,
     affected: [empName],
     pending_action_id: paData.id,
     draft,
@@ -1227,16 +1315,19 @@ export async function issueWarningDraft(
   }));
 
   return success({
-    type: "warning_draft",
+    type: "staff_event_draft",
     draft,
     pending_action_id: paData.id,
     requires_approval: true,
-    risk_level: "high",
-    message: `Warning draft ready for ${empName}. Approve to issue.`,
+    risk_level: riskLevel,
+    message: `${actionLabel[eventType] || "Staff event"} draft ready for ${empName}. Approve to execute.`,
   });
 }
 
-export async function executeWarningIssuance(
+// Keep backward-compatible alias
+export const issueWarningDraft = issueStaffEventDraft;
+
+export async function executeStaffEventIssuance(
   sbService: any, companyId: string, userId: string, args: any, structuredEvents: string[],
   ctx: PermissionContext
 ): Promise<CapabilityResult<any>> {
@@ -1252,19 +1343,24 @@ export async function executeWarningIssuance(
   const d = pa.preview_json as any;
   const today = new Date().toLocaleDateString("en-CA", { timeZone: "Europe/Bucharest" });
 
+  // Build metadata from draft (exclude top-level fields that go in main columns)
+  const { staff_id, employee_name, event_type, description, notes, ...extraFields } = d;
+  const metadata: Record<string, any> = { ...extraFields };
+  if (notes) metadata.notes = notes;
+
   const { data: evData, error: evError } = await sbService.from("staff_events").insert({
     staff_id: d.staff_id,
     event_type: d.event_type,
     event_date: today,
     description: d.description,
-    metadata: { severity: d.severity, category: d.category, notes: d.notes },
+    metadata,
     created_by: userId,
   }).select("id").single();
 
   if (evError) {
     await sbService.from("dash_pending_actions").update({ status: "failed", execution_result: { error: evError.message }, updated_at: new Date().toISOString() }).eq("id", pa.id);
-    structuredEvents.push(makeStructuredEvent("execution_result", { status: "error", title: "Warning Issuance Failed", summary: evError.message }));
-    return capabilityError(`Failed to issue warning: ${evError.message}`);
+    structuredEvents.push(makeStructuredEvent("execution_result", { status: "error", title: "Staff Event Failed", summary: evError.message }));
+    return capabilityError(`Failed to record staff event: ${evError.message}`);
   }
 
   await sbService.from("dash_pending_actions").update({
@@ -1272,14 +1368,27 @@ export async function executeWarningIssuance(
     execution_result: { success: true, event_id: evData.id }, updated_at: new Date().toISOString(),
   }).eq("id", pa.id);
 
+  const actionLabel: Record<string, string> = {
+    warning: "Warning Issued",
+    coaching_note: "Coaching Note Issued",
+    raise: "Raise Recorded",
+    bonus: "Bonus Recorded",
+    promotion: "Promotion Recorded",
+    demotion: "Demotion Recorded",
+    termination: "Termination Recorded",
+  };
+
   structuredEvents.push(makeStructuredEvent("execution_result", {
     status: "success",
-    title: d.event_type === "coaching_note" ? "Coaching Note Issued" : "Warning Issued",
-    summary: `${d.severity} ${d.event_type.replace("_", " ")} issued to ${d.employee_name}.`,
+    title: actionLabel[d.event_type] || "Staff Event Recorded",
+    summary: `${d.event_type.replace("_", " ")} recorded for ${d.employee_name}.`,
   }));
 
-  return success({ type: "warning_issued", event_id: evData.id, message: `${d.event_type.replace("_", " ")} issued to ${d.employee_name}.` });
+  return success({ type: "staff_event_recorded", event_id: evData.id, message: `${d.event_type.replace("_", " ")} recorded for ${d.employee_name}.` });
 }
+
+// Keep backward-compatible alias
+export const executeWarningIssuance = executeStaffEventIssuance;
 
 // ─── Employee Dossier ───
 

@@ -185,6 +185,86 @@ export async function assignTestDraft(
   return success({ type: "test_assignment_draft", draft, pending_action_id: paData.id, requires_approval: true });
 }
 
+export async function getTestAnalytics(
+  sb: any, companyId: string, args: any
+): Promise<CapabilityResult<any>> {
+  // Resolve test if name given
+  let testId = args.test_id || null;
+  let testTitle: string | null = null;
+  if (!testId && args.test_name) {
+    const { data: tests } = await sb.from("tests").select("id, title").eq("company_id", companyId).ilike("title", `%${args.test_name}%`).limit(1);
+    if (!tests?.length) return capabilityError(`No test matching "${args.test_name}".`);
+    testId = tests[0].id; testTitle = tests[0].title;
+  }
+
+  // Scope to company employees
+  const { data: emps } = await sb.from("employees").select("id").eq("company_id", companyId);
+  const employeeIds = (emps || []).map((e: any) => e.id);
+  if (employeeIds.length === 0) return success({ total_submissions: 0, pass_rate: 0, avg_score: 0, by_test: [], by_month: [] });
+
+  let q = sb.from("test_submissions")
+    .select("id, test_id, employee_id, score, passed, completed_at, tests(title)")
+    .in("employee_id", employeeIds)
+    .not("completed_at", "is", null)
+    .order("completed_at", { ascending: false })
+    .limit(1000);
+
+  if (testId) q = q.eq("test_id", testId);
+  if (args.from) q = q.gte("completed_at", args.from);
+  if (args.to) q = q.lte("completed_at", args.to);
+
+  const { data, error } = await q;
+  if (error) return capabilityError(error.message);
+
+  const submissions = data || [];
+  const total = submissions.length;
+  const passed = submissions.filter((s: any) => s.passed).length;
+  const scores = submissions.map((s: any) => s.score || 0);
+  const avgScore = total > 0 ? Math.round(scores.reduce((a: number, b: number) => a + b, 0) / total) : 0;
+
+  // Aggregate by test
+  const byTest: Record<string, any> = {};
+  for (const s of submissions) {
+    const title = s.tests?.title || "Unknown";
+    if (!byTest[title]) byTest[title] = { test: title, total: 0, passed: 0, scores: [] };
+    byTest[title].total++;
+    if (s.passed) byTest[title].passed++;
+    byTest[title].scores.push(s.score || 0);
+  }
+  const byTestArr = Object.values(byTest).map((t: any) => ({
+    test: t.test,
+    total_attempts: t.total,
+    pass_rate: Math.round((t.passed / t.total) * 100),
+    avg_score: Math.round(t.scores.reduce((a: number, b: number) => a + b, 0) / t.scores.length),
+  })).sort((a: any, b: any) => b.total_attempts - a.total_attempts);
+
+  // Aggregate by month
+  const byMonth: Record<string, any> = {};
+  for (const s of submissions) {
+    if (!s.completed_at) continue;
+    const month = s.completed_at.substring(0, 7); // YYYY-MM
+    if (!byMonth[month]) byMonth[month] = { month, total: 0, passed: 0, scores: [] };
+    byMonth[month].total++;
+    if (s.passed) byMonth[month].passed++;
+    byMonth[month].scores.push(s.score || 0);
+  }
+  const byMonthArr = Object.values(byMonth).map((m: any) => ({
+    month: m.month,
+    total_attempts: m.total,
+    pass_rate: Math.round((m.passed / m.total) * 100),
+    avg_score: Math.round(m.scores.reduce((a: number, b: number) => a + b, 0) / m.scores.length),
+  })).sort((a: any, b: any) => a.month.localeCompare(b.month));
+
+  return success({
+    filter: { test_id: testId, test_name: testTitle, from: args.from, to: args.to },
+    total_submissions: total,
+    pass_rate: total > 0 ? Math.round((passed / total) * 100) : 0,
+    avg_score: avgScore,
+    by_test: byTestArr,
+    by_month: byMonthArr,
+  });
+}
+
 export async function executeTestAssignment(
   sbService: any, companyId: string, userId: string, args: any, structuredEvents: string[],
   ctx: PermissionContext

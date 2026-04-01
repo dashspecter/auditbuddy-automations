@@ -259,7 +259,7 @@ export const tools = [
     type: "function",
     function: {
       name: "create_employee_draft",
-      description: "Create an employee draft from extracted data (e.g., from an ID scan). Returns a preview for user approval before creating the actual employee record.",
+      description: "Create an employee draft (from ID scan or manual entry). Returns a preview for user approval. Use when onboarding a new staff member.",
       parameters: {
         type: "object",
         properties: {
@@ -268,10 +268,18 @@ export const tools = [
           date_of_birth: { type: "string", description: "Date of birth YYYY-MM-DD" },
           id_series: { type: "string", description: "ID card series" },
           id_number: { type: "string", description: "ID card number" },
-          address: { type: "string", description: "Address from ID" },
+          address: { type: "string", description: "Home address" },
           location_name: { type: "string", description: "Target location name" },
           role: { type: "string", description: "Job role/position" },
-          start_date: { type: "string", description: "Start date YYYY-MM-DD" },
+          start_date: { type: "string", description: "Employment start date YYYY-MM-DD" },
+          hire_date: { type: "string", description: "Hire date YYYY-MM-DD (if different from start_date)" },
+          phone: { type: "string", description: "Phone number" },
+          email: { type: "string", description: "Email address" },
+          contract_type: { type: "string", enum: ["permanent", "part-time", "contract", "temporary"], description: "Employment contract type" },
+          base_salary: { type: "number", description: "Monthly base salary amount" },
+          hourly_rate: { type: "number", description: "Hourly rate (for hourly workers)" },
+          emergency_contact_name: { type: "string", description: "Emergency contact full name" },
+          emergency_contact_phone: { type: "string", description: "Emergency contact phone number" },
         },
         required: ["full_name"],
       },
@@ -603,7 +611,7 @@ export const tools = [
         properties: {
           ca_id: { type: "string", description: "CA UUID" },
           ca_title: { type: "string", description: "CA title (partial match)" },
-          new_status: { type: "string", enum: ["open", "in_progress", "pending_verification", "closed", "cancelled"] },
+          new_status: { type: "string", enum: ["open", "in_progress", "pending_verification", "reopened", "closed", "cancelled"] },
           reason: { type: "string" },
         },
         required: ["new_status"],
@@ -1356,15 +1364,20 @@ export const tools = [
     type: "function",
     function: {
       name: "send_notification_draft",
-      description: "Draft a notification to send to employees by role. Shows a preview before sending.",
+      description: "Draft a notification to send to employees. Target by role OR specific employees. Supports scheduling and recurrence. Shows a preview before sending.",
       parameters: {
         type: "object",
         properties: {
           title: { type: "string", description: "Notification title" },
           message: { type: "string", description: "Notification body message" },
-          target_roles: { type: "array", items: { type: "string" }, description: "Roles to target (e.g. ['staff', 'manager'])" },
+          target_roles: { type: "array", items: { type: "string" }, description: "Roles to target (e.g. ['staff', 'manager']). Leave empty to target all or use target_employee_ids instead." },
+          target_employee_ids: { type: "array", items: { type: "string" }, description: "Specific employee UUIDs to target. Use instead of target_roles for individual employees." },
+          target_employee_names: { type: "array", items: { type: "string" }, description: "Employee names to resolve and target. Alternative to target_employee_ids." },
           type: { type: "string", enum: ["info", "warning", "urgent"], description: "Notification type" },
           scheduled_for: { type: "string", description: "Optional scheduled send time (ISO 8601)" },
+          expires_at: { type: "string", description: "Optional expiry time (ISO 8601)" },
+          recurrence_enabled: { type: "boolean", description: "Enable recurring notification" },
+          recurrence_pattern: { type: "string", enum: ["daily", "weekly", "monthly"], description: "Recurrence pattern (requires recurrence_enabled: true)" },
         },
         required: ["title", "message"],
       },
@@ -1894,17 +1907,20 @@ export const tools = [
   {
     type: "function",
     function: {
-      name: "issue_warning_draft",
-      description: "Issue a warning or coaching note to an employee. Creates a draft for approval.",
+      name: "issue_staff_event_draft",
+      description: "Record a staff event for an employee: warning, coaching note, raise, bonus, promotion, demotion, or termination. Creates a draft for approval. Use for 'issue warning', 'give bonus', 'promote employee', 'record termination', etc.",
       parameters: {
         type: "object",
         properties: {
           employee_name: { type: "string", description: "Employee name" },
           employee_id: { type: "string", description: "Employee UUID (if known)" },
-          event_type: { type: "string", enum: ["warning", "coaching_note"], description: "Type of event (default: warning)" },
-          severity: { type: "string", enum: ["minor", "major", "critical"], description: "Warning severity (default: minor)" },
-          description: { type: "string", description: "Description/reason for the warning" },
-          category: { type: "string", description: "Warning category (e.g. attendance, conduct, performance)" },
+          event_type: { type: "string", enum: ["warning", "coaching_note", "raise", "bonus", "promotion", "demotion", "termination"], description: "Type of staff event" },
+          severity: { type: "string", enum: ["minor", "major", "critical"], description: "Severity — only for warning/coaching_note" },
+          description: { type: "string", description: "Description/reason for the event" },
+          category: { type: "string", description: "Category — for warnings (e.g. attendance, conduct, performance)" },
+          amount: { type: "number", description: "Amount — for raise or bonus events" },
+          new_role: { type: "string", description: "New role — for promotion or demotion events" },
+          effective_date: { type: "string", description: "Effective date YYYY-MM-DD — for raise/bonus/promotion/demotion/termination" },
           notes: { type: "string", description: "Additional notes" },
         },
         required: ["employee_name", "description"],
@@ -1914,12 +1930,12 @@ export const tools = [
   {
     type: "function",
     function: {
-      name: "execute_warning_issuance",
-      description: "Execute a warning issuance after user approves the draft.",
+      name: "execute_staff_event_issuance",
+      description: "Execute a staff event (warning/bonus/promotion/etc.) after user approves the draft.",
       parameters: {
         type: "object",
         properties: {
-          pending_action_id: { type: "string", description: "Pending action UUID from issue_warning_draft" },
+          pending_action_id: { type: "string", description: "Pending action UUID from issue_staff_event_draft" },
         },
         required: ["pending_action_id"],
       },
@@ -3196,6 +3212,201 @@ export const tools = [
       parameters: {
         type: "object",
         properties: {},
+      },
+    },
+  },
+
+  // ─── Phase 6: Workforce Deep Dive ───
+
+  // Payroll Writes
+  {
+    type: "function",
+    function: {
+      name: "create_payroll_period_draft",
+      description: "Create a new payroll period draft. Use when user says 'create payroll for March', 'open new pay period', etc.",
+      parameters: {
+        type: "object",
+        properties: {
+          name: { type: "string", description: "Period name (e.g. 'March 2026')" },
+          period_start: { type: "string", description: "Start date YYYY-MM-DD" },
+          period_end: { type: "string", description: "End date YYYY-MM-DD" },
+          notes: { type: "string", description: "Optional notes" },
+        },
+        required: ["name", "period_start", "period_end"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_create_payroll_period",
+      description: "Execute payroll period creation after approval.",
+      parameters: {
+        type: "object",
+        properties: { pending_action_id: { type: "string" } },
+        required: ["pending_action_id"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "add_payroll_item_draft",
+      description: "Add a payroll item (base, overtime, bonus, penalty, tips, deduction, adjustment) for an employee in a payroll period. Use for 'add bonus for [employee]', 'add overtime hours to payroll', etc.",
+      parameters: {
+        type: "object",
+        properties: {
+          period_name: { type: "string", description: "Payroll period name (partial match)" },
+          period_id: { type: "string", description: "Payroll period UUID (if known)" },
+          employee_name: { type: "string", description: "Employee name" },
+          employee_id: { type: "string", description: "Employee UUID (if known)" },
+          item_type: { type: "string", enum: ["base", "overtime", "bonus", "penalty", "tips", "deduction", "adjustment"], description: "Type of payroll item" },
+          amount: { type: "number", description: "Amount for this item" },
+          description: { type: "string", description: "Description (optional)" },
+        },
+        required: ["employee_name", "item_type", "amount"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_add_payroll_item",
+      description: "Execute adding a payroll item after approval.",
+      parameters: {
+        type: "object",
+        properties: { pending_action_id: { type: "string" } },
+        required: ["pending_action_id"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "update_payroll_period_status_draft",
+      description: "Change payroll period status: calculated → approved → paid → closed. Use for 'approve payroll', 'mark payroll as paid', 'close pay period'.",
+      parameters: {
+        type: "object",
+        properties: {
+          period_name: { type: "string", description: "Payroll period name (partial match)" },
+          period_id: { type: "string", description: "Payroll period UUID (if known)" },
+          new_status: { type: "string", enum: ["calculated", "approved", "paid", "closed"], description: "New status for the period" },
+          notes: { type: "string", description: "Optional notes" },
+        },
+        required: ["new_status"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_update_payroll_period_status",
+      description: "Execute payroll period status update after approval.",
+      parameters: {
+        type: "object",
+        properties: { pending_action_id: { type: "string" } },
+        required: ["pending_action_id"],
+      },
+    },
+  },
+
+  // Staff Events (expanded)
+  {
+    type: "function",
+    function: {
+      name: "list_staff_events",
+      description: "List all staff events for employees: warnings, coaching notes, raises, bonuses, promotions, demotions, terminations. Use for 'show all events for [employee]', 'list promotions this year', etc.",
+      parameters: {
+        type: "object",
+        properties: {
+          employee_name: { type: "string", description: "Filter by employee name" },
+          event_type: { type: "string", enum: ["warning", "coaching_note", "raise", "bonus", "promotion", "demotion", "termination"], description: "Filter by event type" },
+          from: { type: "string", description: "Start date YYYY-MM-DD" },
+          to: { type: "string", description: "End date YYYY-MM-DD" },
+          limit: { type: "number", description: "Max results (default 50)" },
+        },
+      },
+    },
+  },
+
+  // Test Analytics
+  {
+    type: "function",
+    function: {
+      name: "get_test_analytics",
+      description: "Get test analytics: pass rate, average score, trends by month. Use for 'how are employees doing on tests?', 'test pass rate', 'training assessment analytics'.",
+      parameters: {
+        type: "object",
+        properties: {
+          test_name: { type: "string", description: "Filter by test name (partial match)" },
+          test_id: { type: "string", description: "Test UUID (if known)" },
+          from: { type: "string", description: "Start date YYYY-MM-DD" },
+          to: { type: "string", description: "End date YYYY-MM-DD" },
+        },
+      },
+    },
+  },
+
+  // Corrective Action Events
+  {
+    type: "function",
+    function: {
+      name: "list_ca_events",
+      description: "List the audit trail / event history for a specific corrective action. Use for 'show CA history', 'what happened to CA [title]?', 'CA timeline'.",
+      parameters: {
+        type: "object",
+        properties: {
+          ca_id: { type: "string", description: "Corrective action UUID" },
+          ca_title: { type: "string", description: "CA title (partial match)" },
+        },
+      },
+    },
+  },
+
+  // Training Session Attendees
+  {
+    type: "function",
+    function: {
+      name: "list_training_session_attendees",
+      description: "List attendees and their scores for a specific training session.",
+      parameters: {
+        type: "object",
+        properties: {
+          session_id: { type: "string", description: "Training session UUID" },
+          session_name: { type: "string", description: "Session title (partial match)" },
+        },
+      },
+    },
+  },
+
+  // Training Evaluations
+  {
+    type: "function",
+    function: {
+      name: "create_training_evaluation_draft",
+      description: "Record a training evaluation for an employee (score, pass/fail, feedback). Use for 'mark training as complete', 'record training score', 'evaluate employee training'.",
+      parameters: {
+        type: "object",
+        properties: {
+          assignment_id: { type: "string", description: "Training assignment UUID (if known)" },
+          employee_name: { type: "string", description: "Employee name (to resolve assignment)" },
+          score: { type: "number", description: "Score (0-100)" },
+          passed: { type: "boolean", description: "Whether the employee passed (auto-calculated from score if omitted)" },
+          passing_score: { type: "number", description: "Minimum passing score (default 70)" },
+          feedback: { type: "string", description: "Evaluator feedback" },
+        },
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_training_evaluation",
+      description: "Execute training evaluation recording after approval.",
+      parameters: {
+        type: "object",
+        properties: { pending_action_id: { type: "string" } },
+        required: ["pending_action_id"],
       },
     },
   },

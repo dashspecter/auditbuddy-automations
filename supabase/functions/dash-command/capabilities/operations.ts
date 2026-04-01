@@ -609,7 +609,22 @@ export async function createTrainingAssignmentDraft(
     if (data?.[0]) { moduleId = data[0].id; moduleName = data[0].name; }
   }
 
-  const draft = { employee_id: employeeId, employee_name: employeeName, module_id: moduleId, module_name: moduleName, start_date: args.start_date || new Date().toISOString().split("T")[0] };
+  // Optionally resolve trainer
+  let trainerId = args.trainer_employee_id || null;
+  let trainerName = args.trainer_employee_name || null;
+  if (!trainerId && trainerName) {
+    const { data: trData } = await sb.from("employees").select("id, full_name").eq("company_id", companyId).ilike("full_name", `%${trainerName}%`).limit(1);
+    if (trData?.[0]) { trainerId = trData[0].id; trainerName = trData[0].full_name; }
+  }
+
+  const draft = {
+    employee_id: employeeId, employee_name: employeeName,
+    module_id: moduleId, module_name: moduleName,
+    start_date: args.start_date || new Date().toISOString().split("T")[0],
+    trainer_employee_id: trainerId || null,
+    trainer_name: trainerName || null,
+    experience_level: args.experience_level || null,
+  };
 
   const missing: string[] = [];
   if (!employeeId) missing.push("employee");
@@ -653,6 +668,8 @@ export async function executeTrainingAssignment(
   const { data: taData, error } = await sbService.from("training_assignments").insert({
     company_id: companyId, trainee_employee_id: draft.employee_id, module_id: draft.module_id,
     status: "assigned", start_date: draft.start_date, assigned_by: userId,
+    trainer_employee_id: draft.trainer_employee_id || null,
+    experience_level: draft.experience_level || null,
   }).select("id").single();
 
   if (error) {
@@ -1820,6 +1837,280 @@ export async function getPayrollSummary(
   });
 }
 
+// ─── Payroll Writes ───
+
+export async function createPayrollPeriodDraft(
+  sb: any, sbService: any, companyId: string, userId: string, args: any, structuredEvents: string[],
+  ctx: PermissionContext
+): Promise<CapabilityResult<any>> {
+  const permCheck = checkCapabilityPermission({ action: "create", module: "payroll", ctx });
+  if (!permCheck.ok) return permCheck;
+
+  const missing: string[] = [];
+  if (!args.name) missing.push("name (e.g. 'March 2026')");
+  if (!args.period_start) missing.push("period_start (YYYY-MM-DD)");
+  if (!args.period_end) missing.push("period_end (YYYY-MM-DD)");
+  if (missing.length > 0) return capabilityError(`Missing required fields: ${missing.join(", ")}.`);
+
+  const draft = {
+    name: args.name,
+    period_start: args.period_start,
+    period_end: args.period_end,
+    notes: args.notes || null,
+  };
+
+  const { data: paData, error: paError } = await sbService.from("dash_pending_actions").insert({
+    company_id: companyId, user_id: userId, action_name: "create_payroll_period",
+    action_type: "write", risk_level: "high", preview_json: draft, status: "pending",
+  }).select("id").single();
+  if (paError || !paData?.id) return capabilityError(`Failed to create draft: ${paError?.message}`);
+
+  structuredEvents.push(makeStructuredEvent("action_preview", {
+    action: "Create Payroll Period",
+    summary: `Create payroll period "${draft.name}" (${draft.period_start} → ${draft.period_end})`,
+    risk: "high",
+    pending_action_id: paData.id,
+    draft,
+    can_approve: true,
+  }));
+
+  return success({ type: "payroll_period_draft", draft, pending_action_id: paData.id, requires_approval: true });
+}
+
+export async function executeCreatePayrollPeriod(
+  sbService: any, companyId: string, userId: string, args: any, structuredEvents: string[],
+  ctx: PermissionContext
+): Promise<CapabilityResult<any>> {
+  const permCheck = checkCapabilityPermission({ action: "create", module: "payroll", ctx });
+  if (!permCheck.ok) return permCheck;
+
+  const { data: pa } = await sbService.from("dash_pending_actions")
+    .select("id, status, company_id, preview_json").eq("id", args.pending_action_id).maybeSingle();
+  if (!pa) return capabilityError("Pending action not found.");
+  if (pa.company_id !== companyId) return capabilityError("Cross-tenant action rejected.");
+  if (pa.status !== "pending") return capabilityError(`Action already ${pa.status}.`);
+
+  const d = pa.preview_json as any;
+  const { data: periodData, error: periodError } = await sbService.from("payroll_periods").insert({
+    company_id: companyId,
+    name: d.name,
+    period_start: d.period_start,
+    period_end: d.period_end,
+    status: "draft",
+    notes: d.notes || null,
+    created_by: userId,
+  }).select("id, name").single();
+
+  if (periodError) {
+    await sbService.from("dash_pending_actions").update({ status: "failed", execution_result: { error: periodError.message }, updated_at: new Date().toISOString() }).eq("id", pa.id);
+    return capabilityError(`Failed to create payroll period: ${periodError.message}`);
+  }
+
+  await sbService.from("dash_pending_actions").update({
+    status: "executed", approved_at: new Date().toISOString(), approved_by: userId,
+    execution_result: { success: true, period_id: periodData.id }, updated_at: new Date().toISOString(),
+  }).eq("id", pa.id);
+
+  structuredEvents.push(makeStructuredEvent("execution_result", {
+    status: "success", title: "Payroll Period Created",
+    summary: `Payroll period "${periodData.name}" created in draft status.`,
+  }));
+
+  return success({ type: "payroll_period_created", period_id: periodData.id, name: periodData.name });
+}
+
+export async function addPayrollItemDraft(
+  sb: any, sbService: any, companyId: string, userId: string, args: any, structuredEvents: string[],
+  ctx: PermissionContext
+): Promise<CapabilityResult<any>> {
+  const permCheck = checkCapabilityPermission({ action: "create", module: "payroll", ctx });
+  if (!permCheck.ok) return permCheck;
+
+  // Resolve payroll period
+  let periodId = args.period_id || null;
+  let periodName: string | null = null;
+  if (!periodId && args.period_name) {
+    const { data: per } = await sb.from("payroll_periods")
+      .select("id, name, status").eq("company_id", companyId).ilike("name", `%${args.period_name}%`).limit(1).maybeSingle();
+    if (!per) return capabilityError(`No payroll period matching "${args.period_name}".`);
+    if (!["draft", "calculated"].includes(per.status)) return capabilityError(`Payroll period "${per.name}" is ${per.status}. Can only add items to draft or calculated periods.`);
+    periodId = per.id; periodName = per.name;
+  }
+  if (!periodId) return capabilityError("period_id or period_name is required.");
+
+  // Resolve employee
+  let empId = args.employee_id || null;
+  let empName = args.employee_name || null;
+  if (!empId && empName) {
+    const { data: emps } = await sb.from("employees").select("id, full_name").eq("company_id", companyId).ilike("full_name", `%${empName}%`).limit(5);
+    if (!emps?.length) return capabilityError(`Employee "${empName}" not found.`);
+    if (emps.length > 1) return capabilityError(`Multiple employees match "${empName}": ${emps.map((e: any) => e.full_name).join(", ")}.`);
+    empId = emps[0].id; empName = emps[0].full_name;
+  }
+  if (!empId) return capabilityError("employee_id or employee_name is required.");
+
+  const VALID_ITEM_TYPES = ["base", "overtime", "bonus", "penalty", "tips", "deduction", "adjustment"];
+  const itemType = VALID_ITEM_TYPES.includes(args.item_type) ? args.item_type : "adjustment";
+  const amount = Number(args.amount);
+  if (isNaN(amount)) return capabilityError("amount must be a number.");
+
+  const draft = {
+    period_id: periodId,
+    period_name: periodName,
+    employee_id: empId,
+    employee_name: empName,
+    item_type: itemType,
+    amount,
+    description: args.description || itemType,
+  };
+
+  const { data: paData, error: paError } = await sbService.from("dash_pending_actions").insert({
+    company_id: companyId, user_id: userId, action_name: "add_payroll_item",
+    action_type: "write", risk_level: "medium", preview_json: draft, status: "pending",
+  }).select("id").single();
+  if (paError || !paData?.id) return capabilityError(`Failed to create draft: ${paError?.message}`);
+
+  structuredEvents.push(makeStructuredEvent("action_preview", {
+    action: "Add Payroll Item",
+    summary: `Add ${itemType} of ${amount} for ${empName} to period "${periodName}"`,
+    risk: "medium",
+    pending_action_id: paData.id,
+    draft,
+    can_approve: true,
+  }));
+
+  return success({ type: "payroll_item_draft", draft, pending_action_id: paData.id, requires_approval: true });
+}
+
+export async function executeAddPayrollItem(
+  sbService: any, companyId: string, userId: string, args: any, structuredEvents: string[],
+  ctx: PermissionContext
+): Promise<CapabilityResult<any>> {
+  const permCheck = checkCapabilityPermission({ action: "create", module: "payroll", ctx });
+  if (!permCheck.ok) return permCheck;
+
+  const { data: pa } = await sbService.from("dash_pending_actions")
+    .select("id, status, company_id, preview_json").eq("id", args.pending_action_id).maybeSingle();
+  if (!pa) return capabilityError("Pending action not found.");
+  if (pa.company_id !== companyId) return capabilityError("Cross-tenant action rejected.");
+  if (pa.status !== "pending") return capabilityError(`Action already ${pa.status}.`);
+
+  const d = pa.preview_json as any;
+  const { data: itemData, error: itemError } = await sbService.from("payroll_items").insert({
+    payroll_period_id: d.period_id,
+    employee_id: d.employee_id,
+    item_type: d.item_type,
+    amount: d.amount,
+    description: d.description,
+    created_by: userId,
+  }).select("id").single();
+
+  if (itemError) {
+    await sbService.from("dash_pending_actions").update({ status: "failed", execution_result: { error: itemError.message }, updated_at: new Date().toISOString() }).eq("id", pa.id);
+    return capabilityError(`Failed to add payroll item: ${itemError.message}`);
+  }
+
+  await sbService.from("dash_pending_actions").update({
+    status: "executed", approved_at: new Date().toISOString(), approved_by: userId,
+    execution_result: { success: true, item_id: itemData.id }, updated_at: new Date().toISOString(),
+  }).eq("id", pa.id);
+
+  structuredEvents.push(makeStructuredEvent("execution_result", {
+    status: "success", title: "Payroll Item Added",
+    summary: `${d.item_type} of ${d.amount} added for ${d.employee_name}.`,
+  }));
+
+  return success({ type: "payroll_item_added", item_id: itemData.id });
+}
+
+export async function updatePayrollPeriodStatusDraft(
+  sb: any, sbService: any, companyId: string, userId: string, args: any, structuredEvents: string[],
+  ctx: PermissionContext
+): Promise<CapabilityResult<any>> {
+  const permCheck = checkCapabilityPermission({ action: "update", module: "payroll", ctx });
+  if (!permCheck.ok) return permCheck;
+
+  // Resolve period
+  let periodId = args.period_id || null;
+  let periodName: string | null = null;
+  if (!periodId && args.period_name) {
+    const { data: per } = await sb.from("payroll_periods")
+      .select("id, name, status").eq("company_id", companyId).ilike("name", `%${args.period_name}%`).limit(1).maybeSingle();
+    if (!per) return capabilityError(`No payroll period matching "${args.period_name}".`);
+    periodId = per.id; periodName = per.name;
+  } else if (periodId) {
+    const { data: per } = await sb.from("payroll_periods").select("id, name, status, company_id").eq("id", periodId).maybeSingle();
+    if (!per || per.company_id !== companyId) return capabilityError("Payroll period not found.");
+    periodName = per.name;
+  }
+  if (!periodId) return capabilityError("period_id or period_name is required.");
+
+  const VALID_STATUSES = ["calculated", "approved", "paid", "closed"];
+  const newStatus = args.new_status;
+  if (!VALID_STATUSES.includes(newStatus)) return capabilityError(`new_status must be one of: ${VALID_STATUSES.join(", ")}.`);
+
+  const draft = { period_id: periodId, period_name: periodName, new_status: newStatus, notes: args.notes || null };
+
+  const riskLevel = newStatus === "paid" ? "high" : "medium";
+  const { data: paData, error: paError } = await sbService.from("dash_pending_actions").insert({
+    company_id: companyId, user_id: userId, action_name: "update_payroll_status",
+    action_type: "write", risk_level: riskLevel, preview_json: draft, status: "pending",
+  }).select("id").single();
+  if (paError || !paData?.id) return capabilityError(`Failed to create draft: ${paError?.message}`);
+
+  structuredEvents.push(makeStructuredEvent("action_preview", {
+    action: "Update Payroll Status",
+    summary: `Change payroll period "${periodName}" status to "${newStatus}"`,
+    risk: riskLevel,
+    pending_action_id: paData.id,
+    draft,
+    can_approve: true,
+  }));
+
+  return success({ type: "payroll_status_draft", draft, pending_action_id: paData.id, requires_approval: true });
+}
+
+export async function executeUpdatePayrollPeriodStatus(
+  sbService: any, companyId: string, userId: string, args: any, structuredEvents: string[],
+  ctx: PermissionContext
+): Promise<CapabilityResult<any>> {
+  const permCheck = checkCapabilityPermission({ action: "update", module: "payroll", ctx });
+  if (!permCheck.ok) return permCheck;
+
+  const { data: pa } = await sbService.from("dash_pending_actions")
+    .select("id, status, company_id, preview_json").eq("id", args.pending_action_id).maybeSingle();
+  if (!pa) return capabilityError("Pending action not found.");
+  if (pa.company_id !== companyId) return capabilityError("Cross-tenant action rejected.");
+  if (pa.status !== "pending") return capabilityError(`Action already ${pa.status}.`);
+
+  const d = pa.preview_json as any;
+  const updateFields: Record<string, any> = {
+    status: d.new_status,
+    updated_at: new Date().toISOString(),
+  };
+  if (d.new_status === "approved") { updateFields.approved_at = new Date().toISOString(); updateFields.approved_by = userId; }
+  if (d.new_status === "paid") { updateFields.paid_at = new Date().toISOString(); updateFields.paid_by = userId; }
+
+  const { error: updateError } = await sbService.from("payroll_periods").update(updateFields).eq("id", d.period_id).eq("company_id", companyId);
+
+  if (updateError) {
+    await sbService.from("dash_pending_actions").update({ status: "failed", execution_result: { error: updateError.message }, updated_at: new Date().toISOString() }).eq("id", pa.id);
+    return capabilityError(`Failed to update payroll status: ${updateError.message}`);
+  }
+
+  await sbService.from("dash_pending_actions").update({
+    status: "executed", approved_at: new Date().toISOString(), approved_by: userId,
+    execution_result: { success: true }, updated_at: new Date().toISOString(),
+  }).eq("id", pa.id);
+
+  structuredEvents.push(makeStructuredEvent("execution_result", {
+    status: "success", title: "Payroll Status Updated",
+    summary: `Payroll period "${d.period_name}" is now "${d.new_status}".`,
+  }));
+
+  return success({ type: "payroll_status_updated", period_id: d.period_id, new_status: d.new_status });
+}
+
 // ─── Employee Performance ───
 
 export async function getEmployeePerformanceReport(
@@ -2561,4 +2852,153 @@ export async function listCmmsTeams(
       member_count: memberCounts[t.id] || 0,
     })),
   });
+}
+
+// ─── Training Session Attendees ───
+
+export async function listTrainingSessionAttendees(
+  sb: any, companyId: string, args: any
+): Promise<CapabilityResult<any>> {
+  // Resolve session: by id or by session_name
+  let sessionId = args.session_id || null;
+  if (!sessionId && args.session_name) {
+    const { data: sessions } = await sb.from("training_sessions")
+      .select("id, title").eq("company_id", companyId).ilike("title", `%${args.session_name}%`).limit(1);
+    if (!sessions?.length) return capabilityError(`No training session matching "${args.session_name}".`);
+    sessionId = sessions[0].id;
+  }
+  if (!sessionId) return capabilityError("session_id or session_name is required.");
+
+  // Verify company ownership
+  const { data: sess } = await sb.from("training_sessions").select("id, company_id, title").eq("id", sessionId).maybeSingle();
+  if (!sess || sess.company_id !== companyId) return capabilityError("Training session not found.");
+
+  const { data, error } = await sb.from("training_session_attendees")
+    .select("id, session_id, employee_id, attended, score, notes, employees(full_name)")
+    .eq("session_id", sessionId)
+    .limit(200);
+
+  if (error) return capabilityError(error.message);
+
+  return success({
+    session_title: sess.title,
+    total_attendees: data?.length ?? 0,
+    attendees: (data || []).map((a: any) => ({
+      employee: a.employees?.full_name,
+      attended: a.attended,
+      score: a.score,
+      notes: a.notes,
+    })),
+  });
+}
+
+// ─── Training Evaluations ───
+
+export async function createTrainingEvaluationDraft(
+  sb: any, sbService: any, companyId: string, userId: string, args: any, structuredEvents: string[],
+  ctx: PermissionContext
+): Promise<CapabilityResult<any>> {
+  const permCheck = checkCapabilityPermission({ action: "create", module: "workforce", ctx });
+  if (!permCheck.ok) return permCheck;
+
+  // Resolve assignment
+  let assignmentId = args.assignment_id || null;
+  let employeeName: string | null = null;
+  let moduleName: string | null = null;
+
+  if (!assignmentId) {
+    // Resolve by employee + module name
+    let empId: string | null = null;
+    if (args.employee_name) {
+      const { data: emps } = await sb.from("employees").select("id, full_name").eq("company_id", companyId).ilike("full_name", `%${args.employee_name}%`).limit(1);
+      if (!emps?.length) return capabilityError(`Employee "${args.employee_name}" not found.`);
+      empId = emps[0].id; employeeName = emps[0].full_name;
+    }
+    if (empId) {
+      const q = sb.from("training_assignments").select("id, module_id, training_programs(name)").eq("company_id", companyId).eq("trainee_employee_id", empId).in("status", ["assigned", "in_progress", "completed"]);
+      const { data: assignments } = await q.limit(1);
+      if (assignments?.[0]) { assignmentId = assignments[0].id; moduleName = assignments[0].training_programs?.name; }
+    }
+  } else {
+    const { data: asgn } = await sb.from("training_assignments").select("id, trainee_employee_id, employees!training_assignments_trainee_employee_id_fkey(full_name), module_id, training_programs(name), company_id").eq("id", assignmentId).maybeSingle();
+    if (!asgn || asgn.company_id !== companyId) return capabilityError("Training assignment not found.");
+    employeeName = asgn.employees?.full_name;
+    moduleName = asgn.training_programs?.name;
+  }
+
+  if (!assignmentId) return capabilityError("Could not resolve training assignment. Provide assignment_id or employee_name.");
+
+  const draft = {
+    assignment_id: assignmentId,
+    employee_name: employeeName,
+    module_name: moduleName,
+    score: args.score != null ? Number(args.score) : null,
+    passed: args.passed ?? (args.score != null ? args.score >= (args.passing_score || 70) : null),
+    feedback: args.feedback || null,
+    evaluated_by: userId,
+  };
+
+  const { data: paData, error: paError } = await sbService.from("dash_pending_actions").insert({
+    company_id: companyId, user_id: userId, action_name: "create_training_evaluation",
+    action_type: "write", risk_level: "medium", preview_json: draft, status: "pending",
+  }).select("id").single();
+  if (paError || !paData?.id) return capabilityError(`Failed to create draft: ${paError?.message}`);
+
+  structuredEvents.push(makeStructuredEvent("action_preview", {
+    action: "Training Evaluation",
+    summary: `Evaluate ${employeeName || "employee"} on "${moduleName || "module"}" — Score: ${draft.score ?? "N/A"}, Passed: ${draft.passed ?? "N/A"}`,
+    risk: "medium",
+    pending_action_id: paData.id,
+    draft,
+    can_approve: true,
+  }));
+
+  return success({ type: "training_evaluation_draft", draft, pending_action_id: paData.id, requires_approval: true });
+}
+
+export async function executeTrainingEvaluation(
+  sbService: any, companyId: string, userId: string, args: any, structuredEvents: string[],
+  ctx: PermissionContext
+): Promise<CapabilityResult<any>> {
+  const permCheck = checkCapabilityPermission({ action: "create", module: "workforce", ctx });
+  if (!permCheck.ok) return permCheck;
+
+  const { data: pa } = await sbService.from("dash_pending_actions")
+    .select("id, status, company_id, preview_json").eq("id", args.pending_action_id).maybeSingle();
+  if (!pa) return capabilityError("Pending action not found.");
+  if (pa.company_id !== companyId) return capabilityError("Cross-tenant action rejected.");
+  if (pa.status !== "pending") return capabilityError(`Action already ${pa.status}.`);
+
+  const d = pa.preview_json as any;
+
+  const { data: evData, error: evError } = await sbService.from("training_evaluations").insert({
+    assignment_id: d.assignment_id,
+    score: d.score,
+    passed: d.passed,
+    feedback: d.feedback,
+    evaluated_by: d.evaluated_by,
+    evaluated_at: new Date().toISOString(),
+  }).select("id").single();
+
+  if (evError) {
+    await sbService.from("dash_pending_actions").update({ status: "failed", execution_result: { error: evError.message }, updated_at: new Date().toISOString() }).eq("id", pa.id);
+    return capabilityError(`Failed to record evaluation: ${evError.message}`);
+  }
+
+  // Update assignment status to completed
+  await sbService.from("training_assignments").update({
+    status: "completed", completed_at: new Date().toISOString(),
+  }).eq("id", d.assignment_id).catch(() => {});
+
+  await sbService.from("dash_pending_actions").update({
+    status: "executed", approved_at: new Date().toISOString(), approved_by: userId,
+    execution_result: { success: true, evaluation_id: evData.id }, updated_at: new Date().toISOString(),
+  }).eq("id", pa.id);
+
+  structuredEvents.push(makeStructuredEvent("execution_result", {
+    status: "success", title: "Training Evaluation Recorded",
+    summary: `Evaluation for ${d.employee_name} on "${d.module_name}": score ${d.score ?? "N/A"}, ${d.passed ? "PASSED" : "FAILED"}.`,
+  }));
+
+  return success({ type: "training_evaluated", evaluation_id: evData.id });
 }
