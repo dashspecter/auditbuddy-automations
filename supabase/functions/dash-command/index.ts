@@ -28,9 +28,10 @@ import { listScoutJobs, getScoutJobDetails, listScoutSubmissions, reviewScoutSub
 import { getWasteReport, listWasteEntries, listWasteProducts, logWasteDraft, executeWasteEntry } from "./capabilities/waste.ts";
 import { searchEmployees, getEmployeeShifts, getAttendanceExceptions, getAttendanceSummary, createEmployeeDraft, createShiftDraft, executeEmployeeCreation, executeShiftCreation, updateShiftDraft, executeShiftUpdate, deleteShiftDraft, executeShiftDeletion, swapShiftDraft, executeShiftSwap, listEmployeeWarnings, issueWarningDraft, executeWarningIssuance, getEmployeeDossier, publishShiftsDraft, executePublishShifts, manualClockInDraft, executeManualClockIn } from "./capabilities/workforce.ts";
 import { listTests, getTestResults, listTestAssignments, assignTestDraft, executeTestAssignment } from "./capabilities/tests.ts";
-import { getTaskCompletionSummary, getWorkOrderStatus, getDocumentExpiries, getTrainingGaps, updateEmployeeDraft, executeEmployeeUpdate, deactivateEmployeeDraft, executeEmployeeDeactivation, correctAttendanceDraft, executeAttendanceCorrection, excuseLateDraft, executeExcuseLate, createWorkOrderDraft, executeWorkOrderCreation, updateWoStatusDraft, executeWoStatusUpdate, createTaskDraft, executeTaskCreation, createTrainingAssignmentDraft, executeTrainingAssignment, updateTrainingStatusDraft, executeTrainingStatusUpdate, listDepartments, createDepartmentDraft, executeCreateDepartment, updateDepartmentDraft, executeUpdateDepartment, deleteDepartmentDraft, executeDeleteDepartment, listTasks, updateTaskDraft, executeTaskUpdate, deleteTaskDraft, executeTaskDeletion, completeTaskDraft, executeTaskCompletion, listDocuments, linkDocumentDraft, executeDocumentLink, createDocumentCategoryDraft, executeDocumentCategoryCreation, deleteDocumentDraft, executeDocumentDeletion, listAlerts, resolveAlertDraft, executeAlertResolution, listTrainingPrograms, createTrainingProgramDraft, executeTrainingProgramCreation, listAssets, getAssetDetails, getLaborCosts, listTrainingSessions, createTrainingSessionDraft, executeTrainingSessionCreation, listPayrollPeriods, getPayrollSummary, getEmployeePerformanceReport, listPmPlans, getPmComplianceReport, createPmPlanDraft, executeCreatePmPlan, listCmmsParts, getPartsStockReport, listCmmsVendors, createPurchaseOrderDraft, executeCreatePurchaseOrder, listAllPendingApprovals, getApprovalRequestDetails, makeApprovalDecisionDraft, executeMakeApprovalDecision } from "./capabilities/operations.ts";
+import { getTaskCompletionSummary, getWorkOrderStatus, getDocumentExpiries, getTrainingGaps, updateEmployeeDraft, executeEmployeeUpdate, deactivateEmployeeDraft, executeEmployeeDeactivation, correctAttendanceDraft, executeAttendanceCorrection, excuseLateDraft, executeExcuseLate, createWorkOrderDraft, executeWorkOrderCreation, updateWoStatusDraft, executeWoStatusUpdate, createTaskDraft, executeTaskCreation, createTrainingAssignmentDraft, executeTrainingAssignment, updateTrainingStatusDraft, executeTrainingStatusUpdate, listDepartments, createDepartmentDraft, executeCreateDepartment, updateDepartmentDraft, executeUpdateDepartment, deleteDepartmentDraft, executeDeleteDepartment, listTasks, updateTaskDraft, executeTaskUpdate, deleteTaskDraft, executeTaskDeletion, completeTaskDraft, executeTaskCompletion, listDocuments, linkDocumentDraft, executeDocumentLink, createDocumentCategoryDraft, executeDocumentCategoryCreation, deleteDocumentDraft, executeDocumentDeletion, listAlerts, resolveAlertDraft, executeAlertResolution, listTrainingPrograms, createTrainingProgramDraft, executeTrainingProgramCreation, listAssets, getAssetDetails, getLaborCosts, listTrainingSessions, createTrainingSessionDraft, executeTrainingSessionCreation, listPayrollPeriods, getPayrollSummary, getEmployeePerformanceReport, listPmPlans, getPmComplianceReport, createPmPlanDraft, executeCreatePmPlan, listCmmsParts, getPartsStockReport, listCmmsVendors, createPurchaseOrderDraft, executeCreatePurchaseOrder, listAllPendingApprovals, getApprovalRequestDetails, makeApprovalDecisionDraft, executeMakeApprovalDecision, getActivityLog, listCmmsTeams } from "./capabilities/operations.ts";
 import { getInventoryLevels, listManualMetrics, logMetricDraft, executeLogMetric } from "./capabilities/inventory.ts";
 import { listMysteryShopperResults, getMysteryShopperScores, listVouchers } from "./capabilities/mystery-shopper.ts";
+import { listMarketplaceTemplates, installMarketplaceTemplateDraft, executeInstallMarketplaceTemplate } from "./capabilities/marketplace.ts";
 import { searchLocations, getLocationOverview, getCrossModuleSummary } from "./capabilities/overview.ts";
 import { listLocations, getLocationDetails, createLocationDraft, executeLocationCreation, updateLocationDraft, executeLocationUpdate, deactivateLocationDraft, executeLocationDeactivation } from "./capabilities/locations.ts";
 import { listNotifications, sendNotificationDraft, executeNotificationSend } from "./capabilities/notifications.ts";
@@ -267,6 +268,14 @@ const TOOL_MODULE_MAP: Record<string, string> = {
   // Notification analytics
   get_notification_analytics: "notifications",
   list_notification_audit_log: "notifications",
+  // Activity log
+  get_activity_log: "workforce",
+  // CMMS teams
+  list_cmms_teams: "cmms",
+  // Marketplace
+  list_marketplace_templates: "location_audits",
+  install_marketplace_template_draft: "location_audits",
+  execute_install_marketplace_template: "location_audits",
 };
 
 // ─── Action-name to execute-tool resolver (server-authoritative) ───
@@ -352,6 +361,8 @@ const ACTION_EXECUTE_MAP: Record<string, string> = {
   log_metric: "execute_log_metric",
   // Approvals
   make_approval_decision: "execute_approval_decision",
+  // Marketplace
+  install_marketplace_template: "execute_install_marketplace_template",
 };
 
 /** Hydrate execution args from pending action's preview_json based on action_name.
@@ -1548,6 +1559,26 @@ async function executeToolInner(
     case "list_notification_audit_log":
       return resultToToolResponse(await listNotificationAuditLog(sb, companyId, args));
 
+    // ────────── ACTIVITY LOG ──────────
+    case "get_activity_log":
+      return resultToToolResponse(await getActivityLog(sb, companyId, args));
+
+    // ────────── CMMS TEAMS ──────────
+    case "list_cmms_teams":
+      return resultToToolResponse(await listCmmsTeams(sb, companyId, args));
+
+    // ────────── MARKETPLACE ──────────
+    case "list_marketplace_templates":
+      return resultToToolResponse(await listMarketplaceTemplates(sb, companyId, args));
+    case "install_marketplace_template_draft": {
+      const ctx = buildPermCtx(companyId, userId, platformRoles, companyRole, activeModules);
+      return resultToToolResponse(await installMarketplaceTemplateDraft(sb, sbService, companyId, userId, args, structuredEvents, ctx));
+    }
+    case "execute_install_marketplace_template": {
+      const ctx = buildPermCtx(companyId, userId, platformRoles, companyRole, activeModules);
+      return resultToToolResponse(await executeInstallMarketplaceTemplate(sbService, companyId, userId, args, structuredEvents, ctx));
+    }
+
     // ────────── EQUIPMENT MANAGEMENT ──────────
     case "list_equipment":
       return resultToToolResponse(await listEquipment(sb, companyId, args));
@@ -1698,7 +1729,7 @@ ${generateCapabilityDocs()}
 ### Draft & Execute (APPROVAL-GATED WRITES)
 You can now create AND execute records in the platform:
 
-**CRITICAL — STOP AFTER DRAFT**: After calling ANY draft tool (create_employee_draft, create_audit_template_draft, create_shift_draft, update_shift_draft, delete_shift_draft, swap_shift_draft, reassign_corrective_action, create_ca_draft, update_ca_status_draft, update_employee_draft, deactivate_employee_draft, correct_attendance_draft, excuse_late_draft, create_work_order_draft, update_wo_status_draft, create_task_draft, update_task_draft, delete_task_draft, complete_task_draft, create_training_assignment_draft, update_training_status_draft, create_training_program_draft, schedule_audit_draft, cancel_scheduled_audit_draft, create_location_draft, update_location_draft, deactivate_location_draft, create_department_draft, update_department_draft, delete_department_draft, link_document_draft, create_document_category_draft, delete_document_draft, send_notification_draft, resolve_alert_draft, create_time_off_request_draft, approve_time_off_request_draft, issue_warning_draft, assign_test_draft, publish_shifts_draft, manual_clock_in_draft, create_training_session_draft, review_scout_submission_draft, log_waste_draft, update_ca_item_status_draft, add_ca_item_draft, log_equipment_intervention_draft, send_whatsapp_message_draft, create_notification_rule_draft, create_staff_audit_draft, process_scout_payout_draft, create_pm_plan_draft, create_purchase_order_draft, log_metric_draft, make_approval_decision_draft), you MUST immediately STOP making tool calls and present the draft preview to the user. Do NOT call any execute tool in the same response. The approval card UI will handle the approval flow. You must wait for the NEXT user message containing explicit approval before executing.
+**CRITICAL — STOP AFTER DRAFT**: After calling ANY draft tool (create_employee_draft, create_audit_template_draft, create_shift_draft, update_shift_draft, delete_shift_draft, swap_shift_draft, reassign_corrective_action, create_ca_draft, update_ca_status_draft, update_employee_draft, deactivate_employee_draft, correct_attendance_draft, excuse_late_draft, create_work_order_draft, update_wo_status_draft, create_task_draft, update_task_draft, delete_task_draft, complete_task_draft, create_training_assignment_draft, update_training_status_draft, create_training_program_draft, schedule_audit_draft, cancel_scheduled_audit_draft, create_location_draft, update_location_draft, deactivate_location_draft, create_department_draft, update_department_draft, delete_department_draft, link_document_draft, create_document_category_draft, delete_document_draft, send_notification_draft, resolve_alert_draft, create_time_off_request_draft, approve_time_off_request_draft, issue_warning_draft, assign_test_draft, publish_shifts_draft, manual_clock_in_draft, create_training_session_draft, review_scout_submission_draft, log_waste_draft, update_ca_item_status_draft, add_ca_item_draft, log_equipment_intervention_draft, send_whatsapp_message_draft, create_notification_rule_draft, create_staff_audit_draft, process_scout_payout_draft, create_pm_plan_draft, create_purchase_order_draft, log_metric_draft, make_approval_decision_draft, install_marketplace_template_draft), you MUST immediately STOP making tool calls and present the draft preview to the user. Do NOT call any execute tool in the same response. The approval card UI will handle the approval flow. You must wait for the NEXT user message containing explicit approval before executing.
 
 **Employee Creation Flow:**
 1. Use \`create_employee_draft\` to prepare the draft and show preview
@@ -1864,6 +1895,17 @@ You can now create AND execute records in the platform:
 **Notification Analytics:**
 - Analytics: \`get_notification_analytics\` — delivery rate, read rate, by channel over a period
 - Audit log: \`list_notification_audit_log\` — full history of notification actions
+
+**Activity Log:**
+- Use \`get_activity_log\` to see who did what in the platform. Filter by user_name, action_type, entity_type, or date range.
+
+**CMMS Teams:**
+- Use \`list_cmms_teams\` to see maintenance teams with member counts. Useful before assigning work orders to a team.
+
+**Marketplace Templates:**
+- Browse: \`list_marketplace_templates\` — filter by category or search; sorted by popularity
+- Install: \`install_marketplace_template_draft\` with template_name. This records a download and makes the template available in your audit templates.
+- Execute: \`execute_install_marketplace_template\` after approval
 
 ### Approval Rules
 - MEDIUM risk: User must confirm with clear affirmative response

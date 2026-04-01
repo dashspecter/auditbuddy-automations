@@ -2737,6 +2737,83 @@ export const tools = [
       },
     },
   },
+  // --- Activity Log ---
+  {
+    type: "function",
+    function: {
+      name: "get_activity_log",
+      description: "Get the audit trail of user actions in the platform. Filter by user, action type, entity type, or date range.",
+      parameters: {
+        type: "object",
+        properties: {
+          user_name: { type: "string", description: "Filter by user name (partial match)" },
+          user_id: { type: "string", description: "Filter by user UUID" },
+          action_type: { type: "string", description: "Filter by action type (e.g. create, update, delete)" },
+          entity_type: { type: "string", description: "Filter by entity type (e.g. employee, shift, audit)" },
+          from: { type: "string", description: "Start date YYYY-MM-DD" },
+          to: { type: "string", description: "End date YYYY-MM-DD" },
+          limit: { type: "number", description: "Max results (default 50)" },
+        },
+      },
+    },
+  },
+  // --- CMMS Teams ---
+  {
+    type: "function",
+    function: {
+      name: "list_cmms_teams",
+      description: "List active CMMS maintenance teams with member counts.",
+      parameters: {
+        type: "object",
+        properties: {},
+      },
+    },
+  },
+  // --- Marketplace ---
+  {
+    type: "function",
+    function: {
+      name: "list_marketplace_templates",
+      description: "Browse audit templates available in the marketplace. Filter by category, search term, or featured status.",
+      parameters: {
+        type: "object",
+        properties: {
+          search: { type: "string", description: "Search by template name (partial match)" },
+          category: { type: "string", description: "Category name filter (partial match)" },
+          featured_only: { type: "boolean", description: "Show only featured templates" },
+          limit: { type: "number", description: "Max results (default 30)" },
+        },
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "install_marketplace_template_draft",
+      description: "Create a draft to install an audit template from the marketplace into this company.",
+      parameters: {
+        type: "object",
+        properties: {
+          template_name: { type: "string", description: "Marketplace template name (partial match)" },
+          template_id: { type: "string", description: "Template UUID (if known)" },
+        },
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_install_marketplace_template",
+      description: "Execute installing a marketplace template after user approves the draft.",
+      parameters: {
+        type: "object",
+        properties: {
+          pending_action_id: { type: "string", description: "Pending action UUID from install_marketplace_template_draft" },
+        },
+        required: ["pending_action_id"],
+      },
+    },
+  },
   // --- Equipment Management ---
   {
     type: "function",

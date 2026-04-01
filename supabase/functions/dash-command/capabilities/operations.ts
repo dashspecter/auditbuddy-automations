@@ -2474,3 +2474,91 @@ export async function executeMakeApprovalDecision(
 
   return success({ type: "approval_decision_made", decision: d.decision, request_id: d.request_id });
 }
+
+// ─── Activity Log ───
+
+export async function getActivityLog(
+  sb: any, companyId: string, args: any
+): Promise<CapabilityResult<any>> {
+  const limit = Math.min(args.limit || 50, 200);
+
+  let q = sb.from("activity_logs")
+    .select("id, user_id, action_type, entity_type, entity_id, entity_name, details, created_at, location_id, locations(name)")
+    .eq("company_id", companyId)
+    .order("created_at", { ascending: false })
+    .limit(limit);
+
+  if (args.user_id) q = q.eq("user_id", args.user_id);
+  if (args.action_type) q = q.eq("action_type", args.action_type);
+  if (args.entity_type) q = q.eq("entity_type", args.entity_type);
+  if (args.from) q = q.gte("created_at", args.from);
+  if (args.to) q = q.lte("created_at", args.to + "T23:59:59Z");
+
+  // Resolve user by name
+  if (args.user_name) {
+    const { data: emp } = await sb.from("employees").select("id")
+      .eq("company_id", companyId).ilike("full_name", `%${args.user_name}%`).limit(1).maybeSingle();
+    if (!emp) {
+      // Try users table
+      const { data: usr } = await sb.from("users").select("id")
+        .ilike("full_name", `%${args.user_name}%`).limit(1).maybeSingle();
+      if (usr) q = q.eq("user_id", usr.id);
+    } else {
+      q = q.eq("user_id", emp.id);
+    }
+  }
+
+  const { data, error } = await q;
+  if (error) return capabilityError(error.message);
+
+  return success({
+    total: data?.length ?? 0,
+    entries: (data || []).map((e: any) => ({
+      id: e.id,
+      user_id: e.user_id,
+      action_type: e.action_type,
+      entity_type: e.entity_type,
+      entity_name: e.entity_name,
+      location: e.locations?.name,
+      details: e.details,
+      created_at: e.created_at,
+    })),
+  });
+}
+
+// ─── CMMS Teams ───
+
+export async function listCmmsTeams(
+  sb: any, companyId: string, _args: any
+): Promise<CapabilityResult<any>> {
+  const { data: teams, error } = await sb.from("cmms_teams")
+    .select("id, name, description, is_active")
+    .eq("company_id", companyId)
+    .eq("is_active", true)
+    .order("name", { ascending: true })
+    .limit(100);
+
+  if (error) return capabilityError(error.message);
+
+  // Get member counts
+  const teamIds = (teams || []).map((t: any) => t.id);
+  let memberCounts: Record<string, number> = {};
+
+  if (teamIds.length > 0) {
+    const { data: members } = await sb.from("cmms_team_members")
+      .select("team_id").in("team_id", teamIds);
+    for (const m of members || []) {
+      memberCounts[m.team_id] = (memberCounts[m.team_id] || 0) + 1;
+    }
+  }
+
+  return success({
+    total: teams?.length ?? 0,
+    teams: (teams || []).map((t: any) => ({
+      id: t.id,
+      name: t.name,
+      description: t.description,
+      member_count: memberCounts[t.id] || 0,
+    })),
+  });
+}
