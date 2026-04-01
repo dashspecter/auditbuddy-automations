@@ -22,13 +22,15 @@ import {
 import { getAuditResults, compareLocationPerformance, createAuditTemplateDraft, executeAuditTemplateCreation, listScheduledAudits, scheduleAuditDraft, executeAuditScheduling, cancelScheduledAuditDraft, executeCancelScheduledAudit, listStaffAudits, getStaffAuditDetails, createStaffAuditDraft, executeStaffAuditCreation } from "./capabilities/audits.ts";
 import { listEquipment, getEquipmentDetails, getEquipmentExpiries, logEquipmentInterventionDraft, executeEquipmentIntervention } from "./capabilities/equipment.ts";
 import { listFormTemplates, listFormAssignments, listFormSubmissions, getFormSubmissionDetails } from "./capabilities/qr-forms.ts";
-import { listWhatsappTemplates, listOutboundMessages, listNotificationRules, sendWhatsappMessageDraft, executeeSendWhatsappMessage, createNotificationRuleDraft, executeCreateNotificationRule } from "./capabilities/messaging.ts";
+import { listWhatsappTemplates, listOutboundMessages, listNotificationRules, sendWhatsappMessageDraft, executeeSendWhatsappMessage, createNotificationRuleDraft, executeCreateNotificationRule, getNotificationAnalytics, listNotificationAuditLog } from "./capabilities/messaging.ts";
 import { getOpenCorrectiveActions, reassignCorrectiveAction, executeCaReassignment, createCaDraft, executeCaCreation, updateCaStatusDraft, executeCaStatusUpdate, listCaItems, updateCaItemStatusDraft, executeUpdateCaItemStatus, addCaItemDraft, executeAddCaItem } from "./capabilities/corrective-actions.ts";
 import { listScoutJobs, getScoutJobDetails, listScoutSubmissions, reviewScoutSubmissionDraft, executeScoutSubmissionReview, listScoutPayouts, getScoutPayoutSummary, processScoutPayoutDraft, executeProcessScoutPayout } from "./capabilities/scouts.ts";
 import { getWasteReport, listWasteEntries, listWasteProducts, logWasteDraft, executeWasteEntry } from "./capabilities/waste.ts";
 import { searchEmployees, getEmployeeShifts, getAttendanceExceptions, getAttendanceSummary, createEmployeeDraft, createShiftDraft, executeEmployeeCreation, executeShiftCreation, updateShiftDraft, executeShiftUpdate, deleteShiftDraft, executeShiftDeletion, swapShiftDraft, executeShiftSwap, listEmployeeWarnings, issueWarningDraft, executeWarningIssuance, getEmployeeDossier, publishShiftsDraft, executePublishShifts, manualClockInDraft, executeManualClockIn } from "./capabilities/workforce.ts";
 import { listTests, getTestResults, listTestAssignments, assignTestDraft, executeTestAssignment } from "./capabilities/tests.ts";
-import { getTaskCompletionSummary, getWorkOrderStatus, getDocumentExpiries, getTrainingGaps, updateEmployeeDraft, executeEmployeeUpdate, deactivateEmployeeDraft, executeEmployeeDeactivation, correctAttendanceDraft, executeAttendanceCorrection, excuseLateDraft, executeExcuseLate, createWorkOrderDraft, executeWorkOrderCreation, updateWoStatusDraft, executeWoStatusUpdate, createTaskDraft, executeTaskCreation, createTrainingAssignmentDraft, executeTrainingAssignment, updateTrainingStatusDraft, executeTrainingStatusUpdate, listDepartments, createDepartmentDraft, executeCreateDepartment, updateDepartmentDraft, executeUpdateDepartment, deleteDepartmentDraft, executeDeleteDepartment, listTasks, updateTaskDraft, executeTaskUpdate, deleteTaskDraft, executeTaskDeletion, completeTaskDraft, executeTaskCompletion, listDocuments, linkDocumentDraft, executeDocumentLink, createDocumentCategoryDraft, executeDocumentCategoryCreation, deleteDocumentDraft, executeDocumentDeletion, listAlerts, resolveAlertDraft, executeAlertResolution, listTrainingPrograms, createTrainingProgramDraft, executeTrainingProgramCreation, listAssets, getAssetDetails, getLaborCosts, listTrainingSessions, createTrainingSessionDraft, executeTrainingSessionCreation, listPayrollPeriods, getPayrollSummary, getEmployeePerformanceReport } from "./capabilities/operations.ts";
+import { getTaskCompletionSummary, getWorkOrderStatus, getDocumentExpiries, getTrainingGaps, updateEmployeeDraft, executeEmployeeUpdate, deactivateEmployeeDraft, executeEmployeeDeactivation, correctAttendanceDraft, executeAttendanceCorrection, excuseLateDraft, executeExcuseLate, createWorkOrderDraft, executeWorkOrderCreation, updateWoStatusDraft, executeWoStatusUpdate, createTaskDraft, executeTaskCreation, createTrainingAssignmentDraft, executeTrainingAssignment, updateTrainingStatusDraft, executeTrainingStatusUpdate, listDepartments, createDepartmentDraft, executeCreateDepartment, updateDepartmentDraft, executeUpdateDepartment, deleteDepartmentDraft, executeDeleteDepartment, listTasks, updateTaskDraft, executeTaskUpdate, deleteTaskDraft, executeTaskDeletion, completeTaskDraft, executeTaskCompletion, listDocuments, linkDocumentDraft, executeDocumentLink, createDocumentCategoryDraft, executeDocumentCategoryCreation, deleteDocumentDraft, executeDocumentDeletion, listAlerts, resolveAlertDraft, executeAlertResolution, listTrainingPrograms, createTrainingProgramDraft, executeTrainingProgramCreation, listAssets, getAssetDetails, getLaborCosts, listTrainingSessions, createTrainingSessionDraft, executeTrainingSessionCreation, listPayrollPeriods, getPayrollSummary, getEmployeePerformanceReport, listPmPlans, getPmComplianceReport, createPmPlanDraft, executeCreatePmPlan, listCmmsParts, getPartsStockReport, listCmmsVendors, createPurchaseOrderDraft, executeCreatePurchaseOrder, listAllPendingApprovals, getApprovalRequestDetails, makeApprovalDecisionDraft, executeMakeApprovalDecision } from "./capabilities/operations.ts";
+import { getInventoryLevels, listManualMetrics, logMetricDraft, executeLogMetric } from "./capabilities/inventory.ts";
+import { listMysteryShopperResults, getMysteryShopperScores, listVouchers } from "./capabilities/mystery-shopper.ts";
 import { searchLocations, getLocationOverview, getCrossModuleSummary } from "./capabilities/overview.ts";
 import { listLocations, getLocationDetails, createLocationDraft, executeLocationCreation, updateLocationDraft, executeLocationUpdate, deactivateLocationDraft, executeLocationDeactivation } from "./capabilities/locations.ts";
 import { listNotifications, sendNotificationDraft, executeNotificationSend } from "./capabilities/notifications.ts";
@@ -237,6 +239,34 @@ const TOOL_MODULE_MAP: Record<string, string> = {
   get_scout_payout_summary: "scouts",
   process_scout_payout_draft: "scouts",
   execute_process_scout_payout: "scouts",
+  // CMMS PM plans
+  list_pm_plans: "cmms",
+  get_pm_compliance_report: "cmms",
+  create_pm_plan_draft: "cmms",
+  execute_create_pm_plan: "cmms",
+  // CMMS parts & vendors
+  list_cmms_parts: "cmms",
+  get_parts_stock_report: "cmms",
+  list_cmms_vendors: "cmms",
+  create_purchase_order_draft: "cmms",
+  execute_create_purchase_order: "cmms",
+  // Inventory
+  get_inventory_levels: "inventory",
+  list_manual_metrics: "workforce",
+  log_metric_draft: "workforce",
+  execute_log_metric: "workforce",
+  // Mystery shopper
+  list_mystery_shopper_results: "location_audits",
+  get_mystery_shopper_scores: "location_audits",
+  list_vouchers: "location_audits",
+  // General approvals
+  list_pending_approvals: "government_ops",
+  get_approval_request_details: "government_ops",
+  make_approval_decision_draft: "government_ops",
+  execute_approval_decision: "government_ops",
+  // Notification analytics
+  get_notification_analytics: "notifications",
+  list_notification_audit_log: "notifications",
 };
 
 // ─── Action-name to execute-tool resolver (server-authoritative) ───
@@ -314,6 +344,14 @@ const ACTION_EXECUTE_MAP: Record<string, string> = {
   create_notification_rule: "execute_create_notification_rule",
   // Staff audits
   create_staff_audit: "execute_staff_audit_creation",
+  // CMMS PM plans
+  create_pm_plan: "execute_create_pm_plan",
+  // CMMS purchase orders
+  create_purchase_order: "execute_create_purchase_order",
+  // Inventory metrics
+  log_metric: "execute_log_metric",
+  // Approvals
+  make_approval_decision: "execute_approval_decision",
 };
 
 /** Hydrate execution args from pending action's preview_json based on action_name.
@@ -1438,6 +1476,78 @@ async function executeToolInner(
     case "get_employee_performance_report":
       return resultToToolResponse(await getEmployeePerformanceReport(sb, companyId, args));
 
+    // ────────── CMMS PM PLANS ──────────
+    case "list_pm_plans":
+      return resultToToolResponse(await listPmPlans(sb, companyId, args));
+    case "get_pm_compliance_report":
+      return resultToToolResponse(await getPmComplianceReport(sb, companyId, args));
+    case "create_pm_plan_draft": {
+      const ctx = buildPermCtx(companyId, userId, platformRoles, companyRole, activeModules);
+      return resultToToolResponse(await createPmPlanDraft(sb, sbService, companyId, userId, args, structuredEvents, ctx));
+    }
+    case "execute_create_pm_plan": {
+      const ctx = buildPermCtx(companyId, userId, platformRoles, companyRole, activeModules);
+      return resultToToolResponse(await executeCreatePmPlan(sbService, companyId, userId, args, structuredEvents, ctx));
+    }
+
+    // ────────── CMMS PARTS & VENDORS ──────────
+    case "list_cmms_parts":
+      return resultToToolResponse(await listCmmsParts(sb, companyId, args));
+    case "get_parts_stock_report":
+      return resultToToolResponse(await getPartsStockReport(sb, companyId, args));
+    case "list_cmms_vendors":
+      return resultToToolResponse(await listCmmsVendors(sb, companyId, args));
+    case "create_purchase_order_draft": {
+      const ctx = buildPermCtx(companyId, userId, platformRoles, companyRole, activeModules);
+      return resultToToolResponse(await createPurchaseOrderDraft(sb, sbService, companyId, userId, args, structuredEvents, ctx));
+    }
+    case "execute_create_purchase_order": {
+      const ctx = buildPermCtx(companyId, userId, platformRoles, companyRole, activeModules);
+      return resultToToolResponse(await executeCreatePurchaseOrder(sbService, companyId, userId, args, structuredEvents, ctx));
+    }
+
+    // ────────── INVENTORY & MANUAL METRICS ──────────
+    case "get_inventory_levels":
+      return resultToToolResponse(await getInventoryLevels(sb, companyId, args));
+    case "list_manual_metrics":
+      return resultToToolResponse(await listManualMetrics(sb, companyId, args));
+    case "log_metric_draft": {
+      const ctx = buildPermCtx(companyId, userId, platformRoles, companyRole, activeModules);
+      return resultToToolResponse(await logMetricDraft(sb, sbService, companyId, userId, args, structuredEvents, ctx));
+    }
+    case "execute_log_metric": {
+      const ctx = buildPermCtx(companyId, userId, platformRoles, companyRole, activeModules);
+      return resultToToolResponse(await executeLogMetric(sbService, companyId, userId, args, structuredEvents, ctx));
+    }
+
+    // ────────── MYSTERY SHOPPER ──────────
+    case "list_mystery_shopper_results":
+      return resultToToolResponse(await listMysteryShopperResults(sb, companyId, args));
+    case "get_mystery_shopper_scores":
+      return resultToToolResponse(await getMysteryShopperScores(sb, companyId, args));
+    case "list_vouchers":
+      return resultToToolResponse(await listVouchers(sb, companyId, args));
+
+    // ────────── GENERAL APPROVAL WORKFLOWS ──────────
+    case "list_pending_approvals":
+      return resultToToolResponse(await listAllPendingApprovals(sb, companyId, args));
+    case "get_approval_request_details":
+      return resultToToolResponse(await getApprovalRequestDetails(sb, companyId, args));
+    case "make_approval_decision_draft": {
+      const ctx = buildPermCtx(companyId, userId, platformRoles, companyRole, activeModules);
+      return resultToToolResponse(await makeApprovalDecisionDraft(sb, sbService, companyId, userId, args, structuredEvents, ctx));
+    }
+    case "execute_approval_decision": {
+      const ctx = buildPermCtx(companyId, userId, platformRoles, companyRole, activeModules);
+      return resultToToolResponse(await executeMakeApprovalDecision(sbService, companyId, userId, args, structuredEvents, ctx));
+    }
+
+    // ────────── NOTIFICATION ANALYTICS ──────────
+    case "get_notification_analytics":
+      return resultToToolResponse(await getNotificationAnalytics(sb, companyId, args));
+    case "list_notification_audit_log":
+      return resultToToolResponse(await listNotificationAuditLog(sb, companyId, args));
+
     // ────────── EQUIPMENT MANAGEMENT ──────────
     case "list_equipment":
       return resultToToolResponse(await listEquipment(sb, companyId, args));
@@ -1588,7 +1698,7 @@ ${generateCapabilityDocs()}
 ### Draft & Execute (APPROVAL-GATED WRITES)
 You can now create AND execute records in the platform:
 
-**CRITICAL — STOP AFTER DRAFT**: After calling ANY draft tool (create_employee_draft, create_audit_template_draft, create_shift_draft, update_shift_draft, delete_shift_draft, swap_shift_draft, reassign_corrective_action, create_ca_draft, update_ca_status_draft, update_employee_draft, deactivate_employee_draft, correct_attendance_draft, excuse_late_draft, create_work_order_draft, update_wo_status_draft, create_task_draft, update_task_draft, delete_task_draft, complete_task_draft, create_training_assignment_draft, update_training_status_draft, create_training_program_draft, schedule_audit_draft, cancel_scheduled_audit_draft, create_location_draft, update_location_draft, deactivate_location_draft, create_department_draft, update_department_draft, delete_department_draft, link_document_draft, create_document_category_draft, delete_document_draft, send_notification_draft, resolve_alert_draft, create_time_off_request_draft, approve_time_off_request_draft, issue_warning_draft, assign_test_draft, publish_shifts_draft, manual_clock_in_draft, create_training_session_draft, review_scout_submission_draft, log_waste_draft, update_ca_item_status_draft, add_ca_item_draft, log_equipment_intervention_draft, send_whatsapp_message_draft, create_notification_rule_draft, create_staff_audit_draft, process_scout_payout_draft), you MUST immediately STOP making tool calls and present the draft preview to the user. Do NOT call any execute tool in the same response. The approval card UI will handle the approval flow. You must wait for the NEXT user message containing explicit approval before executing.
+**CRITICAL — STOP AFTER DRAFT**: After calling ANY draft tool (create_employee_draft, create_audit_template_draft, create_shift_draft, update_shift_draft, delete_shift_draft, swap_shift_draft, reassign_corrective_action, create_ca_draft, update_ca_status_draft, update_employee_draft, deactivate_employee_draft, correct_attendance_draft, excuse_late_draft, create_work_order_draft, update_wo_status_draft, create_task_draft, update_task_draft, delete_task_draft, complete_task_draft, create_training_assignment_draft, update_training_status_draft, create_training_program_draft, schedule_audit_draft, cancel_scheduled_audit_draft, create_location_draft, update_location_draft, deactivate_location_draft, create_department_draft, update_department_draft, delete_department_draft, link_document_draft, create_document_category_draft, delete_document_draft, send_notification_draft, resolve_alert_draft, create_time_off_request_draft, approve_time_off_request_draft, issue_warning_draft, assign_test_draft, publish_shifts_draft, manual_clock_in_draft, create_training_session_draft, review_scout_submission_draft, log_waste_draft, update_ca_item_status_draft, add_ca_item_draft, log_equipment_intervention_draft, send_whatsapp_message_draft, create_notification_rule_draft, create_staff_audit_draft, process_scout_payout_draft, create_pm_plan_draft, create_purchase_order_draft, log_metric_draft, make_approval_decision_draft), you MUST immediately STOP making tool calls and present the draft preview to the user. Do NOT call any execute tool in the same response. The approval card UI will handle the approval flow. You must wait for the NEXT user message containing explicit approval before executing.
 
 **Employee Creation Flow:**
 1. Use \`create_employee_draft\` to prepare the draft and show preview
@@ -1721,6 +1831,39 @@ You can now create AND execute records in the platform:
 - Summary: \`get_scout_payout_summary\` — totals by status
 - Process: \`process_scout_payout_draft\` with payout_id and new_status (paid or failed). HIGH RISK — show amount and scout name clearly.
 - Execute: \`execute_process_scout_payout\` after approval
+
+**CMMS PM Plans:**
+- List: \`list_pm_plans\` — shows next_due_at and overdue flag; use overdue_only=true for overdue
+- Compliance: \`get_pm_compliance_report\` — completed vs missed runs over a period
+- Create: \`create_pm_plan_draft\` with name, frequency_type (daily/weekly/monthly/quarterly/yearly/cycles), frequency_value, and either asset_name or location_name
+- Execute: \`execute_create_pm_plan\` after approval
+
+**CMMS Parts & Vendors:**
+- Parts: \`list_cmms_parts\` — spare parts catalog; \`get_parts_stock_report\` for stock levels with low-stock alerts
+- Vendors: \`list_cmms_vendors\` — active vendor contacts
+- Purchase order: \`create_purchase_order_draft\` with items array (part_name + quantity) and optional vendor_name
+- Execute: \`execute_create_purchase_order\` after approval
+
+**Inventory & Manual Metrics:**
+- Inventory: \`get_inventory_levels\` — stock by location with total value
+- KPI metrics: \`list_manual_metrics\` — shows all recorded metrics (sales, covers, etc.) grouped by name with averages
+- Log metric: \`log_metric_draft\` with metric_name, metric_value, and optional metric_date + location_name
+- Execute: \`execute_log_metric\` after approval
+
+**Mystery Shopper:**
+- Results: \`list_mystery_shopper_results\` — recent submissions with scores
+- Scores: \`get_mystery_shopper_scores\` — averages by template (read-only, no writes needed)
+- Vouchers: \`list_vouchers\` — status breakdown (active/redeemed/expired)
+
+**General Approval Workflows:**
+- List: \`list_pending_approvals\` — ALL pending approvals across entity types (not just time-off)
+- Details: \`get_approval_request_details\` with request_id — full decision history
+- Decide: \`make_approval_decision_draft\` with request_id and decision (approve/reject) — HIGH RISK
+- Execute: \`execute_approval_decision\` after approval
+
+**Notification Analytics:**
+- Analytics: \`get_notification_analytics\` — delivery rate, read rate, by channel over a period
+- Audit log: \`list_notification_audit_log\` — full history of notification actions
 
 ### Approval Rules
 - MEDIUM risk: User must confirm with clear affirmative response

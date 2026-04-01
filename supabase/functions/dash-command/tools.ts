@@ -2388,6 +2388,355 @@ export const tools = [
       },
     },
   },
+  // --- CMMS PM Plans ---
+  {
+    type: "function",
+    function: {
+      name: "list_pm_plans",
+      description: "List preventive maintenance (PM) plans. Shows next_due_at and overdue status.",
+      parameters: {
+        type: "object",
+        properties: {
+          location_name: { type: "string", description: "Location name filter (optional)" },
+          overdue_only: { type: "boolean", description: "Show only overdue plans" },
+          is_active: { type: "boolean", description: "Filter by active status (default: true)" },
+          limit: { type: "number", description: "Max results (default 50)" },
+        },
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "get_pm_compliance_report",
+      description: "Get PM compliance report: completed vs missed runs over a date range.",
+      parameters: {
+        type: "object",
+        properties: {
+          from: { type: "string", description: "Start date YYYY-MM-DD (default: last 30 days)" },
+          to: { type: "string", description: "End date YYYY-MM-DD (default: today)" },
+        },
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "create_pm_plan_draft",
+      description: "Create a draft for a new preventive maintenance plan for an asset or location.",
+      parameters: {
+        type: "object",
+        properties: {
+          name: { type: "string", description: "PM plan name" },
+          frequency_type: { type: "string", enum: ["daily", "weekly", "monthly", "quarterly", "yearly", "cycles"], description: "How often to run" },
+          frequency_value: { type: "number", description: "Frequency interval (e.g. 2 for every 2 weeks)" },
+          asset_name: { type: "string", description: "CMMS asset name (partial match, optional)" },
+          location_name: { type: "string", description: "Location name (optional, used if no asset)" },
+          auto_create_work_order: { type: "boolean", description: "Auto-create a work order when due (default: true)" },
+          next_due_at: { type: "string", description: "First due date ISO timestamp (optional)" },
+        },
+        required: ["name", "frequency_type", "frequency_value"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_create_pm_plan",
+      description: "Execute creating a PM plan after user approves the draft.",
+      parameters: {
+        type: "object",
+        properties: {
+          pending_action_id: { type: "string", description: "Pending action UUID from create_pm_plan_draft" },
+        },
+        required: ["pending_action_id"],
+      },
+    },
+  },
+  // --- CMMS Parts & Vendors ---
+  {
+    type: "function",
+    function: {
+      name: "list_cmms_parts",
+      description: "List CMMS spare parts inventory (name, part number, category, unit cost).",
+      parameters: {
+        type: "object",
+        properties: {
+          name: { type: "string", description: "Part name filter (partial match)" },
+          category: { type: "string", description: "Category filter (partial match)" },
+          limit: { type: "number", description: "Max results (default 50)" },
+        },
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "get_parts_stock_report",
+      description: "Get parts stock levels with low-stock alerts. Optionally filter by location.",
+      parameters: {
+        type: "object",
+        properties: {
+          location_name: { type: "string", description: "Location name filter (optional)" },
+        },
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "list_cmms_vendors",
+      description: "List active CMMS vendors (name, contact info).",
+      parameters: {
+        type: "object",
+        properties: {},
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "create_purchase_order_draft",
+      description: "Create a draft purchase order for CMMS parts restock.",
+      parameters: {
+        type: "object",
+        properties: {
+          vendor_name: { type: "string", description: "Vendor name (partial match, optional)" },
+          items: {
+            type: "array",
+            description: "Line items to order",
+            items: {
+              type: "object",
+              properties: {
+                part_name: { type: "string", description: "Part name" },
+                part_id: { type: "string", description: "Part UUID (if known)" },
+                quantity: { type: "number", description: "Quantity to order" },
+                unit_cost: { type: "number", description: "Unit cost override (optional)" },
+              },
+              required: ["quantity"],
+            },
+          },
+          notes: { type: "string", description: "PO notes (optional)" },
+        },
+        required: ["items"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_create_purchase_order",
+      description: "Execute creating a purchase order after user approves the draft.",
+      parameters: {
+        type: "object",
+        properties: {
+          pending_action_id: { type: "string", description: "Pending action UUID from create_purchase_order_draft" },
+        },
+        required: ["pending_action_id"],
+      },
+    },
+  },
+  // --- Inventory Management ---
+  {
+    type: "function",
+    function: {
+      name: "get_inventory_levels",
+      description: "Get current inventory levels by location with total stock value.",
+      parameters: {
+        type: "object",
+        properties: {
+          location_name: { type: "string", description: "Location name filter (optional)" },
+          status: { type: "string", description: "Item status filter (default: active)" },
+        },
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "list_manual_metrics",
+      description: "List manually recorded KPI metrics (sales, covers, transactions, etc.). Groups by metric name with averages.",
+      parameters: {
+        type: "object",
+        properties: {
+          metric_name: { type: "string", description: "Metric name filter (partial match)" },
+          location_name: { type: "string", description: "Location name filter (optional)" },
+          from: { type: "string", description: "Start date YYYY-MM-DD" },
+          to: { type: "string", description: "End date YYYY-MM-DD" },
+          include_raw: { type: "boolean", description: "Include all raw entries (default: false)" },
+        },
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "log_metric_draft",
+      description: "Create a draft to record a manual KPI metric value (e.g. daily sales, customer count).",
+      parameters: {
+        type: "object",
+        properties: {
+          metric_name: { type: "string", description: "Metric name (e.g. 'daily_sales', 'covers', 'transactions')" },
+          metric_value: { type: "number", description: "Numeric value to record" },
+          metric_date: { type: "string", description: "Date YYYY-MM-DD (default: today)" },
+          location_name: { type: "string", description: "Location name (optional)" },
+          notes: { type: "string", description: "Optional notes" },
+        },
+        required: ["metric_name", "metric_value"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_log_metric",
+      description: "Execute logging a metric after user approves the draft.",
+      parameters: {
+        type: "object",
+        properties: {
+          pending_action_id: { type: "string", description: "Pending action UUID from log_metric_draft" },
+        },
+        required: ["pending_action_id"],
+      },
+    },
+  },
+  // --- Mystery Shopper ---
+  {
+    type: "function",
+    function: {
+      name: "list_mystery_shopper_results",
+      description: "List mystery shopper survey submissions with scores and customer info.",
+      parameters: {
+        type: "object",
+        properties: {
+          template_name: { type: "string", description: "Template name filter (partial match)" },
+          from: { type: "string", description: "Start date YYYY-MM-DD" },
+          to: { type: "string", description: "End date YYYY-MM-DD" },
+          limit: { type: "number", description: "Max results (default 50)" },
+        },
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "get_mystery_shopper_scores",
+      description: "Get aggregated mystery shopper score averages by template over a date range.",
+      parameters: {
+        type: "object",
+        properties: {
+          from: { type: "string", description: "Start date YYYY-MM-DD" },
+          to: { type: "string", description: "End date YYYY-MM-DD" },
+        },
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "list_vouchers",
+      description: "List mystery shopper vouchers by status (active/redeemed/expired).",
+      parameters: {
+        type: "object",
+        properties: {
+          status: { type: "string", description: "Filter by status: active, redeemed, expired" },
+          from: { type: "string", description: "Start date YYYY-MM-DD" },
+          to: { type: "string", description: "End date YYYY-MM-DD" },
+          limit: { type: "number", description: "Max results (default 50)" },
+        },
+      },
+    },
+  },
+  // --- General Approval Workflows ---
+  {
+    type: "function",
+    function: {
+      name: "list_pending_approvals",
+      description: "List all pending approval requests across all entity types (not just time-off).",
+      parameters: {
+        type: "object",
+        properties: {
+          status: { type: "string", description: "Filter by status (default: pending)" },
+          entity_type: { type: "string", description: "Filter by entity type (optional)" },
+          limit: { type: "number", description: "Max results (default 50)" },
+        },
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "get_approval_request_details",
+      description: "Get full details and decision history for a specific approval request.",
+      parameters: {
+        type: "object",
+        properties: {
+          request_id: { type: "string", description: "Approval request UUID" },
+        },
+        required: ["request_id"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "make_approval_decision_draft",
+      description: "Create a draft to approve or reject a pending approval request.",
+      parameters: {
+        type: "object",
+        properties: {
+          request_id: { type: "string", description: "Approval request UUID" },
+          decision: { type: "string", enum: ["approve", "reject"], description: "Decision to make" },
+          comment: { type: "string", description: "Optional comment/reason" },
+        },
+        required: ["request_id", "decision"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_approval_decision",
+      description: "Execute an approval decision after user confirms the draft.",
+      parameters: {
+        type: "object",
+        properties: {
+          pending_action_id: { type: "string", description: "Pending action UUID from make_approval_decision_draft" },
+        },
+        required: ["pending_action_id"],
+      },
+    },
+  },
+  // --- Notification Analytics ---
+  {
+    type: "function",
+    function: {
+      name: "get_notification_analytics",
+      description: "Get notification delivery and read rate analytics by channel over a date range.",
+      parameters: {
+        type: "object",
+        properties: {
+          from: { type: "string", description: "Start date YYYY-MM-DD (default: last 30 days)" },
+          to: { type: "string", description: "End date YYYY-MM-DD (default: today)" },
+        },
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "list_notification_audit_log",
+      description: "List the notification audit trail (who sent what, when, delivery status).",
+      parameters: {
+        type: "object",
+        properties: {
+          from: { type: "string", description: "Start date YYYY-MM-DD" },
+          to: { type: "string", description: "End date YYYY-MM-DD" },
+          limit: { type: "number", description: "Max results (default 50)" },
+        },
+      },
+    },
+  },
   // --- Equipment Management ---
   {
     type: "function",

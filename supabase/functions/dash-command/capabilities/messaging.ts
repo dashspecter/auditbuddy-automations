@@ -343,3 +343,100 @@ export async function executeCreateNotificationRule(
 
   return success({ type: "notification_rule_created", rule_id: rule.id });
 }
+
+// ─── Notification Analytics ───
+
+export async function getNotificationAnalytics(
+  sb: any, companyId: string, args: any
+): Promise<CapabilityResult<any>> {
+  const from = args.from || new Date(Date.now() - 30 * 86400000).toISOString().split("T")[0];
+  const to = args.to || new Date().toISOString().split("T")[0];
+
+  // Outbound messages stats
+  const { data: messages, error } = await sb.from("outbound_messages")
+    .select("id, status, channel, created_at")
+    .eq("company_id", companyId)
+    .gte("created_at", from)
+    .lte("created_at", to + "T23:59:59Z")
+    .limit(5000);
+
+  if (error) return capabilityError(error.message);
+
+  const all = messages || [];
+  const sent = all.filter((m: any) => m.status === "sent").length;
+  const failed = all.filter((m: any) => m.status === "failed").length;
+  const queued = all.filter((m: any) => m.status === "queued").length;
+
+  const deliveryRate = all.length > 0 ? Math.round((sent / all.length) * 100) : null;
+
+  const byChannel: Record<string, { sent: number; failed: number; queued: number }> = {};
+  for (const m of all) {
+    if (!byChannel[m.channel]) byChannel[m.channel] = { sent: 0, failed: 0, queued: 0 };
+    if (m.status === "sent") byChannel[m.channel].sent++;
+    else if (m.status === "failed") byChannel[m.channel].failed++;
+    else if (m.status === "queued") byChannel[m.channel].queued++;
+  }
+
+  // Notification reads for push notifications
+  const { data: notifs } = await sb.from("notifications")
+    .select("id").eq("company_id", companyId)
+    .gte("created_at", from).lte("created_at", to + "T23:59:59Z").limit(5000);
+
+  const notifIds = (notifs || []).map((n: any) => n.id);
+  let readCount = 0;
+  if (notifIds.length > 0) {
+    const { count } = await sb.from("notification_reads")
+      .select("id", { count: "exact", head: true })
+      .in("notification_id", notifIds);
+    readCount = count ?? 0;
+  }
+
+  const readRate = notifIds.length > 0 ? Math.round((readCount / notifIds.length) * 100) : null;
+
+  return success({
+    period: { from, to },
+    outbound_messages: {
+      total: all.length,
+      sent,
+      failed,
+      queued,
+      delivery_rate_pct: deliveryRate,
+      by_channel: Object.entries(byChannel).map(([ch, s]) => ({ channel: ch, ...s })),
+    },
+    push_notifications: {
+      total: notifIds.length,
+      read: readCount,
+      read_rate_pct: readRate,
+    },
+  });
+}
+
+export async function listNotificationAuditLog(
+  sb: any, companyId: string, args: any
+): Promise<CapabilityResult<any>> {
+  const limit = Math.min(args.limit || 50, 200);
+
+  let q = sb.from("notification_audit_logs")
+    .select("id, notification_id, action, actor_id, created_at, metadata")
+    .eq("company_id", companyId)
+    .order("created_at", { ascending: false })
+    .limit(limit);
+
+  if (args.from) q = q.gte("created_at", args.from);
+  if (args.to) q = q.lte("created_at", args.to + "T23:59:59Z");
+
+  const { data, error } = await q;
+  if (error) return capabilityError(error.message);
+
+  return success({
+    total: data?.length ?? 0,
+    entries: (data || []).map((e: any) => ({
+      id: e.id,
+      notification_id: e.notification_id,
+      action: e.action,
+      actor_id: e.actor_id,
+      created_at: e.created_at,
+      metadata: e.metadata,
+    })),
+  });
+}
