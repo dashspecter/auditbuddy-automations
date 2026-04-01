@@ -354,6 +354,10 @@ export async function createShiftDraft(
     }
   }
 
+  const VALID_SHIFT_TYPES_CREATE = ["regular", "extra", "training", "half", "extra_half"];
+  const shiftType = args.shift_type ? args.shift_type.toLowerCase().trim() : "regular";
+  const validatedShiftType = VALID_SHIFT_TYPES_CREATE.includes(shiftType) ? shiftType : "regular";
+
   const draft = {
     location_id: locationId,
     location_name: locationName || null,
@@ -361,6 +365,7 @@ export async function createShiftDraft(
     shift_date: resolvedDate,
     start_time: args.start_time,
     end_time: args.end_time,
+    shift_type: validatedShiftType,
     min_staff: args.min_staff || 1,
     max_staff: args.max_staff || 1,
     employee_id: employeeId,
@@ -392,7 +397,7 @@ export async function createShiftDraft(
 
   structuredEvents.push(makeStructuredEvent("action_preview", {
     action: "Create Shift",
-    summary: `${draft.role} at ${locationName || "?"} on ${draft.shift_date} ${draft.start_time}-${draft.end_time}${employeeName ? ` → ${employeeName}` : ""}`,
+    summary: `${draft.role} [${validatedShiftType}] at ${locationName || "?"} on ${draft.shift_date} ${draft.start_time}-${draft.end_time}${employeeName ? ` → ${employeeName}` : ""}`,
     risk: "medium",
     affected: [locationName, draft.role, draft.shift_date, employeeName].filter(Boolean),
     pending_action_id: pendingActionId,
@@ -758,7 +763,7 @@ export async function updateShiftDraft(
   if (args.new_end_time && args.new_end_time !== shift.end_time) changes.end_time = { from: shift.end_time, to: args.new_end_time };
   if (args.new_shift_date && args.new_shift_date !== shift.shift_date) changes.shift_date = { from: shift.shift_date, to: args.new_shift_date };
   if (args.new_role && args.new_role !== shift.role) changes.role = { from: shift.role, to: args.new_role };
-  const VALID_SHIFT_TYPES = ["regular", "extra", "training", "half"];
+  const VALID_SHIFT_TYPES = ["regular", "extra", "training", "half", "extra_half"];
   if (args.new_shift_type) {
     const normalized = args.new_shift_type.toLowerCase().trim();
     if (!VALID_SHIFT_TYPES.includes(normalized)) return capabilityError(`Invalid shift type "${args.new_shift_type}". Valid types: regular, extra, training, half.`);
@@ -1114,4 +1119,418 @@ export async function executeShiftSwap(
   }));
 
   return success({ type: "shifts_swapped", message: `Shifts swapped successfully between ${a.name} and ${b.name}.` });
+}
+
+// ─── Warnings ───
+
+export async function listEmployeeWarnings(
+  sb: any, companyId: string, args: any,
+  utcRange: (sb: any, from: string, to: string) => Promise<{ fromUtc: string; toUtc: string } | null>
+): Promise<CapabilityResult<any>> {
+  const limit = Math.min(args.limit || 50, 200);
+
+  let locationId: string | null = null;
+  if (args.location_name) {
+    const { data: loc } = await sb.from("locations").select("id").eq("company_id", companyId).ilike("name", `%${args.location_name}%`).limit(1).maybeSingle();
+    if (loc) locationId = loc.id;
+  }
+
+  let employeeIds: string[] | null = null;
+  if (args.employee_name) {
+    const { data: emps } = await sb.from("employees").select("id").eq("company_id", companyId).ilike("full_name", `%${args.employee_name}%`).limit(10);
+    if (!emps?.length) return capabilityError(`No employees matching "${args.employee_name}"`);
+    employeeIds = emps.map((e: any) => e.id);
+  } else {
+    // Scope to company via locations if no employee filter
+    const { data: locs } = await sb.from("locations").select("id").eq("company_id", companyId);
+    const locIds = (locs || []).map((l: any) => l.id);
+    const { data: emps } = await sb.from("employees").select("id").eq("company_id", companyId);
+    employeeIds = (emps || []).map((e: any) => e.id);
+  }
+
+  if (!employeeIds || employeeIds.length === 0) return success({ warnings: [], total: 0 });
+
+  let q = sb.from("staff_events")
+    .select("id, staff_id, event_type, event_date, description, metadata, created_at, location_id, employees(full_name), locations(name)")
+    .in("staff_id", employeeIds)
+    .in("event_type", ["warning", "coaching_note"])
+    .order("event_date", { ascending: false })
+    .limit(limit);
+
+  if (locationId) q = q.eq("location_id", locationId);
+  if (args.from) q = q.gte("event_date", args.from);
+  if (args.to) q = q.lte("event_date", args.to);
+
+  const { data, error } = await q;
+  if (error) return capabilityError(error.message);
+
+  return success({
+    total: data?.length ?? 0,
+    warnings: (data || []).map((w: any) => ({
+      id: w.id,
+      employee: w.employees?.full_name,
+      type: w.event_type,
+      date: w.event_date,
+      description: w.description,
+      severity: w.metadata?.severity || "minor",
+      category: w.metadata?.category || null,
+      location: w.locations?.name || null,
+    })),
+  });
+}
+
+export async function issueWarningDraft(
+  sb: any, sbService: any, companyId: string, userId: string, args: any, structuredEvents: string[],
+  ctx: PermissionContext
+): Promise<CapabilityResult<any>> {
+  const permCheck = checkCapabilityPermission({ action: "create", module: "workforce", ctx });
+  if (!permCheck.ok) return permCheck;
+
+  // Resolve employee
+  let empId = args.employee_id || null;
+  let empName = args.employee_name;
+  if (!empId && empName) {
+    const { data: emps } = await sb.from("employees").select("id, full_name").eq("company_id", companyId).ilike("full_name", `%${empName}%`).limit(5);
+    if (!emps?.length) return capabilityError(`Employee "${empName}" not found.`);
+    if (emps.length > 1) return capabilityError(`Multiple employees match "${empName}": ${emps.map((e: any) => e.full_name).join(", ")}.`);
+    empId = emps[0].id;
+    empName = emps[0].full_name;
+  }
+  if (!empId) return capabilityError("Employee name is required.");
+
+  const eventType = args.event_type === "coaching_note" ? "coaching_note" : "warning";
+  const severity = ["minor", "major", "critical"].includes(args.severity) ? args.severity : "minor";
+  const draft = {
+    staff_id: empId,
+    employee_name: empName,
+    event_type: eventType,
+    severity,
+    description: args.description,
+    category: args.category || null,
+    notes: args.notes || null,
+  };
+
+  const { data: paData, error: paError } = await sbService.from("dash_pending_actions").insert({
+    company_id: companyId, user_id: userId, action_name: "issue_warning",
+    action_type: "write", risk_level: "high", preview_json: draft, status: "pending",
+  }).select("id").single();
+  if (paError || !paData?.id) return capabilityError(`Failed to create draft: ${paError?.message}`);
+
+  structuredEvents.push(makeStructuredEvent("action_preview", {
+    action: eventType === "coaching_note" ? "Issue Coaching Note" : "Issue Warning",
+    summary: `${eventType === "warning" ? "⚠️ " : ""}${severity.toUpperCase()} ${eventType.replace("_", " ")} for ${empName}: ${args.description}`,
+    risk: "high",
+    affected: [empName],
+    pending_action_id: paData.id,
+    draft,
+    can_approve: true,
+  }));
+
+  return success({
+    type: "warning_draft",
+    draft,
+    pending_action_id: paData.id,
+    requires_approval: true,
+    risk_level: "high",
+    message: `Warning draft ready for ${empName}. Approve to issue.`,
+  });
+}
+
+export async function executeWarningIssuance(
+  sbService: any, companyId: string, userId: string, args: any, structuredEvents: string[],
+  ctx: PermissionContext
+): Promise<CapabilityResult<any>> {
+  const permCheck = checkCapabilityPermission({ action: "create", module: "workforce", ctx });
+  if (!permCheck.ok) return permCheck;
+
+  const { data: pa } = await sbService.from("dash_pending_actions")
+    .select("id, status, company_id, preview_json").eq("id", args.pending_action_id).maybeSingle();
+  if (!pa) return capabilityError("Pending action not found.");
+  if (pa.company_id !== companyId) return capabilityError("Cross-tenant action rejected.");
+  if (pa.status !== "pending") return capabilityError(`Action already ${pa.status}.`);
+
+  const d = pa.preview_json as any;
+  const today = new Date().toLocaleDateString("en-CA", { timeZone: "Europe/Bucharest" });
+
+  const { data: evData, error: evError } = await sbService.from("staff_events").insert({
+    staff_id: d.staff_id,
+    event_type: d.event_type,
+    event_date: today,
+    description: d.description,
+    metadata: { severity: d.severity, category: d.category, notes: d.notes },
+    created_by: userId,
+  }).select("id").single();
+
+  if (evError) {
+    await sbService.from("dash_pending_actions").update({ status: "failed", execution_result: { error: evError.message }, updated_at: new Date().toISOString() }).eq("id", pa.id);
+    structuredEvents.push(makeStructuredEvent("execution_result", { status: "error", title: "Warning Issuance Failed", summary: evError.message }));
+    return capabilityError(`Failed to issue warning: ${evError.message}`);
+  }
+
+  await sbService.from("dash_pending_actions").update({
+    status: "executed", approved_at: new Date().toISOString(), approved_by: userId,
+    execution_result: { success: true, event_id: evData.id }, updated_at: new Date().toISOString(),
+  }).eq("id", pa.id);
+
+  structuredEvents.push(makeStructuredEvent("execution_result", {
+    status: "success",
+    title: d.event_type === "coaching_note" ? "Coaching Note Issued" : "Warning Issued",
+    summary: `${d.severity} ${d.event_type.replace("_", " ")} issued to ${d.employee_name}.`,
+  }));
+
+  return success({ type: "warning_issued", event_id: evData.id, message: `${d.event_type.replace("_", " ")} issued to ${d.employee_name}.` });
+}
+
+// ─── Employee Dossier ───
+
+export async function getEmployeeDossier(
+  sb: any, companyId: string, args: any
+): Promise<CapabilityResult<any>> {
+  // Resolve employee
+  let q = sb.from("employees").select("id, full_name, role, status, location_id, locations(name), hire_date, contract_type, email, phone").eq("company_id", companyId);
+  if (args.employee_id) {
+    q = q.eq("id", args.employee_id);
+  } else if (args.employee_name) {
+    q = q.ilike("full_name", `%${args.employee_name}%`).limit(3);
+  } else {
+    return capabilityError("Provide employee_name or employee_id.");
+  }
+  const { data: empData } = await q.limit(3);
+  if (!empData?.length) return capabilityError(`Employee not found.`);
+  if (empData.length > 1) return capabilityError(`Multiple employees match: ${empData.map((e: any) => e.full_name).join(", ")}. Be more specific.`);
+  const emp = empData[0];
+
+  // Parallel: recent attendance, warnings, CAs, training, last test
+  const [attResult, warnResult, caResult, trainingResult, testResult] = await Promise.all([
+    sb.from("attendance_logs").select("check_in_at, check_out_at, is_late").eq("staff_id", emp.id).order("check_in_at", { ascending: false }).limit(5),
+    sb.from("staff_events").select("event_type, event_date, description, metadata").eq("staff_id", emp.id).eq("event_type", "warning").order("event_date", { ascending: false }).limit(5),
+    sb.from("corrective_actions").select("id, title, severity, status, due_at").eq("owner_user_id", emp.id).in("status", ["open", "in_progress"]).limit(5),
+    sb.from("training_assignments").select("id, status, training_programs(name), due_date").eq("employee_id", emp.id).order("created_at", { ascending: false }).limit(3),
+    sb.from("test_submissions").select("score, passed, completed_at, tests(title)").eq("employee_id", emp.id).order("completed_at", { ascending: false }).limit(1),
+  ]);
+
+  return success({
+    employee: {
+      id: emp.id,
+      name: emp.full_name,
+      role: emp.role,
+      status: emp.status,
+      location: emp.locations?.name,
+      hire_date: emp.hire_date,
+      contract_type: emp.contract_type,
+      email: emp.email,
+      phone: emp.phone,
+    },
+    recent_attendance: (attResult.data || []).map((a: any) => ({
+      check_in: a.check_in_at, check_out: a.check_out_at, is_late: a.is_late,
+    })),
+    active_warning_count: warnResult.data?.length ?? 0,
+    recent_warnings: (warnResult.data || []).slice(0, 3).map((w: any) => ({
+      date: w.event_date, description: w.description, severity: w.metadata?.severity,
+    })),
+    open_corrective_actions: (caResult.data || []).map((ca: any) => ({
+      title: ca.title, severity: ca.severity, status: ca.status, due_at: ca.due_at,
+    })),
+    training: (trainingResult.data || []).map((t: any) => ({
+      program: t.training_programs?.name, status: t.status, due_date: t.due_date,
+    })),
+    last_test: testResult.data?.[0] ? {
+      test: testResult.data[0].tests?.title,
+      score: testResult.data[0].score,
+      passed: testResult.data[0].passed,
+      completed_at: testResult.data[0].completed_at,
+    } : null,
+  });
+}
+
+// ─── Shift Publish/Unpublish ───
+
+export async function publishShiftsDraft(
+  sb: any, sbService: any, companyId: string, userId: string, args: any, structuredEvents: string[],
+  ctx: PermissionContext
+): Promise<CapabilityResult<any>> {
+  const permCheck = checkCapabilityPermission({ action: "update", module: "workforce", ctx });
+  if (!permCheck.ok) return permCheck;
+
+  let locationId = args.location_id || null;
+  let locationName = args.location_name || null;
+  if (!locationId && locationName) {
+    const { data: loc } = await sb.from("locations").select("id, name").eq("company_id", companyId).ilike("name", `%${locationName}%`).limit(1).maybeSingle();
+    if (!loc) return capabilityError(`No location matching "${locationName}".`);
+    locationId = loc.id; locationName = loc.name;
+  }
+
+  const fromDate = args.from_date || args.shift_date || null;
+  const toDate = args.to_date || args.shift_date || null;
+  const doPublish = args.publish !== false;
+
+  // Count affected shifts
+  let q = sb.from("shifts").select("id", { count: "exact" }).eq("company_id", companyId);
+  if (locationId) q = q.eq("location_id", locationId);
+  if (fromDate) q = q.gte("shift_date", fromDate);
+  if (toDate) q = q.lte("shift_date", toDate);
+  const { count } = await q;
+
+  const draft = { location_id: locationId, location_name: locationName, from_date: fromDate, to_date: toDate, publish: doPublish, shift_count: count || 0 };
+
+  const { data: paData, error: paError } = await sbService.from("dash_pending_actions").insert({
+    company_id: companyId, user_id: userId,
+    action_name: doPublish ? "publish_shifts" : "unpublish_shifts",
+    action_type: "write", risk_level: "medium", preview_json: draft, status: "pending",
+  }).select("id").single();
+  if (paError || !paData?.id) return capabilityError(`Failed to create draft: ${paError?.message}`);
+
+  structuredEvents.push(makeStructuredEvent("action_preview", {
+    action: doPublish ? "Publish Shifts" : "Unpublish Shifts",
+    summary: `${doPublish ? "Publish" : "Unpublish"} ${count || 0} shifts at ${locationName || "all locations"}${fromDate ? ` from ${fromDate}` : ""}${toDate && toDate !== fromDate ? ` to ${toDate}` : ""}`,
+    risk: "medium",
+    affected: [locationName, `${count || 0} shifts`].filter(Boolean),
+    pending_action_id: paData.id,
+    draft,
+    can_approve: true,
+  }));
+
+  return success({ type: "publish_shifts_draft", draft, pending_action_id: paData.id, requires_approval: true });
+}
+
+export async function executePublishShifts(
+  sbService: any, companyId: string, userId: string, args: any, structuredEvents: string[],
+  ctx: PermissionContext
+): Promise<CapabilityResult<any>> {
+  const permCheck = checkCapabilityPermission({ action: "update", module: "workforce", ctx });
+  if (!permCheck.ok) return permCheck;
+
+  const { data: pa } = await sbService.from("dash_pending_actions")
+    .select("id, status, company_id, preview_json").eq("id", args.pending_action_id).maybeSingle();
+  if (!pa) return capabilityError("Pending action not found.");
+  if (pa.company_id !== companyId) return capabilityError("Cross-tenant action rejected.");
+  if (pa.status !== "pending") return capabilityError(`Action already ${pa.status}.`);
+
+  const d = pa.preview_json as any;
+  let q = sbService.from("shifts").update({ is_published: d.publish, updated_at: new Date().toISOString() }).eq("company_id", companyId);
+  if (d.location_id) q = q.eq("location_id", d.location_id);
+  if (d.from_date) q = q.gte("shift_date", d.from_date);
+  if (d.to_date) q = q.lte("shift_date", d.to_date);
+  const { error } = await q;
+
+  if (error) {
+    await sbService.from("dash_pending_actions").update({ status: "failed", execution_result: { error: error.message }, updated_at: new Date().toISOString() }).eq("id", pa.id);
+    return capabilityError(`Failed to ${d.publish ? "publish" : "unpublish"} shifts: ${error.message}`);
+  }
+
+  await sbService.from("dash_pending_actions").update({
+    status: "executed", approved_at: new Date().toISOString(), approved_by: userId,
+    execution_result: { success: true }, updated_at: new Date().toISOString(),
+  }).eq("id", pa.id);
+
+  structuredEvents.push(makeStructuredEvent("execution_result", {
+    status: "success",
+    title: d.publish ? "Shifts Published" : "Shifts Unpublished",
+    summary: `${d.shift_count || "All"} shifts ${d.publish ? "published" : "unpublished"} at ${d.location_name || "all locations"}.`,
+  }));
+
+  return success({ type: "shifts_published", message: `Shifts ${d.publish ? "published" : "unpublished"} successfully.` });
+}
+
+// ─── Manual Clock-In ───
+
+export async function manualClockInDraft(
+  sb: any, sbService: any, companyId: string, userId: string, args: any, structuredEvents: string[],
+  ctx: PermissionContext
+): Promise<CapabilityResult<any>> {
+  const permCheck = checkCapabilityPermission({ action: "create", module: "workforce", ctx });
+  if (!permCheck.ok) return permCheck;
+
+  // Resolve employee
+  let empId = args.employee_id || null;
+  let empName = args.employee_name;
+  if (!empId && empName) {
+    const { data: emps } = await sb.from("employees").select("id, full_name").eq("company_id", companyId).ilike("full_name", `%${empName}%`).limit(5);
+    if (!emps?.length) return capabilityError(`Employee "${empName}" not found.`);
+    if (emps.length > 1) return capabilityError(`Multiple employees match "${empName}": ${emps.map((e: any) => e.full_name).join(", ")}.`);
+    empId = emps[0].id; empName = emps[0].full_name;
+  }
+  if (!empId) return capabilityError("Employee name is required.");
+
+  // Resolve location
+  let locationId = args.location_id || null;
+  let locationName = args.location_name || null;
+  if (!locationId && locationName) {
+    const { data: loc } = await sb.from("locations").select("id, name").eq("company_id", companyId).ilike("name", `%${locationName}%`).limit(1).maybeSingle();
+    if (loc) { locationId = loc.id; locationName = loc.name; }
+  }
+
+  // Resolve check_in_time: if just HH:MM, prepend today
+  const todayBucharest = new Date().toLocaleDateString("en-CA", { timeZone: "Europe/Bucharest" });
+  let checkIn = args.check_in_time;
+  if (checkIn && /^\d{2}:\d{2}$/.test(checkIn)) {
+    checkIn = `${todayBucharest}T${checkIn}:00`;
+  }
+  let checkOut = args.check_out_time || null;
+  if (checkOut && /^\d{2}:\d{2}$/.test(checkOut)) {
+    checkOut = `${todayBucharest}T${checkOut}:00`;
+  }
+
+  const draft = { staff_id: empId, employee_name: empName, location_id: locationId, location_name: locationName, check_in_time: checkIn, check_out_time: checkOut, reason: args.reason || "Manual entry" };
+
+  const { data: paData, error: paError } = await sbService.from("dash_pending_actions").insert({
+    company_id: companyId, user_id: userId, action_name: "manual_clock_in",
+    action_type: "write", risk_level: "medium", preview_json: draft, status: "pending",
+  }).select("id").single();
+  if (paError || !paData?.id) return capabilityError(`Failed to create draft: ${paError?.message}`);
+
+  structuredEvents.push(makeStructuredEvent("action_preview", {
+    action: "Manual Clock-In",
+    summary: `Clock in ${empName} at ${locationName || "unknown location"} — ${checkIn}${checkOut ? ` to ${checkOut}` : ""}`,
+    risk: "medium",
+    affected: [empName, locationName].filter(Boolean),
+    pending_action_id: paData.id,
+    draft,
+    can_approve: true,
+  }));
+
+  return success({ type: "manual_clock_in_draft", draft, pending_action_id: paData.id, requires_approval: true });
+}
+
+export async function executeManualClockIn(
+  sbService: any, companyId: string, userId: string, args: any, structuredEvents: string[],
+  ctx: PermissionContext
+): Promise<CapabilityResult<any>> {
+  const permCheck = checkCapabilityPermission({ action: "create", module: "workforce", ctx });
+  if (!permCheck.ok) return permCheck;
+
+  const { data: pa } = await sbService.from("dash_pending_actions")
+    .select("id, status, company_id, preview_json").eq("id", args.pending_action_id).maybeSingle();
+  if (!pa) return capabilityError("Pending action not found.");
+  if (pa.company_id !== companyId) return capabilityError("Cross-tenant action rejected.");
+  if (pa.status !== "pending") return capabilityError(`Action already ${pa.status}.`);
+
+  const d = pa.preview_json as any;
+  const { data: logData, error: logError } = await sbService.from("attendance_logs").insert({
+    staff_id: d.staff_id,
+    location_id: d.location_id,
+    check_in_at: d.check_in_time,
+    check_out_at: d.check_out_time || null,
+    method: "manual",
+    notes: d.reason,
+    approved_by: userId,
+    approved_at: new Date().toISOString(),
+  }).select("id").single();
+
+  if (logError) {
+    await sbService.from("dash_pending_actions").update({ status: "failed", execution_result: { error: logError.message }, updated_at: new Date().toISOString() }).eq("id", pa.id);
+    return capabilityError(`Failed to create attendance entry: ${logError.message}`);
+  }
+
+  await sbService.from("dash_pending_actions").update({
+    status: "executed", approved_at: new Date().toISOString(), approved_by: userId,
+    execution_result: { success: true, log_id: logData.id }, updated_at: new Date().toISOString(),
+  }).eq("id", pa.id);
+
+  structuredEvents.push(makeStructuredEvent("execution_result", {
+    status: "success", title: "Attendance Entry Created",
+    summary: `Manual clock-in recorded for ${d.employee_name} at ${d.check_in_time}.`,
+  }));
+
+  return success({ type: "clock_in_created", log_id: logData.id, message: `Manual attendance entry created for ${d.employee_name}.` });
 }
