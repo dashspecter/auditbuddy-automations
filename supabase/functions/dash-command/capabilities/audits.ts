@@ -529,3 +529,206 @@ export async function executeCancelScheduledAudit(
 
   return success({ id: d.scheduled_audit_id });
 }
+
+// ─── Staff Audits (Employee Performance Evaluations) ───
+
+export async function listStaffAudits(
+  sb: any, companyId: string, args: any
+): Promise<CapabilityResult<any>> {
+  const limit = Math.min(args.limit || 50, 200);
+
+  let locationId: string | null = null;
+  if (args.location_name) {
+    const loc = await resolveLocationId(sb, companyId, args.location_name);
+    if (!loc) return capabilityError(`No location matching "${args.location_name}".`);
+    locationId = loc.id;
+  }
+
+  let employeeId: string | null = null;
+  if (args.employee_name) {
+    const { data: emp } = await sb.from("employees").select("id, full_name")
+      .eq("company_id", companyId).ilike("full_name", `%${args.employee_name}%`).limit(1).maybeSingle();
+    if (!emp) return capabilityError(`No employee matching "${args.employee_name}".`);
+    employeeId = emp.id;
+  }
+
+  let q = sb.from("staff_audits")
+    .select("id, location_id, locations(name), employee_id, employees(full_name), template_id, audit_templates(name), auditor_id, audit_date, score, notes, created_at")
+    .eq("company_id", companyId)
+    .order("audit_date", { ascending: false })
+    .limit(limit);
+
+  if (locationId) q = q.eq("location_id", locationId);
+  if (employeeId) q = q.eq("employee_id", employeeId);
+  if (args.from) q = q.gte("audit_date", args.from);
+  if (args.to) q = q.lte("audit_date", args.to);
+
+  const { data, error } = await q;
+  if (error) return capabilityError(error.message);
+
+  return success({
+    total: data?.length ?? 0,
+    staff_audits: (data || []).map((a: any) => ({
+      id: a.id,
+      employee: a.employees?.full_name,
+      location: a.locations?.name,
+      template: a.audit_templates?.name,
+      audit_date: a.audit_date,
+      score: a.score,
+      notes: a.notes,
+    })),
+  });
+}
+
+export async function getStaffAuditDetails(
+  sb: any, companyId: string, args: any
+): Promise<CapabilityResult<any>> {
+  if (!args.audit_id) return capabilityError("audit_id is required.");
+
+  const { data, error } = await sb.from("staff_audits")
+    .select("id, location_id, locations(name), employee_id, employees(full_name), template_id, audit_templates(name), auditor_id, audit_date, score, notes, custom_data, created_at")
+    .eq("id", args.audit_id).eq("company_id", companyId).maybeSingle();
+
+  if (error) return capabilityError(error.message);
+  if (!data) return capabilityError("Staff audit not found.");
+
+  return success({
+    id: data.id,
+    employee: (data as any).employees?.full_name,
+    location: (data as any).locations?.name,
+    template: (data as any).audit_templates?.name,
+    audit_date: data.audit_date,
+    score: data.score,
+    notes: data.notes,
+    custom_data: data.custom_data,
+  });
+}
+
+export async function createStaffAuditDraft(
+  sb: any, sbService: any, companyId: string, userId: string,
+  args: any, structuredEvents: string[], ctx: PermissionContext
+): Promise<CapabilityResult<any>> {
+  const permCheck = checkCapabilityPermission(ctx, "create", "location_audits");
+  if (!permCheck.allowed) return capabilityError(permCheck.reason ?? "Permission denied.");
+
+  // Resolve employee
+  let employeeId = args.employee_id || null;
+  let employeeName = args.employee_name || null;
+  if (!employeeId && employeeName) {
+    const { data: emp } = await sb.from("employees").select("id, full_name")
+      .eq("company_id", companyId).ilike("full_name", `%${employeeName}%`).limit(1).maybeSingle();
+    if (!emp) return capabilityError(`No employee matching "${employeeName}".`);
+    employeeId = emp.id;
+    employeeName = emp.full_name;
+  }
+  if (!employeeId) return capabilityError("Provide employee_id or employee_name.");
+
+  // Resolve location
+  let locationId = args.location_id || null;
+  let locationName = args.location_name || null;
+  if (!locationId && locationName) {
+    const loc = await resolveLocationId(sb, companyId, locationName);
+    if (!loc) return capabilityError(`No location matching "${locationName}".`);
+    locationId = loc.id;
+    locationName = loc.name;
+  }
+
+  // Resolve template (optional)
+  let templateId = args.template_id || null;
+  let templateName = args.template_name || null;
+  if (!templateId && templateName) {
+    const { data: tpl } = await sb.from("audit_templates").select("id, name")
+      .eq("company_id", companyId).ilike("name", `%${templateName}%`).limit(1).maybeSingle();
+    if (tpl) { templateId = tpl.id; templateName = tpl.name; }
+  }
+
+  if (args.score != null && (args.score < 0 || args.score > 100)) {
+    return capabilityError("score must be between 0 and 100.");
+  }
+
+  const auditDate = args.audit_date || new Date().toISOString().split("T")[0];
+
+  const draft = {
+    employee_id: employeeId,
+    employee_name: employeeName,
+    location_id: locationId,
+    location_name: locationName,
+    template_id: templateId,
+    template_name: templateName,
+    auditor_id: userId,
+    audit_date: auditDate,
+    score: args.score ?? null,
+    notes: args.notes ?? null,
+  };
+
+  const { data: pa, error: paError } = await sbService.from("dash_pending_actions").insert({
+    company_id: companyId, created_by: userId, action_type: "write",
+    action_name: "create_staff_audit", risk_level: "medium",
+    preview_json: draft, status: "pending",
+  }).select("id").single();
+
+  if (paError) return capabilityError(`Failed to create draft: ${paError.message}`);
+
+  structuredEvents.push(makeStructuredEvent("action_preview", {
+    pending_action_id: pa.id,
+    action_name: "create_staff_audit",
+    risk_level: "medium",
+    title: "Create Staff Audit",
+    summary: `Performance evaluation for **${employeeName}** on ${auditDate}.${args.score != null ? ` Score: ${args.score}/100.` : ""}`,
+    fields: [
+      { label: "Employee", value: employeeName },
+      ...(locationName ? [{ label: "Location", value: locationName }] : []),
+      ...(templateName ? [{ label: "Template", value: templateName }] : []),
+      { label: "Date", value: auditDate },
+      ...(args.score != null ? [{ label: "Score", value: `${args.score}/100` }] : []),
+      ...(args.notes ? [{ label: "Notes", value: args.notes }] : []),
+    ],
+  }));
+
+  return success({ pending_action_id: pa.id, draft });
+}
+
+export async function executeStaffAuditCreation(
+  sbService: any, companyId: string, userId: string,
+  args: any, structuredEvents: string[], ctx: PermissionContext
+): Promise<CapabilityResult<any>> {
+  const permCheck = checkCapabilityPermission(ctx, "create", "location_audits");
+  if (!permCheck.allowed) return capabilityError(permCheck.reason ?? "Permission denied.");
+
+  const { data: pa } = await sbService.from("dash_pending_actions")
+    .select("id, status, company_id, preview_json").eq("id", args.pending_action_id).maybeSingle();
+  if (!pa) return capabilityError("Pending action not found.");
+  if (pa.company_id !== companyId) return capabilityError("Cross-tenant action rejected.");
+  if (pa.status !== "pending") return capabilityError(`Action already ${pa.status}.`);
+
+  const d = pa.preview_json as any;
+
+  const { data: audit, error: auditError } = await sbService.from("staff_audits").insert({
+    company_id: companyId,
+    employee_id: d.employee_id,
+    location_id: d.location_id || null,
+    template_id: d.template_id || null,
+    auditor_id: d.auditor_id || userId,
+    audit_date: d.audit_date,
+    score: d.score ?? null,
+    notes: d.notes ?? null,
+  }).select("id").single();
+
+  if (auditError) {
+    await sbService.from("dash_pending_actions").update({ status: "failed", execution_result: { error: auditError.message }, updated_at: new Date().toISOString() }).eq("id", pa.id);
+    return capabilityError(`Failed to create staff audit: ${auditError.message}`);
+  }
+
+  await sbService.from("dash_pending_actions").update({
+    status: "executed", approved_at: new Date().toISOString(), approved_by: userId,
+    execution_result: { success: true, audit_id: audit.id }, updated_at: new Date().toISOString(),
+  }).eq("id", pa.id);
+
+  structuredEvents.push(makeStructuredEvent("execution_result", {
+    status: "success", title: "Staff Audit Created",
+    summary: `Performance evaluation for ${d.employee_name} on ${d.audit_date} saved.${d.score != null ? ` Score: ${d.score}/100.` : ""}`,
+    changes: [`Staff audit created for ${d.employee_name}`],
+  }));
+
+  return success({ type: "staff_audit_created", audit_id: audit.id });
+}

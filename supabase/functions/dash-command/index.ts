@@ -19,9 +19,12 @@ import {
 } from "./capabilities/time-off.ts";
 
 // ─── Domain Capability Imports ───
-import { getAuditResults, compareLocationPerformance, createAuditTemplateDraft, executeAuditTemplateCreation, listScheduledAudits, scheduleAuditDraft, executeAuditScheduling, cancelScheduledAuditDraft, executeCancelScheduledAudit } from "./capabilities/audits.ts";
+import { getAuditResults, compareLocationPerformance, createAuditTemplateDraft, executeAuditTemplateCreation, listScheduledAudits, scheduleAuditDraft, executeAuditScheduling, cancelScheduledAuditDraft, executeCancelScheduledAudit, listStaffAudits, getStaffAuditDetails, createStaffAuditDraft, executeStaffAuditCreation } from "./capabilities/audits.ts";
+import { listEquipment, getEquipmentDetails, getEquipmentExpiries, logEquipmentInterventionDraft, executeEquipmentIntervention } from "./capabilities/equipment.ts";
+import { listFormTemplates, listFormAssignments, listFormSubmissions, getFormSubmissionDetails } from "./capabilities/qr-forms.ts";
+import { listWhatsappTemplates, listOutboundMessages, listNotificationRules, sendWhatsappMessageDraft, executeeSendWhatsappMessage, createNotificationRuleDraft, executeCreateNotificationRule } from "./capabilities/messaging.ts";
 import { getOpenCorrectiveActions, reassignCorrectiveAction, executeCaReassignment, createCaDraft, executeCaCreation, updateCaStatusDraft, executeCaStatusUpdate, listCaItems, updateCaItemStatusDraft, executeUpdateCaItemStatus, addCaItemDraft, executeAddCaItem } from "./capabilities/corrective-actions.ts";
-import { listScoutJobs, getScoutJobDetails, listScoutSubmissions, reviewScoutSubmissionDraft, executeScoutSubmissionReview } from "./capabilities/scouts.ts";
+import { listScoutJobs, getScoutJobDetails, listScoutSubmissions, reviewScoutSubmissionDraft, executeScoutSubmissionReview, listScoutPayouts, getScoutPayoutSummary, processScoutPayoutDraft, executeProcessScoutPayout } from "./capabilities/scouts.ts";
 import { getWasteReport, listWasteEntries, listWasteProducts, logWasteDraft, executeWasteEntry } from "./capabilities/waste.ts";
 import { searchEmployees, getEmployeeShifts, getAttendanceExceptions, getAttendanceSummary, createEmployeeDraft, createShiftDraft, executeEmployeeCreation, executeShiftCreation, updateShiftDraft, executeShiftUpdate, deleteShiftDraft, executeShiftDeletion, swapShiftDraft, executeShiftSwap, listEmployeeWarnings, issueWarningDraft, executeWarningIssuance, getEmployeeDossier, publishShiftsDraft, executePublishShifts, manualClockInDraft, executeManualClockIn } from "./capabilities/workforce.ts";
 import { listTests, getTestResults, listTestAssignments, assignTestDraft, executeTestAssignment } from "./capabilities/tests.ts";
@@ -205,6 +208,35 @@ const TOOL_MODULE_MAP: Record<string, string> = {
   get_payroll_summary: "payroll",
   // Employee performance
   get_employee_performance_report: "workforce",
+  // Equipment management
+  list_equipment: "equipment_management",
+  get_equipment_details: "equipment_management",
+  get_equipment_expiries: "equipment_management",
+  log_equipment_intervention_draft: "equipment_management",
+  execute_equipment_intervention: "equipment_management",
+  // QR forms
+  list_form_templates: "qr_forms",
+  list_form_assignments: "qr_forms",
+  list_form_submissions: "qr_forms",
+  get_form_submission_details: "qr_forms",
+  // WhatsApp / messaging
+  list_whatsapp_templates: "whatsapp_messaging",
+  list_outbound_messages: "whatsapp_messaging",
+  send_whatsapp_message_draft: "whatsapp_messaging",
+  execute_send_whatsapp_message: "whatsapp_messaging",
+  list_notification_rules: "notifications",
+  create_notification_rule_draft: "notifications",
+  execute_create_notification_rule: "notifications",
+  // Staff audits
+  list_staff_audits: "location_audits",
+  get_staff_audit_details: "location_audits",
+  create_staff_audit_draft: "location_audits",
+  execute_staff_audit_creation: "location_audits",
+  // Scout payouts
+  list_scout_payouts: "scouts",
+  get_scout_payout_summary: "scouts",
+  process_scout_payout_draft: "scouts",
+  execute_process_scout_payout: "scouts",
 };
 
 // ─── Action-name to execute-tool resolver (server-authoritative) ───
@@ -269,11 +301,19 @@ const ACTION_EXECUTE_MAP: Record<string, string> = {
   create_training_session: "execute_training_session_creation",
   // Scouts
   review_scout_submission: "execute_scout_submission_review",
+  process_scout_payout: "execute_process_scout_payout",
   // Waste
   log_waste: "execute_waste_entry",
   // CA items
   update_ca_item_status: "execute_update_ca_item_status",
   add_ca_item: "execute_add_ca_item",
+  // Equipment
+  log_equipment_intervention: "execute_equipment_intervention",
+  // Messaging
+  send_whatsapp_message: "execute_send_whatsapp_message",
+  create_notification_rule: "execute_create_notification_rule",
+  // Staff audits
+  create_staff_audit: "execute_staff_audit_creation",
 };
 
 /** Hydrate execution args from pending action's preview_json based on action_name.
@@ -1398,6 +1438,84 @@ async function executeToolInner(
     case "get_employee_performance_report":
       return resultToToolResponse(await getEmployeePerformanceReport(sb, companyId, args));
 
+    // ────────── EQUIPMENT MANAGEMENT ──────────
+    case "list_equipment":
+      return resultToToolResponse(await listEquipment(sb, companyId, args));
+    case "get_equipment_details":
+      return resultToToolResponse(await getEquipmentDetails(sb, companyId, args));
+    case "get_equipment_expiries":
+      return resultToToolResponse(await getEquipmentExpiries(sb, companyId, args));
+    case "log_equipment_intervention_draft": {
+      const ctx = buildPermCtx(companyId, userId, platformRoles, companyRole, activeModules);
+      return resultToToolResponse(await logEquipmentInterventionDraft(sb, sbService, companyId, userId, args, structuredEvents, ctx));
+    }
+    case "execute_equipment_intervention": {
+      const ctx = buildPermCtx(companyId, userId, platformRoles, companyRole, activeModules);
+      return resultToToolResponse(await executeEquipmentIntervention(sbService, companyId, userId, args, structuredEvents, ctx));
+    }
+
+    // ────────── QR FORMS ──────────
+    case "list_form_templates":
+      return resultToToolResponse(await listFormTemplates(sb, companyId, args));
+    case "list_form_assignments":
+      return resultToToolResponse(await listFormAssignments(sb, companyId, args));
+    case "list_form_submissions":
+      return resultToToolResponse(await listFormSubmissions(sb, companyId, args));
+    case "get_form_submission_details":
+      return resultToToolResponse(await getFormSubmissionDetails(sb, companyId, args));
+
+    // ────────── WHATSAPP / MESSAGING ──────────
+    case "list_whatsapp_templates":
+      return resultToToolResponse(await listWhatsappTemplates(sb, companyId, args));
+    case "list_outbound_messages":
+      return resultToToolResponse(await listOutboundMessages(sb, companyId, args));
+    case "list_notification_rules":
+      return resultToToolResponse(await listNotificationRules(sb, companyId, args));
+    case "send_whatsapp_message_draft": {
+      const ctx = buildPermCtx(companyId, userId, platformRoles, companyRole, activeModules);
+      return resultToToolResponse(await sendWhatsappMessageDraft(sb, sbService, companyId, userId, args, structuredEvents, ctx));
+    }
+    case "execute_send_whatsapp_message": {
+      const ctx = buildPermCtx(companyId, userId, platformRoles, companyRole, activeModules);
+      return resultToToolResponse(await executeeSendWhatsappMessage(sbService, companyId, userId, args, structuredEvents, ctx));
+    }
+    case "create_notification_rule_draft": {
+      const ctx = buildPermCtx(companyId, userId, platformRoles, companyRole, activeModules);
+      return resultToToolResponse(await createNotificationRuleDraft(sb, sbService, companyId, userId, args, structuredEvents, ctx));
+    }
+    case "execute_create_notification_rule": {
+      const ctx = buildPermCtx(companyId, userId, platformRoles, companyRole, activeModules);
+      return resultToToolResponse(await executeCreateNotificationRule(sbService, companyId, userId, args, structuredEvents, ctx));
+    }
+
+    // ────────── STAFF AUDITS ──────────
+    case "list_staff_audits":
+      return resultToToolResponse(await listStaffAudits(sb, companyId, args));
+    case "get_staff_audit_details":
+      return resultToToolResponse(await getStaffAuditDetails(sb, companyId, args));
+    case "create_staff_audit_draft": {
+      const ctx = buildPermCtx(companyId, userId, platformRoles, companyRole, activeModules);
+      return resultToToolResponse(await createStaffAuditDraft(sb, sbService, companyId, userId, args, structuredEvents, ctx));
+    }
+    case "execute_staff_audit_creation": {
+      const ctx = buildPermCtx(companyId, userId, platformRoles, companyRole, activeModules);
+      return resultToToolResponse(await executeStaffAuditCreation(sbService, companyId, userId, args, structuredEvents, ctx));
+    }
+
+    // ────────── SCOUT PAYOUTS ──────────
+    case "list_scout_payouts":
+      return resultToToolResponse(await listScoutPayouts(sb, companyId, args));
+    case "get_scout_payout_summary":
+      return resultToToolResponse(await getScoutPayoutSummary(sb, companyId, args));
+    case "process_scout_payout_draft": {
+      const ctx = buildPermCtx(companyId, userId, platformRoles, companyRole, activeModules);
+      return resultToToolResponse(await processScoutPayoutDraft(sb, sbService, companyId, userId, args, structuredEvents, ctx));
+    }
+    case "execute_process_scout_payout": {
+      const ctx = buildPermCtx(companyId, userId, platformRoles, companyRole, activeModules);
+      return resultToToolResponse(await executeProcessScoutPayout(sbService, companyId, userId, args, structuredEvents, ctx));
+    }
+
     case "get_capabilities": {
       // Build a human-readable summary of active capabilities for this company
       const lines: string[] = [];
@@ -1470,7 +1588,7 @@ ${generateCapabilityDocs()}
 ### Draft & Execute (APPROVAL-GATED WRITES)
 You can now create AND execute records in the platform:
 
-**CRITICAL — STOP AFTER DRAFT**: After calling ANY draft tool (create_employee_draft, create_audit_template_draft, create_shift_draft, update_shift_draft, delete_shift_draft, swap_shift_draft, reassign_corrective_action, create_ca_draft, update_ca_status_draft, update_employee_draft, deactivate_employee_draft, correct_attendance_draft, excuse_late_draft, create_work_order_draft, update_wo_status_draft, create_task_draft, update_task_draft, delete_task_draft, complete_task_draft, create_training_assignment_draft, update_training_status_draft, create_training_program_draft, schedule_audit_draft, cancel_scheduled_audit_draft, create_location_draft, update_location_draft, deactivate_location_draft, create_department_draft, update_department_draft, delete_department_draft, link_document_draft, create_document_category_draft, delete_document_draft, send_notification_draft, resolve_alert_draft, create_time_off_request_draft, approve_time_off_request_draft, issue_warning_draft, assign_test_draft, publish_shifts_draft, manual_clock_in_draft, create_training_session_draft, review_scout_submission_draft, log_waste_draft, update_ca_item_status_draft, add_ca_item_draft), you MUST immediately STOP making tool calls and present the draft preview to the user. Do NOT call any execute tool in the same response. The approval card UI will handle the approval flow. You must wait for the NEXT user message containing explicit approval before executing.
+**CRITICAL — STOP AFTER DRAFT**: After calling ANY draft tool (create_employee_draft, create_audit_template_draft, create_shift_draft, update_shift_draft, delete_shift_draft, swap_shift_draft, reassign_corrective_action, create_ca_draft, update_ca_status_draft, update_employee_draft, deactivate_employee_draft, correct_attendance_draft, excuse_late_draft, create_work_order_draft, update_wo_status_draft, create_task_draft, update_task_draft, delete_task_draft, complete_task_draft, create_training_assignment_draft, update_training_status_draft, create_training_program_draft, schedule_audit_draft, cancel_scheduled_audit_draft, create_location_draft, update_location_draft, deactivate_location_draft, create_department_draft, update_department_draft, delete_department_draft, link_document_draft, create_document_category_draft, delete_document_draft, send_notification_draft, resolve_alert_draft, create_time_off_request_draft, approve_time_off_request_draft, issue_warning_draft, assign_test_draft, publish_shifts_draft, manual_clock_in_draft, create_training_session_draft, review_scout_submission_draft, log_waste_draft, update_ca_item_status_draft, add_ca_item_draft, log_equipment_intervention_draft, send_whatsapp_message_draft, create_notification_rule_draft, create_staff_audit_draft, process_scout_payout_draft), you MUST immediately STOP making tool calls and present the draft preview to the user. Do NOT call any execute tool in the same response. The approval card UI will handle the approval flow. You must wait for the NEXT user message containing explicit approval before executing.
 
 **Employee Creation Flow:**
 1. Use \`create_employee_draft\` to prepare the draft and show preview
@@ -1568,6 +1686,41 @@ You can now create AND execute records in the platform:
 
 **Employee Performance:**
 - Use \`get_employee_performance_report\` to view monthly performance scores. Filter by location_name, employee_name, or month (YYYY-MM). Shows effective_score, attendance_score, punctuality_score, task_score, test_score, warning_penalty, and rank_in_location.
+
+**Equipment Management Flow:**
+- List equipment: \`list_equipment\` with optional location_name and status filters
+- Equipment due for check: \`get_equipment_expiries\` — defaults to 30 days ahead
+- Equipment history: \`get_equipment_details\` with equipment_name
+- Log intervention: \`log_equipment_intervention_draft\` with equipment_name, intervention_type (check/repair/replacement/calibration/cleaning/other), and description. Optionally set new_status to update equipment status.
+- Execute: \`execute_equipment_intervention\` after approval
+
+**QR Forms / Digital Records:**
+- Templates: \`list_form_templates\` — HACCP logs, quality records, event logs
+- Assignments: \`list_form_assignments\` — which templates are assigned where
+- Submissions: \`list_form_submissions\` — filter by location_name, status (draft/submitted/locked), period_year/month
+- Details: \`get_form_submission_details\` with submission_id
+
+**WhatsApp & Notification Rules:**
+- List templates: \`list_whatsapp_templates\` — shows approved templates with message body
+- Message history: \`list_outbound_messages\` — filter by status (queued/sent/failed) or date range
+- Send message: \`send_whatsapp_message_draft\` — specify template_name and either employee_name OR location_name. ALWAYS check available templates first with \`list_whatsapp_templates\` if the user hasn't specified one. Only approved templates can be sent.
+- Execute send: \`execute_send_whatsapp_message\` after approval
+- Notification rules: \`list_notification_rules\` — shows automated alert routing and escalation chains
+- Create rule: \`create_notification_rule_draft\` with event_type, channel, target_roles, and optional escalation_after_minutes + escalation_channel
+- Execute rule: \`execute_create_notification_rule\` after approval
+
+**Staff Audits (Performance Evaluations):**
+- These are DIFFERENT from location audits. Staff audits are employee performance scorecards (0-100).
+- List: \`list_staff_audits\` — filter by employee_name, location_name, date range
+- Details: \`get_staff_audit_details\` with audit_id
+- Create: \`create_staff_audit_draft\` with employee_name, optional score (0-100), template_name, notes
+- Execute: \`execute_staff_audit_creation\` after approval
+
+**Scout Payouts:**
+- List: \`list_scout_payouts\` — filter by status (pending/paid/failed)
+- Summary: \`get_scout_payout_summary\` — totals by status
+- Process: \`process_scout_payout_draft\` with payout_id and new_status (paid or failed). HIGH RISK — show amount and scout name clearly.
+- Execute: \`execute_process_scout_payout\` after approval
 
 ### Approval Rules
 - MEDIUM risk: User must confirm with clear affirmative response

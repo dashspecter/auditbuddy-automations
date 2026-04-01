@@ -251,3 +251,188 @@ export async function executeScoutSubmissionReview(
 
   return success({ type: "submission_reviewed", new_status: d.new_status });
 }
+
+// ─── Scout Payouts ───
+
+export async function listScoutPayouts(
+  sb: any, companyId: string, args: any
+): Promise<CapabilityResult<any>> {
+  const limit = Math.min(args.limit || 50, 200);
+
+  // Scope via scout_jobs to enforce company_id
+  const { data: jobs } = await sb.from("scout_jobs").select("id").eq("company_id", companyId);
+  if (!jobs || jobs.length === 0) return success({ total: 0, payouts: [] });
+  const jobIds = jobs.map((j: any) => j.id);
+
+  let q = sb.from("scout_payouts")
+    .select("id, scout_id, scouts(full_name, email), job_id, scout_jobs(title), amount, currency, status, method, paid_at, created_at")
+    .in("job_id", jobIds)
+    .order("created_at", { ascending: false })
+    .limit(limit);
+
+  if (args.status) q = q.eq("status", args.status);
+  if (args.from) q = q.gte("created_at", args.from);
+  if (args.to) q = q.lte("created_at", args.to + "T23:59:59Z");
+
+  const { data, error } = await q;
+  if (error) return capabilityError(error.message);
+
+  return success({
+    total: data?.length ?? 0,
+    payouts: (data || []).map((p: any) => ({
+      id: p.id,
+      scout: p.scouts?.full_name || p.scouts?.email,
+      job: p.scout_jobs?.title,
+      amount: p.amount,
+      currency: p.currency,
+      status: p.status,
+      method: p.method,
+      paid_at: p.paid_at,
+      created_at: p.created_at,
+    })),
+  });
+}
+
+export async function getScoutPayoutSummary(
+  sb: any, companyId: string, args: any
+): Promise<CapabilityResult<any>> {
+  const { data: jobs } = await sb.from("scout_jobs").select("id").eq("company_id", companyId);
+  if (!jobs || jobs.length === 0) return success({ total_pending: 0, total_paid: 0, pending_count: 0, paid_count: 0 });
+  const jobIds = jobs.map((j: any) => j.id);
+
+  let q = sb.from("scout_payouts")
+    .select("id, amount, currency, status, paid_at")
+    .in("job_id", jobIds);
+
+  if (args.from) q = q.gte("created_at", args.from);
+  if (args.to) q = q.lte("created_at", args.to + "T23:59:59Z");
+
+  const { data, error } = await q;
+  if (error) return capabilityError(error.message);
+
+  const all = data || [];
+  const pending = all.filter((p: any) => p.status === "pending");
+  const paid = all.filter((p: any) => p.status === "paid");
+  const failed = all.filter((p: any) => p.status === "failed");
+
+  const sumAmount = (arr: any[]) => arr.reduce((acc: number, p: any) => acc + (p.amount || 0), 0);
+
+  return success({
+    pending_count: pending.length,
+    paid_count: paid.length,
+    failed_count: failed.length,
+    total_pending: sumAmount(pending),
+    total_paid: sumAmount(paid),
+    currency: all[0]?.currency || "USD",
+    by_status: [
+      { status: "pending", count: pending.length, total: sumAmount(pending) },
+      { status: "paid", count: paid.length, total: sumAmount(paid) },
+      { status: "failed", count: failed.length, total: sumAmount(failed) },
+    ],
+  });
+}
+
+export async function processScoutPayoutDraft(
+  sb: any, sbService: any, companyId: string, userId: string,
+  args: any, structuredEvents: string[], ctx: PermissionContext
+): Promise<CapabilityResult<any>> {
+  const permCheck = checkCapabilityPermission(ctx, "update", "scouts");
+  if (!permCheck.allowed) return capabilityError(permCheck.reason ?? "Permission denied.");
+
+  if (!args.payout_id) return capabilityError("payout_id is required.");
+
+  const VALID_STATUSES = ["paid", "failed"];
+  const newStatus = args.new_status;
+  if (!VALID_STATUSES.includes(newStatus)) {
+    return capabilityError(`new_status must be one of: ${VALID_STATUSES.join(", ")}`);
+  }
+
+  // Verify payout belongs to this company via job
+  const { data: payout } = await sb.from("scout_payouts")
+    .select("id, scout_id, scouts(full_name, email), job_id, scout_jobs(title, company_id), amount, currency, status")
+    .eq("id", args.payout_id).maybeSingle();
+
+  if (!payout) return capabilityError("Payout not found.");
+  if ((payout as any).scout_jobs?.company_id !== companyId) return capabilityError("Access denied.");
+  if (payout.status === newStatus) return capabilityError(`Payout is already ${newStatus}.`);
+
+  const scoutName = (payout as any).scouts?.full_name || (payout as any).scouts?.email || "Unknown scout";
+  const jobTitle = (payout as any).scout_jobs?.title || "Unknown job";
+
+  const draft = {
+    payout_id: args.payout_id,
+    scout_name: scoutName,
+    job_title: jobTitle,
+    amount: payout.amount,
+    currency: payout.currency,
+    current_status: payout.status,
+    new_status: newStatus,
+    notes: args.notes ?? null,
+  };
+
+  const { data: pa, error: paError } = await sbService.from("dash_pending_actions").insert({
+    company_id: companyId, created_by: userId, action_type: "write",
+    action_name: "process_scout_payout", risk_level: "high",
+    preview_json: draft, status: "pending",
+  }).select("id").single();
+
+  if (paError) return capabilityError(`Failed to create draft: ${paError.message}`);
+
+  structuredEvents.push(makeStructuredEvent("action_preview", {
+    pending_action_id: pa.id,
+    action_name: "process_scout_payout",
+    risk_level: "high",
+    title: "Process Scout Payout",
+    summary: `Mark payout of **${payout.amount} ${payout.currency}** to **${scoutName}** for job "${jobTitle}" as **${newStatus}**.`,
+    fields: [
+      { label: "Scout", value: scoutName },
+      { label: "Job", value: jobTitle },
+      { label: "Amount", value: `${payout.amount} ${payout.currency}` },
+      { label: "Current Status", value: payout.status },
+      { label: "New Status", value: newStatus },
+      ...(args.notes ? [{ label: "Notes", value: args.notes }] : []),
+    ],
+  }));
+
+  return success({ pending_action_id: pa.id, draft });
+}
+
+export async function executeProcessScoutPayout(
+  sbService: any, companyId: string, userId: string,
+  args: any, structuredEvents: string[], ctx: PermissionContext
+): Promise<CapabilityResult<any>> {
+  const permCheck = checkCapabilityPermission(ctx, "update", "scouts");
+  if (!permCheck.allowed) return capabilityError(permCheck.reason ?? "Permission denied.");
+
+  const { data: pa } = await sbService.from("dash_pending_actions")
+    .select("id, status, company_id, preview_json").eq("id", args.pending_action_id).maybeSingle();
+  if (!pa) return capabilityError("Pending action not found.");
+  if (pa.company_id !== companyId) return capabilityError("Cross-tenant action rejected.");
+  if (pa.status !== "pending") return capabilityError(`Action already ${pa.status}.`);
+
+  const d = pa.preview_json as any;
+
+  const updateData: any = { status: d.new_status, updated_at: new Date().toISOString() };
+  if (d.new_status === "paid") updateData.paid_at = new Date().toISOString();
+
+  const { error: updateError } = await sbService.from("scout_payouts")
+    .update(updateData).eq("id", d.payout_id);
+
+  if (updateError) {
+    await sbService.from("dash_pending_actions").update({ status: "failed", execution_result: { error: updateError.message }, updated_at: new Date().toISOString() }).eq("id", pa.id);
+    return capabilityError(`Failed to update payout: ${updateError.message}`);
+  }
+
+  await sbService.from("dash_pending_actions").update({
+    status: "executed", approved_at: new Date().toISOString(), approved_by: userId,
+    execution_result: { success: true, payout_id: d.payout_id, new_status: d.new_status }, updated_at: new Date().toISOString(),
+  }).eq("id", pa.id);
+
+  structuredEvents.push(makeStructuredEvent("execution_result", {
+    status: "success", title: "Payout Updated",
+    summary: `Payout of ${d.amount} ${d.currency} for ${d.scout_name} marked as ${d.new_status}.`,
+    changes: [`${d.scout_name}: ${d.current_status} → ${d.new_status}`],
+  }));
+
+  return success({ type: "scout_payout_processed", payout_id: d.payout_id, new_status: d.new_status });
+}
