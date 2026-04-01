@@ -21,8 +21,9 @@ import {
 // ─── Domain Capability Imports ───
 import { getAuditResults, compareLocationPerformance, createAuditTemplateDraft, executeAuditTemplateCreation, listScheduledAudits, scheduleAuditDraft, executeAuditScheduling, cancelScheduledAuditDraft, executeCancelScheduledAudit } from "./capabilities/audits.ts";
 import { getOpenCorrectiveActions, reassignCorrectiveAction, executeCaReassignment, createCaDraft, executeCaCreation, updateCaStatusDraft, executeCaStatusUpdate } from "./capabilities/corrective-actions.ts";
-import { searchEmployees, getEmployeeShifts, getAttendanceExceptions, getAttendanceSummary, createEmployeeDraft, createShiftDraft, executeEmployeeCreation, executeShiftCreation, updateShiftDraft, executeShiftUpdate, deleteShiftDraft, executeShiftDeletion, swapShiftDraft, executeShiftSwap } from "./capabilities/workforce.ts";
-import { getTaskCompletionSummary, getWorkOrderStatus, getDocumentExpiries, getTrainingGaps, updateEmployeeDraft, executeEmployeeUpdate, deactivateEmployeeDraft, executeEmployeeDeactivation, correctAttendanceDraft, executeAttendanceCorrection, excuseLateDraft, executeExcuseLate, createWorkOrderDraft, executeWorkOrderCreation, updateWoStatusDraft, executeWoStatusUpdate, createTaskDraft, executeTaskCreation, createTrainingAssignmentDraft, executeTrainingAssignment, updateTrainingStatusDraft, executeTrainingStatusUpdate, listDepartments, createDepartmentDraft, executeCreateDepartment, updateDepartmentDraft, executeUpdateDepartment, deleteDepartmentDraft, executeDeleteDepartment, listTasks, updateTaskDraft, executeTaskUpdate, deleteTaskDraft, executeTaskDeletion, completeTaskDraft, executeTaskCompletion, listDocuments, linkDocumentDraft, executeDocumentLink, createDocumentCategoryDraft, executeDocumentCategoryCreation, deleteDocumentDraft, executeDocumentDeletion, listAlerts, resolveAlertDraft, executeAlertResolution, listTrainingPrograms, createTrainingProgramDraft, executeTrainingProgramCreation } from "./capabilities/operations.ts";
+import { searchEmployees, getEmployeeShifts, getAttendanceExceptions, getAttendanceSummary, createEmployeeDraft, createShiftDraft, executeEmployeeCreation, executeShiftCreation, updateShiftDraft, executeShiftUpdate, deleteShiftDraft, executeShiftDeletion, swapShiftDraft, executeShiftSwap, listEmployeeWarnings, issueWarningDraft, executeWarningIssuance, getEmployeeDossier, publishShiftsDraft, executePublishShifts, manualClockInDraft, executeManualClockIn } from "./capabilities/workforce.ts";
+import { listTests, getTestResults, listTestAssignments, assignTestDraft, executeTestAssignment } from "./capabilities/tests.ts";
+import { getTaskCompletionSummary, getWorkOrderStatus, getDocumentExpiries, getTrainingGaps, updateEmployeeDraft, executeEmployeeUpdate, deactivateEmployeeDraft, executeEmployeeDeactivation, correctAttendanceDraft, executeAttendanceCorrection, excuseLateDraft, executeExcuseLate, createWorkOrderDraft, executeWorkOrderCreation, updateWoStatusDraft, executeWoStatusUpdate, createTaskDraft, executeTaskCreation, createTrainingAssignmentDraft, executeTrainingAssignment, updateTrainingStatusDraft, executeTrainingStatusUpdate, listDepartments, createDepartmentDraft, executeCreateDepartment, updateDepartmentDraft, executeUpdateDepartment, deleteDepartmentDraft, executeDeleteDepartment, listTasks, updateTaskDraft, executeTaskUpdate, deleteTaskDraft, executeTaskDeletion, completeTaskDraft, executeTaskCompletion, listDocuments, linkDocumentDraft, executeDocumentLink, createDocumentCategoryDraft, executeDocumentCategoryCreation, deleteDocumentDraft, executeDocumentDeletion, listAlerts, resolveAlertDraft, executeAlertResolution, listTrainingPrograms, createTrainingProgramDraft, executeTrainingProgramCreation, listAssets, getAssetDetails, getLaborCosts, listTrainingSessions, createTrainingSessionDraft, executeTrainingSessionCreation } from "./capabilities/operations.ts";
 import { searchLocations, getLocationOverview, getCrossModuleSummary } from "./capabilities/overview.ts";
 import { listLocations, getLocationDetails, createLocationDraft, executeLocationCreation, updateLocationDraft, executeLocationUpdate, deactivateLocationDraft, executeLocationDeactivation } from "./capabilities/locations.ts";
 import { listNotifications, sendNotificationDraft, executeNotificationSend } from "./capabilities/notifications.ts";
@@ -152,6 +153,33 @@ const TOOL_MODULE_MAP: Record<string, string> = {
   execute_time_off_approval: "workforce",
   reject_time_off_request_dash: "workforce",
   cancel_time_off_request_dash: "workforce",
+  // Tests
+  list_tests: "testing_training",
+  get_test_results: "testing_training",
+  list_test_assignments: "testing_training",
+  assign_test_draft: "testing_training",
+  execute_test_assignment: "testing_training",
+  // Warnings
+  list_employee_warnings: "workforce",
+  issue_warning_draft: "workforce",
+  execute_warning_issuance: "workforce",
+  // Employee dossier
+  get_employee_dossier: "workforce",
+  // Shift publish
+  publish_shifts_draft: "workforce",
+  execute_publish_shifts: "workforce",
+  // Manual clock-in
+  manual_clock_in_draft: "workforce",
+  execute_manual_clock_in: "workforce",
+  // CMMS Assets
+  list_assets: "cmms",
+  get_asset_details: "cmms",
+  // Labor costs
+  get_labor_costs: "workforce",
+  // Training sessions
+  list_training_sessions: "workforce",
+  create_training_session_draft: "workforce",
+  execute_training_session_creation: "workforce",
 };
 
 // ─── Action-name to execute-tool resolver (server-authoritative) ───
@@ -203,6 +231,17 @@ const ACTION_EXECUTE_MAP: Record<string, string> = {
   resolve_alert: "execute_alert_resolution",
   // Training Programs
   create_training_program: "execute_training_program_creation",
+  // Tests
+  assign_test: "execute_test_assignment",
+  // Warnings
+  issue_warning: "execute_warning_issuance",
+  // Shift publish
+  publish_shifts: "execute_publish_shifts",
+  unpublish_shifts: "execute_publish_shifts",
+  // Manual clock-in
+  manual_clock_in: "execute_manual_clock_in",
+  // Training sessions
+  create_training_session: "execute_training_session_creation",
 };
 
 /** Hydrate execution args from pending action's preview_json based on action_name.
@@ -1191,6 +1230,80 @@ async function executeToolInner(
       return resultToToolResponse(result);
     }
 
+    // ────────── TESTS ──────────
+    case "list_tests":
+      return resultToToolResponse(await listTests(sb, companyId, args));
+    case "get_test_results":
+      return resultToToolResponse(await getTestResults(sb, companyId, args));
+    case "list_test_assignments":
+      return resultToToolResponse(await listTestAssignments(sb, companyId, args));
+    case "assign_test_draft": {
+      const ctx = buildPermCtx(companyId, userId, platformRoles, companyRole, activeModules);
+      return resultToToolResponse(await assignTestDraft(sb, sbService, companyId, userId, args, structuredEvents, ctx));
+    }
+    case "execute_test_assignment": {
+      const ctx = buildPermCtx(companyId, userId, platformRoles, companyRole, activeModules);
+      return resultToToolResponse(await executeTestAssignment(sbService, companyId, userId, args, structuredEvents, ctx));
+    }
+
+    // ────────── WARNINGS ──────────
+    case "list_employee_warnings":
+      return resultToToolResponse(await listEmployeeWarnings(sb, companyId, args, utcRange));
+    case "issue_warning_draft": {
+      const ctx = buildPermCtx(companyId, userId, platformRoles, companyRole, activeModules);
+      return resultToToolResponse(await issueWarningDraft(sb, sbService, companyId, userId, args, structuredEvents, ctx));
+    }
+    case "execute_warning_issuance": {
+      const ctx = buildPermCtx(companyId, userId, platformRoles, companyRole, activeModules);
+      return resultToToolResponse(await executeWarningIssuance(sbService, companyId, userId, args, structuredEvents, ctx));
+    }
+
+    // ────────── EMPLOYEE DOSSIER ──────────
+    case "get_employee_dossier":
+      return resultToToolResponse(await getEmployeeDossier(sb, companyId, args));
+
+    // ────────── SHIFT PUBLISH ──────────
+    case "publish_shifts_draft": {
+      const ctx = buildPermCtx(companyId, userId, platformRoles, companyRole, activeModules);
+      return resultToToolResponse(await publishShiftsDraft(sb, sbService, companyId, userId, args, structuredEvents, ctx));
+    }
+    case "execute_publish_shifts": {
+      const ctx = buildPermCtx(companyId, userId, platformRoles, companyRole, activeModules);
+      return resultToToolResponse(await executePublishShifts(sbService, companyId, userId, args, structuredEvents, ctx));
+    }
+
+    // ────────── MANUAL CLOCK-IN ──────────
+    case "manual_clock_in_draft": {
+      const ctx = buildPermCtx(companyId, userId, platformRoles, companyRole, activeModules);
+      return resultToToolResponse(await manualClockInDraft(sb, sbService, companyId, userId, args, structuredEvents, ctx));
+    }
+    case "execute_manual_clock_in": {
+      const ctx = buildPermCtx(companyId, userId, platformRoles, companyRole, activeModules);
+      return resultToToolResponse(await executeManualClockIn(sbService, companyId, userId, args, structuredEvents, ctx));
+    }
+
+    // ────────── CMMS ASSETS ──────────
+    case "list_assets":
+      return resultToToolResponse(await listAssets(sb, companyId, args));
+    case "get_asset_details":
+      return resultToToolResponse(await getAssetDetails(sb, companyId, args));
+
+    // ────────── LABOR COSTS ──────────
+    case "get_labor_costs":
+      return resultToToolResponse(await getLaborCosts(sb, companyId, args));
+
+    // ────────── TRAINING SESSIONS ──────────
+    case "list_training_sessions":
+      return resultToToolResponse(await listTrainingSessions(sb, companyId, args));
+    case "create_training_session_draft": {
+      const ctx = buildPermCtx(companyId, userId, platformRoles, companyRole, activeModules);
+      return resultToToolResponse(await createTrainingSessionDraft(sb, sbService, companyId, userId, args, structuredEvents, ctx));
+    }
+    case "execute_training_session_creation": {
+      const ctx = buildPermCtx(companyId, userId, platformRoles, companyRole, activeModules);
+      return resultToToolResponse(await executeTrainingSessionCreation(sbService, companyId, userId, args, structuredEvents, ctx));
+    }
+
     case "get_capabilities": {
       // Build a human-readable summary of active capabilities for this company
       const lines: string[] = [];
@@ -1263,7 +1376,7 @@ ${generateCapabilityDocs()}
 ### Draft & Execute (APPROVAL-GATED WRITES)
 You can now create AND execute records in the platform:
 
-**CRITICAL — STOP AFTER DRAFT**: After calling ANY draft tool (create_employee_draft, create_audit_template_draft, create_shift_draft, update_shift_draft, delete_shift_draft, swap_shift_draft, reassign_corrective_action, create_ca_draft, update_ca_status_draft, update_employee_draft, deactivate_employee_draft, correct_attendance_draft, excuse_late_draft, create_work_order_draft, update_wo_status_draft, create_task_draft, update_task_draft, delete_task_draft, complete_task_draft, create_training_assignment_draft, update_training_status_draft, create_training_program_draft, schedule_audit_draft, cancel_scheduled_audit_draft, create_location_draft, update_location_draft, deactivate_location_draft, create_department_draft, update_department_draft, delete_department_draft, link_document_draft, create_document_category_draft, delete_document_draft, send_notification_draft, resolve_alert_draft, create_time_off_request_draft, approve_time_off_request_draft), you MUST immediately STOP making tool calls and present the draft preview to the user. Do NOT call any execute tool in the same response. The approval card UI will handle the approval flow. You must wait for the NEXT user message containing explicit approval before executing.
+**CRITICAL — STOP AFTER DRAFT**: After calling ANY draft tool (create_employee_draft, create_audit_template_draft, create_shift_draft, update_shift_draft, delete_shift_draft, swap_shift_draft, reassign_corrective_action, create_ca_draft, update_ca_status_draft, update_employee_draft, deactivate_employee_draft, correct_attendance_draft, excuse_late_draft, create_work_order_draft, update_wo_status_draft, create_task_draft, update_task_draft, delete_task_draft, complete_task_draft, create_training_assignment_draft, update_training_status_draft, create_training_program_draft, schedule_audit_draft, cancel_scheduled_audit_draft, create_location_draft, update_location_draft, deactivate_location_draft, create_department_draft, update_department_draft, delete_department_draft, link_document_draft, create_document_category_draft, delete_document_draft, send_notification_draft, resolve_alert_draft, create_time_off_request_draft, approve_time_off_request_draft, issue_warning_draft, assign_test_draft, publish_shifts_draft, manual_clock_in_draft, create_training_session_draft), you MUST immediately STOP making tool calls and present the draft preview to the user. Do NOT call any execute tool in the same response. The approval card UI will handle the approval flow. You must wait for the NEXT user message containing explicit approval before executing.
 
 **Employee Creation Flow:**
 1. Use \`create_employee_draft\` to prepare the draft and show preview
@@ -1284,13 +1397,13 @@ You can now create AND execute records in the platform:
 4. ONLY THEN call \`execute_ca_reassignment\` with the pending_action_id
 
 **Shift Creation Flow:**
-1. Use \`create_shift_draft\` to prepare and show preview. When the user mentions a specific person/employee, ALWAYS include \`employee_name\` so the shift gets assigned to them.
+1. Use \`create_shift_draft\` to prepare and show preview. When the user mentions a specific person/employee, ALWAYS include \`employee_name\` so the shift gets assigned to them. NEVER ask for min_staff or max_staff — they default to 1. Always include \`shift_type\` when the user specifies it (regular/extra/training/half/extra_half).
 2. STOP — do not call any more tools. Present the draft to the user.
 3. Wait for user approval in a NEW message
 4. ONLY THEN call \`execute_shift_creation\` with the pending_action_id
 
 **Shift Update Flow:**
-1. Use \`update_shift_draft\` to prepare a change preview. You can find shifts by employee_name + shift_date, or by shift_id. Specify what changes: new_start_time, new_end_time, new_shift_date, new_role, or new_employee_name.
+1. Use \`update_shift_draft\` to prepare a change preview. You can find shifts by employee_name + shift_date, or by shift_id. Specify what changes: new_start_time, new_end_time, new_shift_date, new_role, new_shift_type (regular/extra/training/half/extra_half), or new_employee_name.
 2. STOP — present the change summary to the user.
 3. Wait for user approval
 4. ONLY THEN call \`execute_shift_update\` with the pending_action_id
@@ -1306,6 +1419,36 @@ You can now create AND execute records in the platform:
 2. STOP — this is HIGH RISK. Show both sides of the swap.
 3. Wait for user approval
 4. ONLY THEN call \`execute_shift_swap\` with the pending_action_id
+
+**Shift Publish Flow:**
+1. Use \`publish_shifts_draft\` with location_name and date range (or shift_date). Set publish=true to publish, publish=false to unpublish.
+2. STOP — present the count of affected shifts.
+3. Wait for user approval
+4. ONLY THEN call \`execute_publish_shifts\` with the pending_action_id
+
+**Issue Warning Flow:**
+1. Use \`issue_warning_draft\` with employee_name, description, and severity (minor/major/critical). event_type can be "warning" or "coaching_note".
+2. STOP — this is HIGH RISK. Show clearly who will receive the warning.
+3. Wait for user approval
+4. ONLY THEN call \`execute_warning_issuance\` with the pending_action_id
+
+**Assign Test Flow:**
+1. Use \`assign_test_draft\` with test_name and employee_name.
+2. STOP — present the assignment preview.
+3. Wait for user approval
+4. ONLY THEN call \`execute_test_assignment\` with the pending_action_id
+
+**Manual Clock-In Flow:**
+1. Use \`manual_clock_in_draft\` with employee_name, check_in_time (HH:MM or ISO), and optionally location_name and check_out_time.
+2. STOP — present the attendance entry preview.
+3. Wait for user approval
+4. ONLY THEN call \`execute_manual_clock_in\` with the pending_action_id
+
+**Schedule Training Session Flow:**
+1. Use \`create_training_session_draft\` with program_name, location_name, session_date, start_time, end_time.
+2. STOP — present the session preview.
+3. Wait for user approval
+4. ONLY THEN call \`execute_training_session_creation\` with the pending_action_id
 
 ### Approval Rules
 - MEDIUM risk: User must confirm with clear affirmative response

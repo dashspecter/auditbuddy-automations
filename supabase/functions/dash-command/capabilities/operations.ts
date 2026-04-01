@@ -1404,3 +1404,302 @@ export async function executeTrainingProgramCreation(
   structuredEvents.push(makeStructuredEvent("execution_result", { status: "success", title: "Training Program Created", summary: `Training program "${d.name}" created.`, changes: [`Created: ${d.name}`] }));
   return success({ id: data.id });
 }
+
+// ─── CMMS Assets ───
+
+export async function listAssets(
+  sb: any, companyId: string, args: any
+): Promise<CapabilityResult<any>> {
+  const limit = Math.min(args.limit || 50, 200);
+
+  let locationId: string | null = null;
+  if (args.location_name) {
+    const { data: loc } = await sb.from("locations").select("id").eq("company_id", companyId).ilike("name", `%${args.location_name}%`).limit(1).maybeSingle();
+    if (loc) locationId = loc.id;
+  }
+
+  let q = sb.from("cmms_assets")
+    .select("id, name, category, status, criticality, location_id, locations(name), serial_number, last_maintenance_date, next_maintenance_date")
+    .eq("company_id", companyId)
+    .order("name", { ascending: true })
+    .limit(limit);
+
+  if (locationId) q = q.eq("location_id", locationId);
+  if (args.status) q = q.eq("status", args.status);
+
+  const { data, error } = await q;
+  if (error) return capabilityError(error.message);
+
+  return success({
+    total: data?.length ?? 0,
+    assets: (data || []).map((a: any) => ({
+      id: a.id,
+      name: a.name,
+      category: a.category,
+      status: a.status,
+      criticality: a.criticality,
+      location: a.locations?.name,
+      serial_number: a.serial_number,
+      last_maintenance_date: a.last_maintenance_date,
+      next_maintenance_date: a.next_maintenance_date,
+    })),
+  });
+}
+
+export async function getAssetDetails(
+  sb: any, companyId: string, args: any
+): Promise<CapabilityResult<any>> {
+  let q = sb.from("cmms_assets")
+    .select("id, name, category, status, criticality, location_id, locations(name), serial_number, description, purchase_date, warranty_expiry, last_maintenance_date, next_maintenance_date")
+    .eq("company_id", companyId);
+
+  if (args.asset_id) {
+    q = q.eq("id", args.asset_id);
+  } else if (args.asset_name) {
+    q = q.ilike("name", `%${args.asset_name}%`).limit(3);
+  } else {
+    return capabilityError("Provide asset_name or asset_id.");
+  }
+
+  const { data: assetData } = await q.limit(3);
+  if (!assetData?.length) return capabilityError("Asset not found.");
+  if (assetData.length > 1) return capabilityError(`Multiple assets match: ${assetData.map((a: any) => a.name).join(", ")}.`);
+  const asset = assetData[0];
+
+  // Get recent work orders for this asset
+  const { data: wos } = await sb.from("cmms_work_orders")
+    .select("id, title, status, priority, created_at, completed_at")
+    .eq("asset_id", asset.id)
+    .order("created_at", { ascending: false })
+    .limit(5);
+
+  return success({
+    asset: {
+      id: asset.id,
+      name: asset.name,
+      category: asset.category,
+      status: asset.status,
+      criticality: asset.criticality,
+      location: asset.locations?.name,
+      serial_number: asset.serial_number,
+      description: asset.description,
+      purchase_date: asset.purchase_date,
+      warranty_expiry: asset.warranty_expiry,
+      last_maintenance_date: asset.last_maintenance_date,
+      next_maintenance_date: asset.next_maintenance_date,
+    },
+    recent_work_orders: (wos || []).map((wo: any) => ({
+      title: wo.title, status: wo.status, priority: wo.priority, created_at: wo.created_at,
+    })),
+  });
+}
+
+// ─── Labor Costs ───
+
+export async function getLaborCosts(
+  sb: any, companyId: string, args: any
+): Promise<CapabilityResult<any>> {
+  let locationId: string | null = null;
+  if (args.location_name) {
+    const { data: loc } = await sb.from("locations").select("id, name").eq("company_id", companyId).ilike("name", `%${args.location_name}%`).limit(1).maybeSingle();
+    if (!loc) return capabilityError(`No location matching "${args.location_name}".`);
+    locationId = loc.id;
+  }
+
+  let q = sb.from("labor_costs")
+    .select("id, location_id, locations(name), period_start, period_end, total_hours, total_cost, regular_hours, overtime_hours, created_at")
+    .eq("company_id", companyId)
+    .order("period_start", { ascending: false })
+    .limit(50);
+
+  if (locationId) q = q.eq("location_id", locationId);
+  if (args.from) q = q.gte("period_start", args.from);
+  if (args.to) q = q.lte("period_end", args.to);
+
+  const { data, error } = await q;
+  if (error) return capabilityError(error.message);
+
+  const totals = (data || []).reduce((acc: any, r: any) => {
+    acc.total_hours = (acc.total_hours || 0) + (r.total_hours || 0);
+    acc.total_cost = (acc.total_cost || 0) + (r.total_cost || 0);
+    return acc;
+  }, {});
+
+  return success({
+    summary: { total_hours: totals.total_hours || 0, total_cost: totals.total_cost || 0, period_count: data?.length ?? 0 },
+    records: (data || []).map((r: any) => ({
+      location: r.locations?.name,
+      period_start: r.period_start,
+      period_end: r.period_end,
+      total_hours: r.total_hours,
+      total_cost: r.total_cost,
+      regular_hours: r.regular_hours,
+      overtime_hours: r.overtime_hours,
+    })),
+  });
+}
+
+// ─── Training Sessions ───
+
+export async function listTrainingSessions(
+  sb: any, companyId: string, args: any
+): Promise<CapabilityResult<any>> {
+  const limit = Math.min(args.limit || 20, 100);
+
+  let locationId: string | null = null;
+  if (args.location_name) {
+    const { data: loc } = await sb.from("locations").select("id").eq("company_id", companyId).ilike("name", `%${args.location_name}%`).limit(1).maybeSingle();
+    if (loc) locationId = loc.id;
+  }
+
+  let programId: string | null = null;
+  if (args.program_name) {
+    const { data: prog } = await sb.from("training_programs").select("id").eq("company_id", companyId).ilike("name", `%${args.program_name}%`).limit(1).maybeSingle();
+    if (prog) programId = prog.id;
+  }
+
+  let q = sb.from("training_sessions")
+    .select("id, session_date, start_time, end_time, status, max_attendees, notes, location_id, locations(name), training_program_id, training_programs(name), trainer_id, employees(full_name)")
+    .eq("company_id", companyId)
+    .order("session_date", { ascending: false })
+    .limit(limit);
+
+  if (locationId) q = q.eq("location_id", locationId);
+  if (programId) q = q.eq("training_program_id", programId);
+  if (args.from) q = q.gte("session_date", args.from);
+  if (args.to) q = q.lte("session_date", args.to);
+
+  const { data, error } = await q;
+  if (error) return capabilityError(error.message);
+
+  return success({
+    total: data?.length ?? 0,
+    sessions: (data || []).map((s: any) => ({
+      id: s.id,
+      program: s.training_programs?.name,
+      date: s.session_date,
+      start_time: s.start_time,
+      end_time: s.end_time,
+      location: s.locations?.name,
+      trainer: s.employees?.full_name,
+      status: s.status,
+      max_attendees: s.max_attendees,
+    })),
+  });
+}
+
+export async function createTrainingSessionDraft(
+  sb: any, sbService: any, companyId: string, userId: string, args: any, structuredEvents: string[],
+  ctx: PermissionContext
+): Promise<CapabilityResult<any>> {
+  const permCheck = checkCapabilityPermission({ action: "create", module: "workforce", ctx });
+  if (!permCheck.ok) return permCheck;
+
+  // Resolve program
+  let programId = args.program_id || null;
+  let programName = args.program_name || null;
+  if (!programId && programName) {
+    const { data: progs } = await sb.from("training_programs").select("id, name").eq("company_id", companyId).ilike("name", `%${programName}%`).limit(5);
+    if (!progs?.length) return capabilityError(`No training program matching "${programName}".`);
+    if (progs.length > 1) return capabilityError(`Multiple programs match "${programName}": ${progs.map((p: any) => p.name).join(", ")}.`);
+    programId = progs[0].id; programName = progs[0].name;
+  }
+
+  // Resolve location
+  let locationId = args.location_id || null;
+  let locationName = args.location_name || null;
+  if (!locationId && locationName) {
+    const { data: loc } = await sb.from("locations").select("id, name").eq("company_id", companyId).ilike("name", `%${locationName}%`).limit(1).maybeSingle();
+    if (!loc) return capabilityError(`No location matching "${locationName}".`);
+    locationId = loc.id; locationName = loc.name;
+  }
+
+  // Resolve trainer
+  let trainerId: string | null = null;
+  if (args.trainer_name) {
+    const { data: trainer } = await sb.from("employees").select("id, full_name").eq("company_id", companyId).ilike("full_name", `%${args.trainer_name}%`).limit(1).maybeSingle();
+    if (trainer) trainerId = trainer.id;
+  }
+
+  const draft = {
+    training_program_id: programId,
+    program_name: programName,
+    location_id: locationId,
+    location_name: locationName,
+    session_date: args.session_date,
+    start_time: args.start_time,
+    end_time: args.end_time,
+    trainer_id: trainerId,
+    max_attendees: args.max_attendees || null,
+  };
+
+  const missing: string[] = [];
+  if (!draft.session_date) missing.push("session_date");
+  if (!draft.start_time) missing.push("start_time");
+  if (!draft.end_time) missing.push("end_time");
+
+  if (missing.length > 0) return capabilityError(`Missing required fields: ${missing.join(", ")}.`);
+
+  const { data: paData, error: paError } = await sbService.from("dash_pending_actions").insert({
+    company_id: companyId, user_id: userId, action_name: "create_training_session",
+    action_type: "write", risk_level: "medium", preview_json: draft, status: "pending",
+  }).select("id").single();
+  if (paError || !paData?.id) return capabilityError(`Failed to create draft: ${paError?.message}`);
+
+  structuredEvents.push(makeStructuredEvent("action_preview", {
+    action: "Schedule Training Session",
+    summary: `${programName || "Training"} session on ${draft.session_date} ${draft.start_time}-${draft.end_time}${locationName ? ` at ${locationName}` : ""}`,
+    risk: "medium",
+    affected: [programName, locationName, draft.session_date].filter(Boolean),
+    pending_action_id: paData.id,
+    draft,
+    can_approve: true,
+  }));
+
+  return success({ type: "training_session_draft", draft, pending_action_id: paData.id, requires_approval: true });
+}
+
+export async function executeTrainingSessionCreation(
+  sbService: any, companyId: string, userId: string, args: any, structuredEvents: string[],
+  ctx: PermissionContext
+): Promise<CapabilityResult<any>> {
+  const permCheck = checkCapabilityPermission({ action: "create", module: "workforce", ctx });
+  if (!permCheck.ok) return permCheck;
+
+  const { data: pa } = await sbService.from("dash_pending_actions")
+    .select("id, status, company_id, preview_json").eq("id", args.pending_action_id).maybeSingle();
+  if (!pa) return capabilityError("Pending action not found.");
+  if (pa.company_id !== companyId) return capabilityError("Cross-tenant action rejected.");
+  if (pa.status !== "pending") return capabilityError(`Action already ${pa.status}.`);
+
+  const d = pa.preview_json as any;
+  const { data: sessData, error: sessError } = await sbService.from("training_sessions").insert({
+    company_id: companyId,
+    training_program_id: d.training_program_id || null,
+    location_id: d.location_id || null,
+    session_date: d.session_date,
+    start_time: d.start_time,
+    end_time: d.end_time,
+    trainer_id: d.trainer_id || null,
+    max_attendees: d.max_attendees || null,
+    status: "scheduled",
+    created_by: userId,
+  }).select("id").single();
+
+  if (sessError) {
+    await sbService.from("dash_pending_actions").update({ status: "failed", execution_result: { error: sessError.message }, updated_at: new Date().toISOString() }).eq("id", pa.id);
+    return capabilityError(`Failed to create training session: ${sessError.message}`);
+  }
+
+  await sbService.from("dash_pending_actions").update({
+    status: "executed", approved_at: new Date().toISOString(), approved_by: userId,
+    execution_result: { success: true, session_id: sessData.id }, updated_at: new Date().toISOString(),
+  }).eq("id", pa.id);
+
+  structuredEvents.push(makeStructuredEvent("execution_result", {
+    status: "success", title: "Training Session Scheduled",
+    summary: `${d.program_name || "Training"} session scheduled for ${d.session_date} ${d.start_time}-${d.end_time}.`,
+  }));
+
+  return success({ type: "training_session_created", session_id: sessData.id });
+}

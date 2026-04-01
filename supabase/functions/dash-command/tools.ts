@@ -419,18 +419,19 @@ export const tools = [
     type: "function",
     function: {
       name: "create_shift_draft",
-      description: "Create a shift draft for user approval before creating. Shows preview of the shift.",
+      description: "Create a shift draft for user approval before creating. Shows preview of the shift. When the user mentions a person, always include employee_name. Never ask for min_staff or max_staff — they default to 1.",
       parameters: {
         type: "object",
         properties: {
           location_name: { type: "string" },
           location_id: { type: "string" },
           role: { type: "string", description: "Role/position for the shift" },
-          shift_date: { type: "string", description: "Date YYYY-MM-DD" },
+          shift_date: { type: "string", description: "Date YYYY-MM-DD or 'today' or 'tomorrow'" },
           start_time: { type: "string", description: "Start time HH:MM" },
           end_time: { type: "string", description: "End time HH:MM" },
-          min_staff: { type: "number", description: "Minimum staff needed" },
-          max_staff: { type: "number", description: "Maximum staff" },
+          shift_type: { type: "string", enum: ["regular", "extra", "training", "half", "extra_half"], description: "Shift type (default: regular). Use 'extra' for extra shifts, 'half' for half shifts, 'extra_half' for extra half shifts, 'training' for training shifts." },
+          min_staff: { type: "number", description: "Optional. Minimum staff needed (default: 1, do NOT ask the user for this)" },
+          max_staff: { type: "number", description: "Optional. Maximum staff (default: 1, do NOT ask the user for this)" },
           employee_name: { type: "string", description: "Full name of the employee to assign to this shift" },
           employee_id: { type: "string", description: "Employee ID to assign (if known)" },
         },
@@ -458,7 +459,7 @@ export const tools = [
     type: "function",
     function: {
       name: "update_shift_draft",
-      description: "Update an existing shift (change time, date, role, or reassign employee). Creates a draft for approval. Use when user says 'change shift', 'move shift', 'update schedule', 'reschedule'.",
+      description: "Update an existing shift (change time, date, role, shift type, or reassign employee). Creates a draft for approval. Use when user says 'change shift', 'move shift', 'update schedule', 'reschedule', 'mark as extra', 'change to training', 'set shift type'.",
       parameters: {
         type: "object",
         properties: {
@@ -470,6 +471,7 @@ export const tools = [
           new_end_time: { type: "string", description: "New end time HH:MM (if changing)" },
           new_shift_date: { type: "string", description: "New date YYYY-MM-DD (if moving to different day)" },
           new_role: { type: "string", description: "New role (if changing)" },
+          new_shift_type: { type: "string", enum: ["regular", "extra", "training", "half", "extra_half"], description: "New shift type: regular, extra, training, half, or extra_half" },
           new_employee_name: { type: "string", description: "New employee to assign (if reassigning)" },
           reason: { type: "string", description: "Reason for the change" },
         },
@@ -1786,6 +1788,321 @@ export const tools = [
         type: "object",
         properties: {
           pending_action_id: { type: "string", description: "Pending action UUID from create_training_program_draft" },
+        },
+        required: ["pending_action_id"],
+      },
+    },
+  },
+  // ─── Tests & Assessments ───
+  {
+    type: "function",
+    function: {
+      name: "list_tests",
+      description: "List all tests/assessments in the company. Use when user asks 'what tests do we have?', 'show me all tests', 'list assessments'.",
+      parameters: {
+        type: "object",
+        properties: {
+          active_only: { type: "boolean", description: "Only return active tests (default true)" },
+          limit: { type: "number", description: "Max results (default 50)" },
+        },
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "get_test_results",
+      description: "Get test submission results. Filter by test name or employee name.",
+      parameters: {
+        type: "object",
+        properties: {
+          test_name: { type: "string", description: "Test name (partial match)" },
+          test_id: { type: "string", description: "Test UUID" },
+          employee_name: { type: "string", description: "Filter by employee name" },
+          from: { type: "string", description: "Start date YYYY-MM-DD" },
+          to: { type: "string", description: "End date YYYY-MM-DD" },
+          limit: { type: "number", description: "Max results (default 50)" },
+        },
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "list_test_assignments",
+      description: "List test assignments (who has which test assigned, and whether completed).",
+      parameters: {
+        type: "object",
+        properties: {
+          employee_name: { type: "string", description: "Filter by employee name" },
+          test_name: { type: "string", description: "Filter by test name" },
+          completed: { type: "boolean", description: "Filter by completion status" },
+          limit: { type: "number", description: "Max results (default 50)" },
+        },
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "assign_test_draft",
+      description: "Assign a test to an employee. Creates a draft for approval.",
+      parameters: {
+        type: "object",
+        properties: {
+          test_name: { type: "string", description: "Test name (partial match)" },
+          test_id: { type: "string", description: "Test UUID (if known)" },
+          employee_name: { type: "string", description: "Employee name" },
+          employee_id: { type: "string", description: "Employee UUID (if known)" },
+        },
+        required: ["employee_name"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_test_assignment",
+      description: "Execute a test assignment after user approves the draft.",
+      parameters: {
+        type: "object",
+        properties: {
+          pending_action_id: { type: "string", description: "Pending action UUID from assign_test_draft" },
+        },
+        required: ["pending_action_id"],
+      },
+    },
+  },
+  // ─── Employee Warnings ───
+  {
+    type: "function",
+    function: {
+      name: "list_employee_warnings",
+      description: "List warnings issued to employees. Use when asked 'show warnings for [employee]', 'how many warnings does X have?', 'warning history'.",
+      parameters: {
+        type: "object",
+        properties: {
+          employee_name: { type: "string", description: "Filter by employee name" },
+          location_name: { type: "string", description: "Filter by location" },
+          from: { type: "string", description: "Start date YYYY-MM-DD" },
+          to: { type: "string", description: "End date YYYY-MM-DD" },
+          limit: { type: "number", description: "Max results (default 50)" },
+        },
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "issue_warning_draft",
+      description: "Issue a warning or coaching note to an employee. Creates a draft for approval.",
+      parameters: {
+        type: "object",
+        properties: {
+          employee_name: { type: "string", description: "Employee name" },
+          employee_id: { type: "string", description: "Employee UUID (if known)" },
+          event_type: { type: "string", enum: ["warning", "coaching_note"], description: "Type of event (default: warning)" },
+          severity: { type: "string", enum: ["minor", "major", "critical"], description: "Warning severity (default: minor)" },
+          description: { type: "string", description: "Description/reason for the warning" },
+          category: { type: "string", description: "Warning category (e.g. attendance, conduct, performance)" },
+          notes: { type: "string", description: "Additional notes" },
+        },
+        required: ["employee_name", "description"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_warning_issuance",
+      description: "Execute a warning issuance after user approves the draft.",
+      parameters: {
+        type: "object",
+        properties: {
+          pending_action_id: { type: "string", description: "Pending action UUID from issue_warning_draft" },
+        },
+        required: ["pending_action_id"],
+      },
+    },
+  },
+  // ─── Employee Dossier ───
+  {
+    type: "function",
+    function: {
+      name: "get_employee_dossier",
+      description: "Get a full profile snapshot for an employee: role, location, recent attendance, warnings, training status, last test score, open corrective actions. Use for 'show me [name]'s profile', 'full info on [name]', 'employee dossier'.",
+      parameters: {
+        type: "object",
+        properties: {
+          employee_name: { type: "string", description: "Employee name (partial match)" },
+          employee_id: { type: "string", description: "Employee UUID (if known)" },
+        },
+      },
+    },
+  },
+  // ─── Shift Publish/Unpublish ───
+  {
+    type: "function",
+    function: {
+      name: "publish_shifts_draft",
+      description: "Publish or unpublish shifts for a location and date range. Creates a draft showing how many shifts will be affected. Use for 'publish shifts', 'unpublish schedule', 'release schedule'.",
+      parameters: {
+        type: "object",
+        properties: {
+          location_name: { type: "string", description: "Location name" },
+          location_id: { type: "string", description: "Location UUID (if known)" },
+          from_date: { type: "string", description: "Start date YYYY-MM-DD" },
+          to_date: { type: "string", description: "End date YYYY-MM-DD (if range)" },
+          shift_date: { type: "string", description: "Single date YYYY-MM-DD (alternative to from_date/to_date)" },
+          publish: { type: "boolean", description: "true to publish, false to unpublish (default: true)" },
+        },
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_publish_shifts",
+      description: "Execute shift publish/unpublish after user approves the draft.",
+      parameters: {
+        type: "object",
+        properties: {
+          pending_action_id: { type: "string", description: "Pending action UUID from publish_shifts_draft" },
+        },
+        required: ["pending_action_id"],
+      },
+    },
+  },
+  // ─── Manual Clock-In ───
+  {
+    type: "function",
+    function: {
+      name: "manual_clock_in_draft",
+      description: "Manually record an attendance entry (clock-in) for an employee. Creates a draft for approval. Use for 'manually clock in [employee]', 'add attendance entry', 'record clock-in'.",
+      parameters: {
+        type: "object",
+        properties: {
+          employee_name: { type: "string", description: "Employee name" },
+          employee_id: { type: "string", description: "Employee UUID (if known)" },
+          check_in_time: { type: "string", description: "Clock-in time ISO 8601 or HH:MM (today assumed if only time given)" },
+          check_out_time: { type: "string", description: "Clock-out time (optional, can be added later)" },
+          location_name: { type: "string", description: "Location name" },
+          location_id: { type: "string", description: "Location UUID (if known)" },
+          reason: { type: "string", description: "Reason for manual entry" },
+        },
+        required: ["employee_name", "check_in_time"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_manual_clock_in",
+      description: "Execute a manual clock-in entry after user approves the draft.",
+      parameters: {
+        type: "object",
+        properties: {
+          pending_action_id: { type: "string", description: "Pending action UUID from manual_clock_in_draft" },
+        },
+        required: ["pending_action_id"],
+      },
+    },
+  },
+  // ─── CMMS Assets ───
+  {
+    type: "function",
+    function: {
+      name: "list_assets",
+      description: "List equipment/assets. Use for 'show me equipment', 'list assets', 'what equipment do we have?'.",
+      parameters: {
+        type: "object",
+        properties: {
+          location_name: { type: "string", description: "Filter by location name" },
+          status: { type: "string", enum: ["active", "inactive", "under_maintenance", "retired"], description: "Filter by asset status" },
+          limit: { type: "number", description: "Max results (default 50)" },
+        },
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "get_asset_details",
+      description: "Get detailed info about a specific asset including recent work orders.",
+      parameters: {
+        type: "object",
+        properties: {
+          asset_name: { type: "string", description: "Asset name (partial match)" },
+          asset_id: { type: "string", description: "Asset UUID (if known)" },
+        },
+      },
+    },
+  },
+  // ─── Labor Costs ───
+  {
+    type: "function",
+    function: {
+      name: "get_labor_costs",
+      description: "Get labor cost summary for a date range, optionally by location. Shows total hours and costs.",
+      parameters: {
+        type: "object",
+        properties: {
+          location_name: { type: "string", description: "Filter by location name" },
+          from: { type: "string", description: "Start date YYYY-MM-DD" },
+          to: { type: "string", description: "End date YYYY-MM-DD" },
+        },
+        required: ["from", "to"],
+      },
+    },
+  },
+  // ─── Training Sessions ───
+  {
+    type: "function",
+    function: {
+      name: "list_training_sessions",
+      description: "List training sessions scheduled or completed. Use for 'show training sessions', 'upcoming training', 'training schedule'.",
+      parameters: {
+        type: "object",
+        properties: {
+          location_name: { type: "string", description: "Filter by location" },
+          from: { type: "string", description: "Start date YYYY-MM-DD" },
+          to: { type: "string", description: "End date YYYY-MM-DD" },
+          program_name: { type: "string", description: "Filter by training program name" },
+          limit: { type: "number", description: "Max results (default 20)" },
+        },
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "create_training_session_draft",
+      description: "Schedule a training session. Creates a draft for approval.",
+      parameters: {
+        type: "object",
+        properties: {
+          program_name: { type: "string", description: "Training program name (partial match)" },
+          program_id: { type: "string", description: "Training program UUID (if known)" },
+          location_name: { type: "string", description: "Location name" },
+          session_date: { type: "string", description: "Session date YYYY-MM-DD" },
+          start_time: { type: "string", description: "Start time HH:MM" },
+          end_time: { type: "string", description: "End time HH:MM" },
+          trainer_name: { type: "string", description: "Trainer employee name (optional)" },
+          max_attendees: { type: "number", description: "Maximum attendees (optional)" },
+        },
+        required: ["session_date", "start_time", "end_time"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_training_session_creation",
+      description: "Execute a training session creation after user approves the draft.",
+      parameters: {
+        type: "object",
+        properties: {
+          pending_action_id: { type: "string", description: "Pending action UUID from create_training_session_draft" },
         },
         required: ["pending_action_id"],
       },
