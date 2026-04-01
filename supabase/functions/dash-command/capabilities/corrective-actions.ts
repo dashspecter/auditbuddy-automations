@@ -573,3 +573,42 @@ export async function executeAddCaItem(
 
   return success({ type: "ca_item_added", item_id: item.id });
 }
+
+// ─── CA Events Audit Trail ───
+
+export async function listCaEvents(
+  sb: any, companyId: string, args: any
+): Promise<CapabilityResult<any>> {
+  // Resolve CA: by id or by title
+  let caId = args.ca_id || null;
+  if (!caId && args.ca_title) {
+    const { data: cas } = await sb.from("corrective_actions")
+      .select("id, title").eq("company_id", companyId).ilike("title", `%${args.ca_title}%`).limit(1);
+    if (!cas?.length) return capabilityError(`No corrective action matching "${args.ca_title}".`);
+    caId = cas[0].id;
+  }
+  if (!caId) return capabilityError("ca_id or ca_title is required.");
+
+  // Verify company ownership
+  const { data: ca } = await sb.from("corrective_actions").select("id, title, company_id").eq("id", caId).maybeSingle();
+  if (!ca || ca.company_id !== companyId) return capabilityError("Corrective action not found.");
+
+  const { data, error } = await sb.from("corrective_action_events")
+    .select("id, event_type, description, created_by, created_at")
+    .eq("corrective_action_id", caId)
+    .order("created_at", { ascending: true })
+    .limit(100);
+
+  if (error) return capabilityError(error.message);
+
+  return success({
+    ca_title: ca.title,
+    total_events: data?.length ?? 0,
+    events: (data || []).map((e: any) => ({
+      event_type: e.event_type,
+      description: e.description,
+      created_by: e.created_by,
+      created_at: e.created_at,
+    })),
+  });
+}

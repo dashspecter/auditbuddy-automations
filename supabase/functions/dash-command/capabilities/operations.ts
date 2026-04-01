@@ -609,7 +609,22 @@ export async function createTrainingAssignmentDraft(
     if (data?.[0]) { moduleId = data[0].id; moduleName = data[0].name; }
   }
 
-  const draft = { employee_id: employeeId, employee_name: employeeName, module_id: moduleId, module_name: moduleName, start_date: args.start_date || new Date().toISOString().split("T")[0] };
+  // Optionally resolve trainer
+  let trainerId = args.trainer_employee_id || null;
+  let trainerName = args.trainer_employee_name || null;
+  if (!trainerId && trainerName) {
+    const { data: trData } = await sb.from("employees").select("id, full_name").eq("company_id", companyId).ilike("full_name", `%${trainerName}%`).limit(1);
+    if (trData?.[0]) { trainerId = trData[0].id; trainerName = trData[0].full_name; }
+  }
+
+  const draft = {
+    employee_id: employeeId, employee_name: employeeName,
+    module_id: moduleId, module_name: moduleName,
+    start_date: args.start_date || new Date().toISOString().split("T")[0],
+    trainer_employee_id: trainerId || null,
+    trainer_name: trainerName || null,
+    experience_level: args.experience_level || null,
+  };
 
   const missing: string[] = [];
   if (!employeeId) missing.push("employee");
@@ -653,6 +668,8 @@ export async function executeTrainingAssignment(
   const { data: taData, error } = await sbService.from("training_assignments").insert({
     company_id: companyId, trainee_employee_id: draft.employee_id, module_id: draft.module_id,
     status: "assigned", start_date: draft.start_date, assigned_by: userId,
+    trainer_employee_id: draft.trainer_employee_id || null,
+    experience_level: draft.experience_level || null,
   }).select("id").single();
 
   if (error) {
@@ -1820,6 +1837,280 @@ export async function getPayrollSummary(
   });
 }
 
+// ─── Payroll Writes ───
+
+export async function createPayrollPeriodDraft(
+  sb: any, sbService: any, companyId: string, userId: string, args: any, structuredEvents: string[],
+  ctx: PermissionContext
+): Promise<CapabilityResult<any>> {
+  const permCheck = checkCapabilityPermission({ action: "create", module: "payroll", ctx });
+  if (!permCheck.ok) return permCheck;
+
+  const missing: string[] = [];
+  if (!args.name) missing.push("name (e.g. 'March 2026')");
+  if (!args.period_start) missing.push("period_start (YYYY-MM-DD)");
+  if (!args.period_end) missing.push("period_end (YYYY-MM-DD)");
+  if (missing.length > 0) return capabilityError(`Missing required fields: ${missing.join(", ")}.`);
+
+  const draft = {
+    name: args.name,
+    period_start: args.period_start,
+    period_end: args.period_end,
+    notes: args.notes || null,
+  };
+
+  const { data: paData, error: paError } = await sbService.from("dash_pending_actions").insert({
+    company_id: companyId, user_id: userId, action_name: "create_payroll_period",
+    action_type: "write", risk_level: "high", preview_json: draft, status: "pending",
+  }).select("id").single();
+  if (paError || !paData?.id) return capabilityError(`Failed to create draft: ${paError?.message}`);
+
+  structuredEvents.push(makeStructuredEvent("action_preview", {
+    action: "Create Payroll Period",
+    summary: `Create payroll period "${draft.name}" (${draft.period_start} → ${draft.period_end})`,
+    risk: "high",
+    pending_action_id: paData.id,
+    draft,
+    can_approve: true,
+  }));
+
+  return success({ type: "payroll_period_draft", draft, pending_action_id: paData.id, requires_approval: true });
+}
+
+export async function executeCreatePayrollPeriod(
+  sbService: any, companyId: string, userId: string, args: any, structuredEvents: string[],
+  ctx: PermissionContext
+): Promise<CapabilityResult<any>> {
+  const permCheck = checkCapabilityPermission({ action: "create", module: "payroll", ctx });
+  if (!permCheck.ok) return permCheck;
+
+  const { data: pa } = await sbService.from("dash_pending_actions")
+    .select("id, status, company_id, preview_json").eq("id", args.pending_action_id).maybeSingle();
+  if (!pa) return capabilityError("Pending action not found.");
+  if (pa.company_id !== companyId) return capabilityError("Cross-tenant action rejected.");
+  if (pa.status !== "pending") return capabilityError(`Action already ${pa.status}.`);
+
+  const d = pa.preview_json as any;
+  const { data: periodData, error: periodError } = await sbService.from("payroll_periods").insert({
+    company_id: companyId,
+    name: d.name,
+    period_start: d.period_start,
+    period_end: d.period_end,
+    status: "draft",
+    notes: d.notes || null,
+    created_by: userId,
+  }).select("id, name").single();
+
+  if (periodError) {
+    await sbService.from("dash_pending_actions").update({ status: "failed", execution_result: { error: periodError.message }, updated_at: new Date().toISOString() }).eq("id", pa.id);
+    return capabilityError(`Failed to create payroll period: ${periodError.message}`);
+  }
+
+  await sbService.from("dash_pending_actions").update({
+    status: "executed", approved_at: new Date().toISOString(), approved_by: userId,
+    execution_result: { success: true, period_id: periodData.id }, updated_at: new Date().toISOString(),
+  }).eq("id", pa.id);
+
+  structuredEvents.push(makeStructuredEvent("execution_result", {
+    status: "success", title: "Payroll Period Created",
+    summary: `Payroll period "${periodData.name}" created in draft status.`,
+  }));
+
+  return success({ type: "payroll_period_created", period_id: periodData.id, name: periodData.name });
+}
+
+export async function addPayrollItemDraft(
+  sb: any, sbService: any, companyId: string, userId: string, args: any, structuredEvents: string[],
+  ctx: PermissionContext
+): Promise<CapabilityResult<any>> {
+  const permCheck = checkCapabilityPermission({ action: "create", module: "payroll", ctx });
+  if (!permCheck.ok) return permCheck;
+
+  // Resolve payroll period
+  let periodId = args.period_id || null;
+  let periodName: string | null = null;
+  if (!periodId && args.period_name) {
+    const { data: per } = await sb.from("payroll_periods")
+      .select("id, name, status").eq("company_id", companyId).ilike("name", `%${args.period_name}%`).limit(1).maybeSingle();
+    if (!per) return capabilityError(`No payroll period matching "${args.period_name}".`);
+    if (!["draft", "calculated"].includes(per.status)) return capabilityError(`Payroll period "${per.name}" is ${per.status}. Can only add items to draft or calculated periods.`);
+    periodId = per.id; periodName = per.name;
+  }
+  if (!periodId) return capabilityError("period_id or period_name is required.");
+
+  // Resolve employee
+  let empId = args.employee_id || null;
+  let empName = args.employee_name || null;
+  if (!empId && empName) {
+    const { data: emps } = await sb.from("employees").select("id, full_name").eq("company_id", companyId).ilike("full_name", `%${empName}%`).limit(5);
+    if (!emps?.length) return capabilityError(`Employee "${empName}" not found.`);
+    if (emps.length > 1) return capabilityError(`Multiple employees match "${empName}": ${emps.map((e: any) => e.full_name).join(", ")}.`);
+    empId = emps[0].id; empName = emps[0].full_name;
+  }
+  if (!empId) return capabilityError("employee_id or employee_name is required.");
+
+  const VALID_ITEM_TYPES = ["base", "overtime", "bonus", "penalty", "tips", "deduction", "adjustment"];
+  const itemType = VALID_ITEM_TYPES.includes(args.item_type) ? args.item_type : "adjustment";
+  const amount = Number(args.amount);
+  if (isNaN(amount)) return capabilityError("amount must be a number.");
+
+  const draft = {
+    period_id: periodId,
+    period_name: periodName,
+    employee_id: empId,
+    employee_name: empName,
+    item_type: itemType,
+    amount,
+    description: args.description || itemType,
+  };
+
+  const { data: paData, error: paError } = await sbService.from("dash_pending_actions").insert({
+    company_id: companyId, user_id: userId, action_name: "add_payroll_item",
+    action_type: "write", risk_level: "medium", preview_json: draft, status: "pending",
+  }).select("id").single();
+  if (paError || !paData?.id) return capabilityError(`Failed to create draft: ${paError?.message}`);
+
+  structuredEvents.push(makeStructuredEvent("action_preview", {
+    action: "Add Payroll Item",
+    summary: `Add ${itemType} of ${amount} for ${empName} to period "${periodName}"`,
+    risk: "medium",
+    pending_action_id: paData.id,
+    draft,
+    can_approve: true,
+  }));
+
+  return success({ type: "payroll_item_draft", draft, pending_action_id: paData.id, requires_approval: true });
+}
+
+export async function executeAddPayrollItem(
+  sbService: any, companyId: string, userId: string, args: any, structuredEvents: string[],
+  ctx: PermissionContext
+): Promise<CapabilityResult<any>> {
+  const permCheck = checkCapabilityPermission({ action: "create", module: "payroll", ctx });
+  if (!permCheck.ok) return permCheck;
+
+  const { data: pa } = await sbService.from("dash_pending_actions")
+    .select("id, status, company_id, preview_json").eq("id", args.pending_action_id).maybeSingle();
+  if (!pa) return capabilityError("Pending action not found.");
+  if (pa.company_id !== companyId) return capabilityError("Cross-tenant action rejected.");
+  if (pa.status !== "pending") return capabilityError(`Action already ${pa.status}.`);
+
+  const d = pa.preview_json as any;
+  const { data: itemData, error: itemError } = await sbService.from("payroll_items").insert({
+    payroll_period_id: d.period_id,
+    employee_id: d.employee_id,
+    item_type: d.item_type,
+    amount: d.amount,
+    description: d.description,
+    created_by: userId,
+  }).select("id").single();
+
+  if (itemError) {
+    await sbService.from("dash_pending_actions").update({ status: "failed", execution_result: { error: itemError.message }, updated_at: new Date().toISOString() }).eq("id", pa.id);
+    return capabilityError(`Failed to add payroll item: ${itemError.message}`);
+  }
+
+  await sbService.from("dash_pending_actions").update({
+    status: "executed", approved_at: new Date().toISOString(), approved_by: userId,
+    execution_result: { success: true, item_id: itemData.id }, updated_at: new Date().toISOString(),
+  }).eq("id", pa.id);
+
+  structuredEvents.push(makeStructuredEvent("execution_result", {
+    status: "success", title: "Payroll Item Added",
+    summary: `${d.item_type} of ${d.amount} added for ${d.employee_name}.`,
+  }));
+
+  return success({ type: "payroll_item_added", item_id: itemData.id });
+}
+
+export async function updatePayrollPeriodStatusDraft(
+  sb: any, sbService: any, companyId: string, userId: string, args: any, structuredEvents: string[],
+  ctx: PermissionContext
+): Promise<CapabilityResult<any>> {
+  const permCheck = checkCapabilityPermission({ action: "update", module: "payroll", ctx });
+  if (!permCheck.ok) return permCheck;
+
+  // Resolve period
+  let periodId = args.period_id || null;
+  let periodName: string | null = null;
+  if (!periodId && args.period_name) {
+    const { data: per } = await sb.from("payroll_periods")
+      .select("id, name, status").eq("company_id", companyId).ilike("name", `%${args.period_name}%`).limit(1).maybeSingle();
+    if (!per) return capabilityError(`No payroll period matching "${args.period_name}".`);
+    periodId = per.id; periodName = per.name;
+  } else if (periodId) {
+    const { data: per } = await sb.from("payroll_periods").select("id, name, status, company_id").eq("id", periodId).maybeSingle();
+    if (!per || per.company_id !== companyId) return capabilityError("Payroll period not found.");
+    periodName = per.name;
+  }
+  if (!periodId) return capabilityError("period_id or period_name is required.");
+
+  const VALID_STATUSES = ["calculated", "approved", "paid", "closed"];
+  const newStatus = args.new_status;
+  if (!VALID_STATUSES.includes(newStatus)) return capabilityError(`new_status must be one of: ${VALID_STATUSES.join(", ")}.`);
+
+  const draft = { period_id: periodId, period_name: periodName, new_status: newStatus, notes: args.notes || null };
+
+  const riskLevel = newStatus === "paid" ? "high" : "medium";
+  const { data: paData, error: paError } = await sbService.from("dash_pending_actions").insert({
+    company_id: companyId, user_id: userId, action_name: "update_payroll_status",
+    action_type: "write", risk_level: riskLevel, preview_json: draft, status: "pending",
+  }).select("id").single();
+  if (paError || !paData?.id) return capabilityError(`Failed to create draft: ${paError?.message}`);
+
+  structuredEvents.push(makeStructuredEvent("action_preview", {
+    action: "Update Payroll Status",
+    summary: `Change payroll period "${periodName}" status to "${newStatus}"`,
+    risk: riskLevel,
+    pending_action_id: paData.id,
+    draft,
+    can_approve: true,
+  }));
+
+  return success({ type: "payroll_status_draft", draft, pending_action_id: paData.id, requires_approval: true });
+}
+
+export async function executeUpdatePayrollPeriodStatus(
+  sbService: any, companyId: string, userId: string, args: any, structuredEvents: string[],
+  ctx: PermissionContext
+): Promise<CapabilityResult<any>> {
+  const permCheck = checkCapabilityPermission({ action: "update", module: "payroll", ctx });
+  if (!permCheck.ok) return permCheck;
+
+  const { data: pa } = await sbService.from("dash_pending_actions")
+    .select("id, status, company_id, preview_json").eq("id", args.pending_action_id).maybeSingle();
+  if (!pa) return capabilityError("Pending action not found.");
+  if (pa.company_id !== companyId) return capabilityError("Cross-tenant action rejected.");
+  if (pa.status !== "pending") return capabilityError(`Action already ${pa.status}.`);
+
+  const d = pa.preview_json as any;
+  const updateFields: Record<string, any> = {
+    status: d.new_status,
+    updated_at: new Date().toISOString(),
+  };
+  if (d.new_status === "approved") { updateFields.approved_at = new Date().toISOString(); updateFields.approved_by = userId; }
+  if (d.new_status === "paid") { updateFields.paid_at = new Date().toISOString(); updateFields.paid_by = userId; }
+
+  const { error: updateError } = await sbService.from("payroll_periods").update(updateFields).eq("id", d.period_id).eq("company_id", companyId);
+
+  if (updateError) {
+    await sbService.from("dash_pending_actions").update({ status: "failed", execution_result: { error: updateError.message }, updated_at: new Date().toISOString() }).eq("id", pa.id);
+    return capabilityError(`Failed to update payroll status: ${updateError.message}`);
+  }
+
+  await sbService.from("dash_pending_actions").update({
+    status: "executed", approved_at: new Date().toISOString(), approved_by: userId,
+    execution_result: { success: true }, updated_at: new Date().toISOString(),
+  }).eq("id", pa.id);
+
+  structuredEvents.push(makeStructuredEvent("execution_result", {
+    status: "success", title: "Payroll Status Updated",
+    summary: `Payroll period "${d.period_name}" is now "${d.new_status}".`,
+  }));
+
+  return success({ type: "payroll_status_updated", period_id: d.period_id, new_status: d.new_status });
+}
+
 // ─── Employee Performance ───
 
 export async function getEmployeePerformanceReport(
@@ -1869,4 +2160,845 @@ export async function getEmployeePerformanceReport(
       rank_in_location: r.rank_in_location,
     })),
   });
+}
+
+// ─── CMMS PM Plans ───
+
+export async function listPmPlans(
+  sb: any, companyId: string, args: any
+): Promise<CapabilityResult<any>> {
+  const limit = Math.min(args.limit || 50, 200);
+
+  let q = sb.from("cmms_pm_plans")
+    .select("id, name, scope_type, asset_id, cmms_assets(name), location_id, locations(name), frequency_type, frequency_value, next_due_at, auto_create_work_order, is_active, procedure_id, cmms_procedures(name)")
+    .eq("company_id", companyId)
+    .order("next_due_at", { ascending: true })
+    .limit(limit);
+
+  if (args.is_active !== undefined) q = q.eq("is_active", args.is_active);
+  else q = q.eq("is_active", true);
+  if (args.location_name) {
+    const { data: loc } = await sb.from("locations").select("id")
+      .eq("company_id", companyId).ilike("name", `%${args.location_name}%`).limit(1).maybeSingle();
+    if (loc) q = q.eq("location_id", loc.id);
+  }
+  if (args.overdue_only) q = q.lte("next_due_at", new Date().toISOString());
+
+  const { data, error } = await q;
+  if (error) return capabilityError(error.message);
+
+  const today = new Date().toISOString();
+  return success({
+    total: data?.length ?? 0,
+    plans: (data || []).map((p: any) => ({
+      id: p.id,
+      name: p.name,
+      scope_type: p.scope_type,
+      asset: p.cmms_assets?.name,
+      location: p.locations?.name,
+      frequency: `every ${p.frequency_value} ${p.frequency_type}`,
+      next_due_at: p.next_due_at,
+      overdue: p.next_due_at ? p.next_due_at < today : false,
+      auto_create_work_order: p.auto_create_work_order,
+      procedure: p.cmms_procedures?.name,
+    })),
+  });
+}
+
+export async function getPmComplianceReport(
+  sb: any, companyId: string, args: any
+): Promise<CapabilityResult<any>> {
+  const from = args.from || new Date(Date.now() - 30 * 86400000).toISOString().split("T")[0];
+  const to = args.to || new Date().toISOString().split("T")[0];
+
+  const { data: runs, error } = await sb.from("cmms_pm_runs")
+    .select("id, pm_plan_id, cmms_pm_plans(name, location_id, locations(name)), run_at, status, generated_work_order_id")
+    .eq("company_id", companyId)
+    .gte("run_at", from)
+    .lte("run_at", to + "T23:59:59Z")
+    .order("run_at", { ascending: false })
+    .limit(500);
+
+  if (error) return capabilityError(error.message);
+
+  const all = runs || [];
+  const completed = all.filter((r: any) => r.status === "completed");
+  const missed = all.filter((r: any) => r.status === "missed" || r.status === "skipped");
+
+  const complianceRate = all.length > 0
+    ? Math.round((completed.length / all.length) * 100) : null;
+
+  return success({
+    period: { from, to },
+    total_runs: all.length,
+    completed: completed.length,
+    missed: missed.length,
+    compliance_rate_pct: complianceRate,
+    runs: all.slice(0, 50).map((r: any) => ({
+      plan: r.cmms_pm_plans?.name,
+      location: r.cmms_pm_plans?.locations?.name,
+      run_at: r.run_at,
+      status: r.status,
+      work_order_id: r.generated_work_order_id,
+    })),
+  });
+}
+
+export async function createPmPlanDraft(
+  sb: any, sbService: any, companyId: string, userId: string,
+  args: any, structuredEvents: string[], ctx: PermissionContext
+): Promise<CapabilityResult<any>> {
+  const permCheck = checkCapabilityPermission(ctx, "create", "cmms");
+  if (!permCheck.allowed) return capabilityError(permCheck.reason ?? "Permission denied.");
+
+  if (!args.name) return capabilityError("name is required.");
+  if (!args.frequency_type) return capabilityError("frequency_type is required (daily/weekly/monthly/quarterly/yearly/cycles).");
+  if (!args.frequency_value) return capabilityError("frequency_value is required (number).");
+
+  const VALID_FREQ = ["daily", "weekly", "monthly", "quarterly", "yearly", "cycles"];
+  if (!VALID_FREQ.includes(args.frequency_type)) return capabilityError(`frequency_type must be one of: ${VALID_FREQ.join(", ")}`);
+
+  let assetId: string | null = null;
+  let assetName: string | null = null;
+  if (args.asset_name) {
+    const { data: asset } = await sb.from("cmms_assets").select("id, name")
+      .eq("company_id", companyId).ilike("name", `%${args.asset_name}%`).limit(1).maybeSingle();
+    if (!asset) return capabilityError(`No CMMS asset matching "${args.asset_name}".`);
+    assetId = asset.id; assetName = asset.name;
+  }
+
+  let locationId: string | null = null;
+  let locationName: string | null = null;
+  if (args.location_name) {
+    const { data: loc } = await sb.from("locations").select("id, name")
+      .eq("company_id", companyId).ilike("name", `%${args.location_name}%`).limit(1).maybeSingle();
+    if (!loc) return capabilityError(`No location matching "${args.location_name}".`);
+    locationId = loc.id; locationName = loc.name;
+  }
+
+  const draft = {
+    name: args.name,
+    scope_type: assetId ? "asset" : "location",
+    asset_id: assetId,
+    asset_name: assetName,
+    location_id: locationId,
+    location_name: locationName,
+    frequency_type: args.frequency_type,
+    frequency_value: args.frequency_value,
+    auto_create_work_order: args.auto_create_work_order ?? true,
+    next_due_at: args.next_due_at || null,
+    is_active: true,
+  };
+
+  const { data: pa, error: paError } = await sbService.from("dash_pending_actions").insert({
+    company_id: companyId, created_by: userId, action_type: "write",
+    action_name: "create_pm_plan", risk_level: "medium",
+    preview_json: draft, status: "pending",
+  }).select("id").single();
+
+  if (paError) return capabilityError(`Failed to create draft: ${paError.message}`);
+
+  structuredEvents.push(makeStructuredEvent("action_preview", {
+    pending_action_id: pa.id, action_name: "create_pm_plan", risk_level: "medium",
+    title: "Create PM Plan",
+    summary: `Create PM plan **"${args.name}"** — every ${args.frequency_value} ${args.frequency_type}${assetName ? ` for asset "${assetName}"` : locationName ? ` at ${locationName}` : ""}.`,
+    fields: [
+      { label: "Name", value: args.name },
+      { label: "Frequency", value: `Every ${args.frequency_value} ${args.frequency_type}` },
+      ...(assetName ? [{ label: "Asset", value: assetName }] : []),
+      ...(locationName ? [{ label: "Location", value: locationName }] : []),
+      { label: "Auto-create WO", value: String(draft.auto_create_work_order) },
+    ],
+  }));
+
+  return success({ pending_action_id: pa.id, draft });
+}
+
+export async function executeCreatePmPlan(
+  sbService: any, companyId: string, userId: string,
+  args: any, structuredEvents: string[], ctx: PermissionContext
+): Promise<CapabilityResult<any>> {
+  const permCheck = checkCapabilityPermission(ctx, "create", "cmms");
+  if (!permCheck.allowed) return capabilityError(permCheck.reason ?? "Permission denied.");
+
+  const { data: pa } = await sbService.from("dash_pending_actions")
+    .select("id, status, company_id, preview_json").eq("id", args.pending_action_id).maybeSingle();
+  if (!pa) return capabilityError("Pending action not found.");
+  if (pa.company_id !== companyId) return capabilityError("Cross-tenant action rejected.");
+  if (pa.status !== "pending") return capabilityError(`Action already ${pa.status}.`);
+
+  const d = pa.preview_json as any;
+
+  const { data: plan, error: planError } = await sbService.from("cmms_pm_plans").insert({
+    company_id: companyId,
+    name: d.name,
+    scope_type: d.scope_type,
+    asset_id: d.asset_id || null,
+    location_id: d.location_id || null,
+    frequency_type: d.frequency_type,
+    frequency_value: d.frequency_value,
+    auto_create_work_order: d.auto_create_work_order ?? true,
+    next_due_at: d.next_due_at || null,
+    is_active: true,
+    created_by: userId,
+  }).select("id").single();
+
+  if (planError) {
+    await sbService.from("dash_pending_actions").update({ status: "failed", execution_result: { error: planError.message }, updated_at: new Date().toISOString() }).eq("id", pa.id);
+    return capabilityError(`Failed to create PM plan: ${planError.message}`);
+  }
+
+  await sbService.from("dash_pending_actions").update({
+    status: "executed", approved_at: new Date().toISOString(), approved_by: userId,
+    execution_result: { success: true, plan_id: plan.id }, updated_at: new Date().toISOString(),
+  }).eq("id", pa.id);
+
+  structuredEvents.push(makeStructuredEvent("execution_result", {
+    status: "success", title: "PM Plan Created",
+    summary: `Preventive maintenance plan "${d.name}" created. Runs every ${d.frequency_value} ${d.frequency_type}.`,
+  }));
+
+  return success({ type: "pm_plan_created", plan_id: plan.id });
+}
+
+// ─── CMMS Parts & Vendors ───
+
+export async function listCmmsParts(
+  sb: any, companyId: string, args: any
+): Promise<CapabilityResult<any>> {
+  const limit = Math.min(args.limit || 50, 200);
+
+  let q = sb.from("cmms_parts")
+    .select("id, name, part_number, category, unit_cost, unit_of_measure, is_active")
+    .eq("company_id", companyId)
+    .order("name", { ascending: true })
+    .limit(limit);
+
+  if (args.is_active !== undefined) q = q.eq("is_active", args.is_active);
+  else q = q.eq("is_active", true);
+  if (args.category) q = q.ilike("category", `%${args.category}%`);
+  if (args.name) q = q.ilike("name", `%${args.name}%`);
+
+  const { data, error } = await q;
+  if (error) return capabilityError(error.message);
+
+  return success({
+    total: data?.length ?? 0,
+    parts: (data || []).map((p: any) => ({
+      id: p.id,
+      name: p.name,
+      part_number: p.part_number,
+      category: p.category,
+      unit_cost: p.unit_cost,
+      unit_of_measure: p.unit_of_measure,
+    })),
+  });
+}
+
+export async function getPartsStockReport(
+  sb: any, companyId: string, args: any
+): Promise<CapabilityResult<any>> {
+  // Get parts with stock levels
+  const { data: stock, error } = await sb.from("cmms_part_stock")
+    .select("id, part_id, cmms_parts(name, part_number, category, unit_cost, unit_of_measure, company_id), location_id, locations(name), quantity_on_hand, quantity_reserved, reorder_point, reorder_quantity")
+    .eq("company_id", companyId)
+    .order("quantity_on_hand", { ascending: true })
+    .limit(200);
+
+  if (error) return capabilityError(error.message);
+
+  // Filter by company_id on parts
+  const items = (stock || []).filter((s: any) => s.cmms_parts?.company_id === companyId);
+
+  const lowStock = items.filter((s: any) =>
+    s.reorder_point != null && s.quantity_on_hand <= s.reorder_point
+  );
+
+  if (args.location_name) {
+    const { data: loc } = await sb.from("locations").select("id")
+      .eq("company_id", companyId).ilike("name", `%${args.location_name}%`).limit(1).maybeSingle();
+    if (!loc) return capabilityError(`No location matching "${args.location_name}".`);
+    const filtered = items.filter((s: any) => s.location_id === loc.id);
+    return success({
+      total: filtered.length,
+      low_stock_count: filtered.filter((s: any) => s.reorder_point != null && s.quantity_on_hand <= s.reorder_point).length,
+      stock: filtered.map((s: any) => ({
+        part: s.cmms_parts?.name,
+        part_number: s.cmms_parts?.part_number,
+        location: s.locations?.name,
+        quantity_on_hand: s.quantity_on_hand,
+        quantity_reserved: s.quantity_reserved,
+        reorder_point: s.reorder_point,
+        low_stock: s.reorder_point != null && s.quantity_on_hand <= s.reorder_point,
+        unit_cost: s.cmms_parts?.unit_cost,
+      })),
+    });
+  }
+
+  return success({
+    total: items.length,
+    low_stock_count: lowStock.length,
+    low_stock_items: lowStock.slice(0, 20).map((s: any) => ({
+      part: s.cmms_parts?.name,
+      part_number: s.cmms_parts?.part_number,
+      location: s.locations?.name,
+      quantity_on_hand: s.quantity_on_hand,
+      reorder_point: s.reorder_point,
+    })),
+    all_stock: items.slice(0, 100).map((s: any) => ({
+      part: s.cmms_parts?.name,
+      location: s.locations?.name,
+      quantity_on_hand: s.quantity_on_hand,
+      reorder_point: s.reorder_point,
+      low_stock: s.reorder_point != null && s.quantity_on_hand <= s.reorder_point,
+    })),
+  });
+}
+
+export async function listCmmsVendors(
+  sb: any, companyId: string, _args: any
+): Promise<CapabilityResult<any>> {
+  const { data, error } = await sb.from("cmms_vendors")
+    .select("id, name, contact_name, contact_email, contact_phone, website, is_active")
+    .eq("company_id", companyId)
+    .eq("is_active", true)
+    .order("name", { ascending: true })
+    .limit(100);
+
+  if (error) return capabilityError(error.message);
+
+  return success({
+    total: data?.length ?? 0,
+    vendors: (data || []).map((v: any) => ({
+      id: v.id,
+      name: v.name,
+      contact_name: v.contact_name,
+      contact_email: v.contact_email,
+      contact_phone: v.contact_phone,
+      website: v.website,
+    })),
+  });
+}
+
+export async function createPurchaseOrderDraft(
+  sb: any, sbService: any, companyId: string, userId: string,
+  args: any, structuredEvents: string[], ctx: PermissionContext
+): Promise<CapabilityResult<any>> {
+  const permCheck = checkCapabilityPermission(ctx, "create", "cmms");
+  if (!permCheck.allowed) return capabilityError(permCheck.reason ?? "Permission denied.");
+
+  if (!args.items || args.items.length === 0) return capabilityError("items array is required (at minimum one item with part_name and quantity).");
+
+  // Resolve vendor
+  let vendorId: string | null = null;
+  let vendorName: string | null = null;
+  if (args.vendor_name) {
+    const { data: vendor } = await sb.from("cmms_vendors").select("id, name")
+      .eq("company_id", companyId).ilike("name", `%${args.vendor_name}%`).limit(1).maybeSingle();
+    if (!vendor) return capabilityError(`No vendor matching "${args.vendor_name}".`);
+    vendorId = vendor.id; vendorName = vendor.name;
+  }
+
+  // Resolve parts
+  const resolvedItems: any[] = [];
+  for (const item of args.items) {
+    let partId: string | null = item.part_id || null;
+    let partName = item.part_name || null;
+    let unitCost = item.unit_cost ?? null;
+    if (!partId && partName) {
+      const { data: part } = await sb.from("cmms_parts").select("id, name, unit_cost")
+        .eq("company_id", companyId).ilike("name", `%${partName}%`).limit(1).maybeSingle();
+      if (part) { partId = part.id; partName = part.name; unitCost = unitCost ?? part.unit_cost; }
+    }
+    resolvedItems.push({ part_id: partId, part_name: partName, quantity: item.quantity, unit_cost: unitCost });
+  }
+
+  const totalEstimate = resolvedItems.reduce((sum: number, i: any) => sum + (i.quantity * (i.unit_cost || 0)), 0);
+
+  const draft = {
+    vendor_id: vendorId,
+    vendor_name: vendorName,
+    notes: args.notes || null,
+    items: resolvedItems,
+    total_estimate: totalEstimate,
+  };
+
+  const { data: pa, error: paError } = await sbService.from("dash_pending_actions").insert({
+    company_id: companyId, created_by: userId, action_type: "write",
+    action_name: "create_purchase_order", risk_level: "medium",
+    preview_json: draft, status: "pending",
+  }).select("id").single();
+
+  if (paError) return capabilityError(`Failed to create draft: ${paError.message}`);
+
+  structuredEvents.push(makeStructuredEvent("action_preview", {
+    pending_action_id: pa.id, action_name: "create_purchase_order", risk_level: "medium",
+    title: "Create Purchase Order",
+    summary: `Purchase order for ${resolvedItems.length} item(s)${vendorName ? ` from **${vendorName}**` : ""}. Estimated total: ${totalEstimate.toFixed(2)}.`,
+    fields: [
+      ...(vendorName ? [{ label: "Vendor", value: vendorName }] : []),
+      ...resolvedItems.map((i: any) => ({ label: i.part_name || "Part", value: `Qty: ${i.quantity}${i.unit_cost ? ` @ ${i.unit_cost}` : ""}` })),
+      { label: "Est. Total", value: String(totalEstimate.toFixed(2)) },
+    ],
+  }));
+
+  return success({ pending_action_id: pa.id, draft });
+}
+
+export async function executeCreatePurchaseOrder(
+  sbService: any, companyId: string, userId: string,
+  args: any, structuredEvents: string[], ctx: PermissionContext
+): Promise<CapabilityResult<any>> {
+  const permCheck = checkCapabilityPermission(ctx, "create", "cmms");
+  if (!permCheck.allowed) return capabilityError(permCheck.reason ?? "Permission denied.");
+
+  const { data: pa } = await sbService.from("dash_pending_actions")
+    .select("id, status, company_id, preview_json").eq("id", args.pending_action_id).maybeSingle();
+  if (!pa) return capabilityError("Pending action not found.");
+  if (pa.company_id !== companyId) return capabilityError("Cross-tenant action rejected.");
+  if (pa.status !== "pending") return capabilityError(`Action already ${pa.status}.`);
+
+  const d = pa.preview_json as any;
+
+  const { data: po, error: poError } = await sbService.from("cmms_purchase_orders").insert({
+    company_id: companyId,
+    vendor_id: d.vendor_id || null,
+    notes: d.notes || null,
+    status: "draft",
+    created_by: userId,
+  }).select("id").single();
+
+  if (poError) {
+    await sbService.from("dash_pending_actions").update({ status: "failed", execution_result: { error: poError.message }, updated_at: new Date().toISOString() }).eq("id", pa.id);
+    return capabilityError(`Failed to create purchase order: ${poError.message}`);
+  }
+
+  // Insert line items
+  if (d.items?.length > 0) {
+    const lineItems = d.items.map((i: any) => ({
+      purchase_order_id: po.id,
+      part_id: i.part_id || null,
+      part_name: i.part_name,
+      quantity: i.quantity,
+      unit_cost: i.unit_cost || null,
+    }));
+    await sbService.from("cmms_purchase_order_items").insert(lineItems);
+  }
+
+  await sbService.from("dash_pending_actions").update({
+    status: "executed", approved_at: new Date().toISOString(), approved_by: userId,
+    execution_result: { success: true, po_id: po.id }, updated_at: new Date().toISOString(),
+  }).eq("id", pa.id);
+
+  structuredEvents.push(makeStructuredEvent("execution_result", {
+    status: "success", title: "Purchase Order Created",
+    summary: `Purchase order created for ${d.items?.length} item(s)${d.vendor_name ? ` from ${d.vendor_name}` : ""}. Est. total: ${d.total_estimate?.toFixed(2)}.`,
+  }));
+
+  return success({ type: "purchase_order_created", po_id: po.id });
+}
+
+// ─── General Approval Workflows ───
+
+export async function listAllPendingApprovals(
+  sb: any, companyId: string, args: any
+): Promise<CapabilityResult<any>> {
+  const limit = Math.min(args.limit || 50, 200);
+
+  let q = sb.from("approval_requests")
+    .select("id, workflow_id, approval_workflows(name), entity_type, entity_id, entity_title, current_step, status, requested_by, created_at")
+    .eq("company_id", companyId)
+    .order("created_at", { ascending: false })
+    .limit(limit);
+
+  if (args.status) q = q.eq("status", args.status);
+  else q = q.eq("status", "pending");
+  if (args.entity_type) q = q.eq("entity_type", args.entity_type);
+
+  const { data, error } = await q;
+  if (error) return capabilityError(error.message);
+
+  return success({
+    total: data?.length ?? 0,
+    approvals: (data || []).map((a: any) => ({
+      id: a.id,
+      workflow: a.approval_workflows?.name,
+      entity_type: a.entity_type,
+      entity_title: a.entity_title,
+      current_step: a.current_step,
+      status: a.status,
+      created_at: a.created_at,
+    })),
+  });
+}
+
+export async function getApprovalRequestDetails(
+  sb: any, companyId: string, args: any
+): Promise<CapabilityResult<any>> {
+  if (!args.request_id) return capabilityError("request_id is required.");
+
+  const { data: req, error } = await sb.from("approval_requests")
+    .select("id, workflow_id, approval_workflows(name, steps), entity_type, entity_id, entity_title, current_step, status, requested_by, created_at")
+    .eq("id", args.request_id).eq("company_id", companyId).maybeSingle();
+
+  if (error) return capabilityError(error.message);
+  if (!req) return capabilityError("Approval request not found.");
+
+  const { data: decisions } = await sb.from("approval_decisions")
+    .select("id, step_order, decided_by, decision, comment, decided_at")
+    .eq("request_id", args.request_id)
+    .order("decided_at", { ascending: true });
+
+  return success({
+    id: req.id,
+    workflow: (req as any).approval_workflows?.name,
+    entity_type: req.entity_type,
+    entity_title: req.entity_title,
+    current_step: req.current_step,
+    status: req.status,
+    created_at: req.created_at,
+    decisions: (decisions || []).map((d: any) => ({
+      step: d.step_order,
+      decided_by: d.decided_by,
+      decision: d.decision,
+      comment: d.comment,
+      decided_at: d.decided_at,
+    })),
+  });
+}
+
+export async function makeApprovalDecisionDraft(
+  sb: any, sbService: any, companyId: string, userId: string,
+  args: any, structuredEvents: string[], ctx: PermissionContext
+): Promise<CapabilityResult<any>> {
+  const permCheck = checkCapabilityPermission(ctx, "update", "government_ops");
+  if (!permCheck.allowed) return capabilityError(permCheck.reason ?? "Permission denied.");
+
+  if (!args.request_id) return capabilityError("request_id is required.");
+  if (!["approve", "reject"].includes(args.decision)) return capabilityError("decision must be 'approve' or 'reject'.");
+
+  const { data: req } = await sb.from("approval_requests")
+    .select("id, entity_title, entity_type, current_step, status, approval_workflows(name)")
+    .eq("id", args.request_id).eq("company_id", companyId).maybeSingle();
+
+  if (!req) return capabilityError("Approval request not found.");
+  if (req.status !== "pending") return capabilityError(`Request is already ${req.status}.`);
+
+  const draft = {
+    request_id: args.request_id,
+    entity_title: req.entity_title,
+    entity_type: req.entity_type,
+    workflow_name: (req as any).approval_workflows?.name,
+    current_step: req.current_step,
+    decision: args.decision,
+    comment: args.comment || null,
+  };
+
+  const { data: pa, error: paError } = await sbService.from("dash_pending_actions").insert({
+    company_id: companyId, created_by: userId, action_type: "write",
+    action_name: "make_approval_decision", risk_level: "high",
+    preview_json: draft, status: "pending",
+  }).select("id").single();
+
+  if (paError) return capabilityError(`Failed to create draft: ${paError.message}`);
+
+  structuredEvents.push(makeStructuredEvent("action_preview", {
+    pending_action_id: pa.id, action_name: "make_approval_decision", risk_level: "high",
+    title: `${args.decision === "approve" ? "Approve" : "Reject"} Request`,
+    summary: `**${args.decision === "approve" ? "Approve" : "Reject"}** "${req.entity_title}" (${req.entity_type}) at step ${req.current_step}.`,
+    fields: [
+      { label: "Request", value: req.entity_title },
+      { label: "Type", value: req.entity_type },
+      { label: "Decision", value: args.decision.toUpperCase() },
+      ...(args.comment ? [{ label: "Comment", value: args.comment }] : []),
+    ],
+  }));
+
+  return success({ pending_action_id: pa.id, draft });
+}
+
+export async function executeMakeApprovalDecision(
+  sbService: any, companyId: string, userId: string,
+  args: any, structuredEvents: string[], ctx: PermissionContext
+): Promise<CapabilityResult<any>> {
+  const permCheck = checkCapabilityPermission(ctx, "update", "government_ops");
+  if (!permCheck.allowed) return capabilityError(permCheck.reason ?? "Permission denied.");
+
+  const { data: pa } = await sbService.from("dash_pending_actions")
+    .select("id, status, company_id, preview_json").eq("id", args.pending_action_id).maybeSingle();
+  if (!pa) return capabilityError("Pending action not found.");
+  if (pa.company_id !== companyId) return capabilityError("Cross-tenant action rejected.");
+  if (pa.status !== "pending") return capabilityError(`Action already ${pa.status}.`);
+
+  const d = pa.preview_json as any;
+
+  // Record decision
+  const { error: decError } = await sbService.from("approval_decisions").insert({
+    request_id: d.request_id,
+    step_order: d.current_step,
+    decided_by: userId,
+    decision: d.decision,
+    comment: d.comment || null,
+    decided_at: new Date().toISOString(),
+  });
+
+  if (decError) {
+    await sbService.from("dash_pending_actions").update({ status: "failed", execution_result: { error: decError.message }, updated_at: new Date().toISOString() }).eq("id", pa.id);
+    return capabilityError(`Failed to record decision: ${decError.message}`);
+  }
+
+  // Update request status
+  const newStatus = d.decision === "approve" ? "approved" : "rejected";
+  await sbService.from("approval_requests").update({ status: newStatus, updated_at: new Date().toISOString() })
+    .eq("id", d.request_id);
+
+  await sbService.from("dash_pending_actions").update({
+    status: "executed", approved_at: new Date().toISOString(), approved_by: userId,
+    execution_result: { success: true, decision: d.decision, request_id: d.request_id }, updated_at: new Date().toISOString(),
+  }).eq("id", pa.id);
+
+  structuredEvents.push(makeStructuredEvent("execution_result", {
+    status: "success",
+    title: `Request ${d.decision === "approve" ? "Approved" : "Rejected"}`,
+    summary: `"${d.entity_title}" has been ${d.decision === "approve" ? "approved" : "rejected"}.${d.comment ? ` Comment: ${d.comment}` : ""}`,
+  }));
+
+  return success({ type: "approval_decision_made", decision: d.decision, request_id: d.request_id });
+}
+
+// ─── Activity Log ───
+
+export async function getActivityLog(
+  sb: any, companyId: string, args: any
+): Promise<CapabilityResult<any>> {
+  const limit = Math.min(args.limit || 50, 200);
+
+  let q = sb.from("activity_logs")
+    .select("id, user_id, action_type, entity_type, entity_id, entity_name, details, created_at, location_id, locations(name)")
+    .eq("company_id", companyId)
+    .order("created_at", { ascending: false })
+    .limit(limit);
+
+  if (args.user_id) q = q.eq("user_id", args.user_id);
+  if (args.action_type) q = q.eq("action_type", args.action_type);
+  if (args.entity_type) q = q.eq("entity_type", args.entity_type);
+  if (args.from) q = q.gte("created_at", args.from);
+  if (args.to) q = q.lte("created_at", args.to + "T23:59:59Z");
+
+  // Resolve user by name
+  if (args.user_name) {
+    const { data: emp } = await sb.from("employees").select("id")
+      .eq("company_id", companyId).ilike("full_name", `%${args.user_name}%`).limit(1).maybeSingle();
+    if (!emp) {
+      // Try users table
+      const { data: usr } = await sb.from("users").select("id")
+        .ilike("full_name", `%${args.user_name}%`).limit(1).maybeSingle();
+      if (usr) q = q.eq("user_id", usr.id);
+    } else {
+      q = q.eq("user_id", emp.id);
+    }
+  }
+
+  const { data, error } = await q;
+  if (error) return capabilityError(error.message);
+
+  return success({
+    total: data?.length ?? 0,
+    entries: (data || []).map((e: any) => ({
+      id: e.id,
+      user_id: e.user_id,
+      action_type: e.action_type,
+      entity_type: e.entity_type,
+      entity_name: e.entity_name,
+      location: e.locations?.name,
+      details: e.details,
+      created_at: e.created_at,
+    })),
+  });
+}
+
+// ─── CMMS Teams ───
+
+export async function listCmmsTeams(
+  sb: any, companyId: string, _args: any
+): Promise<CapabilityResult<any>> {
+  const { data: teams, error } = await sb.from("cmms_teams")
+    .select("id, name, description, is_active")
+    .eq("company_id", companyId)
+    .eq("is_active", true)
+    .order("name", { ascending: true })
+    .limit(100);
+
+  if (error) return capabilityError(error.message);
+
+  // Get member counts
+  const teamIds = (teams || []).map((t: any) => t.id);
+  let memberCounts: Record<string, number> = {};
+
+  if (teamIds.length > 0) {
+    const { data: members } = await sb.from("cmms_team_members")
+      .select("team_id").in("team_id", teamIds);
+    for (const m of members || []) {
+      memberCounts[m.team_id] = (memberCounts[m.team_id] || 0) + 1;
+    }
+  }
+
+  return success({
+    total: teams?.length ?? 0,
+    teams: (teams || []).map((t: any) => ({
+      id: t.id,
+      name: t.name,
+      description: t.description,
+      member_count: memberCounts[t.id] || 0,
+    })),
+  });
+}
+
+// ─── Training Session Attendees ───
+
+export async function listTrainingSessionAttendees(
+  sb: any, companyId: string, args: any
+): Promise<CapabilityResult<any>> {
+  // Resolve session: by id or by session_name
+  let sessionId = args.session_id || null;
+  if (!sessionId && args.session_name) {
+    const { data: sessions } = await sb.from("training_sessions")
+      .select("id, title").eq("company_id", companyId).ilike("title", `%${args.session_name}%`).limit(1);
+    if (!sessions?.length) return capabilityError(`No training session matching "${args.session_name}".`);
+    sessionId = sessions[0].id;
+  }
+  if (!sessionId) return capabilityError("session_id or session_name is required.");
+
+  // Verify company ownership
+  const { data: sess } = await sb.from("training_sessions").select("id, company_id, title").eq("id", sessionId).maybeSingle();
+  if (!sess || sess.company_id !== companyId) return capabilityError("Training session not found.");
+
+  const { data, error } = await sb.from("training_session_attendees")
+    .select("id, session_id, employee_id, attended, score, notes, employees(full_name)")
+    .eq("session_id", sessionId)
+    .limit(200);
+
+  if (error) return capabilityError(error.message);
+
+  return success({
+    session_title: sess.title,
+    total_attendees: data?.length ?? 0,
+    attendees: (data || []).map((a: any) => ({
+      employee: a.employees?.full_name,
+      attended: a.attended,
+      score: a.score,
+      notes: a.notes,
+    })),
+  });
+}
+
+// ─── Training Evaluations ───
+
+export async function createTrainingEvaluationDraft(
+  sb: any, sbService: any, companyId: string, userId: string, args: any, structuredEvents: string[],
+  ctx: PermissionContext
+): Promise<CapabilityResult<any>> {
+  const permCheck = checkCapabilityPermission({ action: "create", module: "workforce", ctx });
+  if (!permCheck.ok) return permCheck;
+
+  // Resolve assignment
+  let assignmentId = args.assignment_id || null;
+  let employeeName: string | null = null;
+  let moduleName: string | null = null;
+
+  if (!assignmentId) {
+    // Resolve by employee + module name
+    let empId: string | null = null;
+    if (args.employee_name) {
+      const { data: emps } = await sb.from("employees").select("id, full_name").eq("company_id", companyId).ilike("full_name", `%${args.employee_name}%`).limit(1);
+      if (!emps?.length) return capabilityError(`Employee "${args.employee_name}" not found.`);
+      empId = emps[0].id; employeeName = emps[0].full_name;
+    }
+    if (empId) {
+      const q = sb.from("training_assignments").select("id, module_id, training_programs(name)").eq("company_id", companyId).eq("trainee_employee_id", empId).in("status", ["assigned", "in_progress", "completed"]);
+      const { data: assignments } = await q.limit(1);
+      if (assignments?.[0]) { assignmentId = assignments[0].id; moduleName = assignments[0].training_programs?.name; }
+    }
+  } else {
+    const { data: asgn } = await sb.from("training_assignments").select("id, trainee_employee_id, employees!training_assignments_trainee_employee_id_fkey(full_name), module_id, training_programs(name), company_id").eq("id", assignmentId).maybeSingle();
+    if (!asgn || asgn.company_id !== companyId) return capabilityError("Training assignment not found.");
+    employeeName = asgn.employees?.full_name;
+    moduleName = asgn.training_programs?.name;
+  }
+
+  if (!assignmentId) return capabilityError("Could not resolve training assignment. Provide assignment_id or employee_name.");
+
+  const draft = {
+    assignment_id: assignmentId,
+    employee_name: employeeName,
+    module_name: moduleName,
+    score: args.score != null ? Number(args.score) : null,
+    passed: args.passed ?? (args.score != null ? args.score >= (args.passing_score || 70) : null),
+    feedback: args.feedback || null,
+    evaluated_by: userId,
+  };
+
+  const { data: paData, error: paError } = await sbService.from("dash_pending_actions").insert({
+    company_id: companyId, user_id: userId, action_name: "create_training_evaluation",
+    action_type: "write", risk_level: "medium", preview_json: draft, status: "pending",
+  }).select("id").single();
+  if (paError || !paData?.id) return capabilityError(`Failed to create draft: ${paError?.message}`);
+
+  structuredEvents.push(makeStructuredEvent("action_preview", {
+    action: "Training Evaluation",
+    summary: `Evaluate ${employeeName || "employee"} on "${moduleName || "module"}" — Score: ${draft.score ?? "N/A"}, Passed: ${draft.passed ?? "N/A"}`,
+    risk: "medium",
+    pending_action_id: paData.id,
+    draft,
+    can_approve: true,
+  }));
+
+  return success({ type: "training_evaluation_draft", draft, pending_action_id: paData.id, requires_approval: true });
+}
+
+export async function executeTrainingEvaluation(
+  sbService: any, companyId: string, userId: string, args: any, structuredEvents: string[],
+  ctx: PermissionContext
+): Promise<CapabilityResult<any>> {
+  const permCheck = checkCapabilityPermission({ action: "create", module: "workforce", ctx });
+  if (!permCheck.ok) return permCheck;
+
+  const { data: pa } = await sbService.from("dash_pending_actions")
+    .select("id, status, company_id, preview_json").eq("id", args.pending_action_id).maybeSingle();
+  if (!pa) return capabilityError("Pending action not found.");
+  if (pa.company_id !== companyId) return capabilityError("Cross-tenant action rejected.");
+  if (pa.status !== "pending") return capabilityError(`Action already ${pa.status}.`);
+
+  const d = pa.preview_json as any;
+
+  const { data: evData, error: evError } = await sbService.from("training_evaluations").insert({
+    assignment_id: d.assignment_id,
+    score: d.score,
+    passed: d.passed,
+    feedback: d.feedback,
+    evaluated_by: d.evaluated_by,
+    evaluated_at: new Date().toISOString(),
+  }).select("id").single();
+
+  if (evError) {
+    await sbService.from("dash_pending_actions").update({ status: "failed", execution_result: { error: evError.message }, updated_at: new Date().toISOString() }).eq("id", pa.id);
+    return capabilityError(`Failed to record evaluation: ${evError.message}`);
+  }
+
+  // Update assignment status to completed
+  await sbService.from("training_assignments").update({
+    status: "completed", completed_at: new Date().toISOString(),
+  }).eq("id", d.assignment_id).catch(() => {});
+
+  await sbService.from("dash_pending_actions").update({
+    status: "executed", approved_at: new Date().toISOString(), approved_by: userId,
+    execution_result: { success: true, evaluation_id: evData.id }, updated_at: new Date().toISOString(),
+  }).eq("id", pa.id);
+
+  structuredEvents.push(makeStructuredEvent("execution_result", {
+    status: "success", title: "Training Evaluation Recorded",
+    summary: `Evaluation for ${d.employee_name} on "${d.module_name}": score ${d.score ?? "N/A"}, ${d.passed ? "PASSED" : "FAILED"}.`,
+  }));
+
+  return success({ type: "training_evaluated", evaluation_id: evData.id });
 }

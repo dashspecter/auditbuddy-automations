@@ -37,13 +37,27 @@ export async function sendNotificationDraft(
   const permCheck = checkCapabilityPermission({ action: "create", module: "notifications", ctx });
   if (!permCheck.ok) return permCheck;
 
+  // Resolve target_employee_ids from names if provided
+  let targetEmployeeIds: string[] | null = args.target_employee_ids || null;
+  if (!targetEmployeeIds && args.target_employee_names?.length) {
+    const resolvedIds: string[] = [];
+    for (const name of args.target_employee_names) {
+      const { data: emps } = await sb.from("employees").select("id").eq("company_id", companyId).ilike("full_name", `%${name}%`).limit(1);
+      if (emps?.[0]) resolvedIds.push(emps[0].id);
+    }
+    if (resolvedIds.length > 0) targetEmployeeIds = resolvedIds;
+  }
+
   const draft = {
     title: args.title || null,
     message: args.message || null,
     type: args.type || "info",
     target_roles: args.target_roles || null,
+    target_employee_ids: targetEmployeeIds || null,
     scheduled_for: args.scheduled_for || null,
     expires_at: args.expires_at || null,
+    recurrence_enabled: args.recurrence_enabled ?? false,
+    recurrence_pattern: args.recurrence_pattern || null,
   };
 
   const missing: string[] = [];
@@ -68,15 +82,17 @@ export async function sendNotificationDraft(
     pendingActionId = paData.id;
   }
 
-  const targetRolesLabel = draft.target_roles?.length
-    ? draft.target_roles.join(", ")
-    : "all";
+  const targetLabel = draft.target_employee_ids?.length
+    ? `${draft.target_employee_ids.length} specific employee(s)`
+    : draft.target_roles?.length
+      ? draft.target_roles.join(", ")
+      : "all";
 
   structuredEvents.push(makeStructuredEvent("action_preview", {
     action: "Send Notification",
     summary: missing.length > 0
       ? `Draft notification — missing: ${missing.join(", ")}`
-      : `Send ${draft.type} notification to ${targetRolesLabel} roles: ${draft.title}`,
+      : `Send ${draft.type} notification to ${targetLabel}: ${draft.title}${draft.recurrence_enabled ? ` (recurring: ${draft.recurrence_pattern})` : ""}`,
     risk: "medium",
     affected: [draft.title, ...(draft.target_roles || [])].filter(Boolean),
     pending_action_id: pendingActionId,
@@ -121,11 +137,14 @@ export async function executeNotificationSend(
     message: d.message,
     type: d.type || "info",
     target_roles: d.target_roles || null,
+    target_employee_ids: d.target_employee_ids || null,
     is_active: true,
     company_id: companyId,
     created_by: userId,
     scheduled_for: d.scheduled_for || null,
     expires_at: d.expires_at || null,
+    recurrence_enabled: d.recurrence_enabled ?? false,
+    recurrence_pattern: d.recurrence_pattern || null,
   }).select("id, title").single();
 
   if (error) {
@@ -147,7 +166,7 @@ export async function executeNotificationSend(
     actionType: "write",
     riskLevel: "medium",
     module: "notifications",
-    request: { title: d.title, type: d.type, target_roles: d.target_roles },
+    request: { title: d.title, type: d.type, target_roles: d.target_roles, target_employee_ids: d.target_employee_ids },
     result: { notification_id: data.id, title: data.title },
   });
 

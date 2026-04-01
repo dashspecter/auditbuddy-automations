@@ -259,7 +259,7 @@ export const tools = [
     type: "function",
     function: {
       name: "create_employee_draft",
-      description: "Create an employee draft from extracted data (e.g., from an ID scan). Returns a preview for user approval before creating the actual employee record.",
+      description: "Create an employee draft (from ID scan or manual entry). Returns a preview for user approval. Use when onboarding a new staff member.",
       parameters: {
         type: "object",
         properties: {
@@ -268,10 +268,18 @@ export const tools = [
           date_of_birth: { type: "string", description: "Date of birth YYYY-MM-DD" },
           id_series: { type: "string", description: "ID card series" },
           id_number: { type: "string", description: "ID card number" },
-          address: { type: "string", description: "Address from ID" },
+          address: { type: "string", description: "Home address" },
           location_name: { type: "string", description: "Target location name" },
           role: { type: "string", description: "Job role/position" },
-          start_date: { type: "string", description: "Start date YYYY-MM-DD" },
+          start_date: { type: "string", description: "Employment start date YYYY-MM-DD" },
+          hire_date: { type: "string", description: "Hire date YYYY-MM-DD (if different from start_date)" },
+          phone: { type: "string", description: "Phone number" },
+          email: { type: "string", description: "Email address" },
+          contract_type: { type: "string", enum: ["permanent", "part-time", "contract", "temporary"], description: "Employment contract type" },
+          base_salary: { type: "number", description: "Monthly base salary amount" },
+          hourly_rate: { type: "number", description: "Hourly rate (for hourly workers)" },
+          emergency_contact_name: { type: "string", description: "Emergency contact full name" },
+          emergency_contact_phone: { type: "string", description: "Emergency contact phone number" },
         },
         required: ["full_name"],
       },
@@ -603,7 +611,7 @@ export const tools = [
         properties: {
           ca_id: { type: "string", description: "CA UUID" },
           ca_title: { type: "string", description: "CA title (partial match)" },
-          new_status: { type: "string", enum: ["open", "in_progress", "pending_verification", "closed", "cancelled"] },
+          new_status: { type: "string", enum: ["open", "in_progress", "pending_verification", "reopened", "closed", "cancelled"] },
           reason: { type: "string" },
         },
         required: ["new_status"],
@@ -1356,15 +1364,20 @@ export const tools = [
     type: "function",
     function: {
       name: "send_notification_draft",
-      description: "Draft a notification to send to employees by role. Shows a preview before sending.",
+      description: "Draft a notification to send to employees. Target by role OR specific employees. Supports scheduling and recurrence. Shows a preview before sending.",
       parameters: {
         type: "object",
         properties: {
           title: { type: "string", description: "Notification title" },
           message: { type: "string", description: "Notification body message" },
-          target_roles: { type: "array", items: { type: "string" }, description: "Roles to target (e.g. ['staff', 'manager'])" },
+          target_roles: { type: "array", items: { type: "string" }, description: "Roles to target (e.g. ['staff', 'manager']). Leave empty to target all or use target_employee_ids instead." },
+          target_employee_ids: { type: "array", items: { type: "string" }, description: "Specific employee UUIDs to target. Use instead of target_roles for individual employees." },
+          target_employee_names: { type: "array", items: { type: "string" }, description: "Employee names to resolve and target. Alternative to target_employee_ids." },
           type: { type: "string", enum: ["info", "warning", "urgent"], description: "Notification type" },
           scheduled_for: { type: "string", description: "Optional scheduled send time (ISO 8601)" },
+          expires_at: { type: "string", description: "Optional expiry time (ISO 8601)" },
+          recurrence_enabled: { type: "boolean", description: "Enable recurring notification" },
+          recurrence_pattern: { type: "string", enum: ["daily", "weekly", "monthly"], description: "Recurrence pattern (requires recurrence_enabled: true)" },
         },
         required: ["title", "message"],
       },
@@ -1894,17 +1907,20 @@ export const tools = [
   {
     type: "function",
     function: {
-      name: "issue_warning_draft",
-      description: "Issue a warning or coaching note to an employee. Creates a draft for approval.",
+      name: "issue_staff_event_draft",
+      description: "Record a staff event for an employee: warning, coaching note, raise, bonus, promotion, demotion, or termination. Creates a draft for approval. Use for 'issue warning', 'give bonus', 'promote employee', 'record termination', etc.",
       parameters: {
         type: "object",
         properties: {
           employee_name: { type: "string", description: "Employee name" },
           employee_id: { type: "string", description: "Employee UUID (if known)" },
-          event_type: { type: "string", enum: ["warning", "coaching_note"], description: "Type of event (default: warning)" },
-          severity: { type: "string", enum: ["minor", "major", "critical"], description: "Warning severity (default: minor)" },
-          description: { type: "string", description: "Description/reason for the warning" },
-          category: { type: "string", description: "Warning category (e.g. attendance, conduct, performance)" },
+          event_type: { type: "string", enum: ["warning", "coaching_note", "raise", "bonus", "promotion", "demotion", "termination"], description: "Type of staff event" },
+          severity: { type: "string", enum: ["minor", "major", "critical"], description: "Severity — only for warning/coaching_note" },
+          description: { type: "string", description: "Description/reason for the event" },
+          category: { type: "string", description: "Category — for warnings (e.g. attendance, conduct, performance)" },
+          amount: { type: "number", description: "Amount — for raise or bonus events" },
+          new_role: { type: "string", description: "New role — for promotion or demotion events" },
+          effective_date: { type: "string", description: "Effective date YYYY-MM-DD — for raise/bonus/promotion/demotion/termination" },
           notes: { type: "string", description: "Additional notes" },
         },
         required: ["employee_name", "description"],
@@ -1914,12 +1930,12 @@ export const tools = [
   {
     type: "function",
     function: {
-      name: "execute_warning_issuance",
-      description: "Execute a warning issuance after user approves the draft.",
+      name: "execute_staff_event_issuance",
+      description: "Execute a staff event (warning/bonus/promotion/etc.) after user approves the draft.",
       parameters: {
         type: "object",
         properties: {
-          pending_action_id: { type: "string", description: "Pending action UUID from issue_warning_draft" },
+          pending_action_id: { type: "string", description: "Pending action UUID from issue_staff_event_draft" },
         },
         required: ["pending_action_id"],
       },
@@ -2388,6 +2404,805 @@ export const tools = [
       },
     },
   },
+  // --- CMMS PM Plans ---
+  {
+    type: "function",
+    function: {
+      name: "list_pm_plans",
+      description: "List preventive maintenance (PM) plans. Shows next_due_at and overdue status.",
+      parameters: {
+        type: "object",
+        properties: {
+          location_name: { type: "string", description: "Location name filter (optional)" },
+          overdue_only: { type: "boolean", description: "Show only overdue plans" },
+          is_active: { type: "boolean", description: "Filter by active status (default: true)" },
+          limit: { type: "number", description: "Max results (default 50)" },
+        },
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "get_pm_compliance_report",
+      description: "Get PM compliance report: completed vs missed runs over a date range.",
+      parameters: {
+        type: "object",
+        properties: {
+          from: { type: "string", description: "Start date YYYY-MM-DD (default: last 30 days)" },
+          to: { type: "string", description: "End date YYYY-MM-DD (default: today)" },
+        },
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "create_pm_plan_draft",
+      description: "Create a draft for a new preventive maintenance plan for an asset or location.",
+      parameters: {
+        type: "object",
+        properties: {
+          name: { type: "string", description: "PM plan name" },
+          frequency_type: { type: "string", enum: ["daily", "weekly", "monthly", "quarterly", "yearly", "cycles"], description: "How often to run" },
+          frequency_value: { type: "number", description: "Frequency interval (e.g. 2 for every 2 weeks)" },
+          asset_name: { type: "string", description: "CMMS asset name (partial match, optional)" },
+          location_name: { type: "string", description: "Location name (optional, used if no asset)" },
+          auto_create_work_order: { type: "boolean", description: "Auto-create a work order when due (default: true)" },
+          next_due_at: { type: "string", description: "First due date ISO timestamp (optional)" },
+        },
+        required: ["name", "frequency_type", "frequency_value"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_create_pm_plan",
+      description: "Execute creating a PM plan after user approves the draft.",
+      parameters: {
+        type: "object",
+        properties: {
+          pending_action_id: { type: "string", description: "Pending action UUID from create_pm_plan_draft" },
+        },
+        required: ["pending_action_id"],
+      },
+    },
+  },
+  // --- CMMS Parts & Vendors ---
+  {
+    type: "function",
+    function: {
+      name: "list_cmms_parts",
+      description: "List CMMS spare parts inventory (name, part number, category, unit cost).",
+      parameters: {
+        type: "object",
+        properties: {
+          name: { type: "string", description: "Part name filter (partial match)" },
+          category: { type: "string", description: "Category filter (partial match)" },
+          limit: { type: "number", description: "Max results (default 50)" },
+        },
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "get_parts_stock_report",
+      description: "Get parts stock levels with low-stock alerts. Optionally filter by location.",
+      parameters: {
+        type: "object",
+        properties: {
+          location_name: { type: "string", description: "Location name filter (optional)" },
+        },
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "list_cmms_vendors",
+      description: "List active CMMS vendors (name, contact info).",
+      parameters: {
+        type: "object",
+        properties: {},
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "create_purchase_order_draft",
+      description: "Create a draft purchase order for CMMS parts restock.",
+      parameters: {
+        type: "object",
+        properties: {
+          vendor_name: { type: "string", description: "Vendor name (partial match, optional)" },
+          items: {
+            type: "array",
+            description: "Line items to order",
+            items: {
+              type: "object",
+              properties: {
+                part_name: { type: "string", description: "Part name" },
+                part_id: { type: "string", description: "Part UUID (if known)" },
+                quantity: { type: "number", description: "Quantity to order" },
+                unit_cost: { type: "number", description: "Unit cost override (optional)" },
+              },
+              required: ["quantity"],
+            },
+          },
+          notes: { type: "string", description: "PO notes (optional)" },
+        },
+        required: ["items"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_create_purchase_order",
+      description: "Execute creating a purchase order after user approves the draft.",
+      parameters: {
+        type: "object",
+        properties: {
+          pending_action_id: { type: "string", description: "Pending action UUID from create_purchase_order_draft" },
+        },
+        required: ["pending_action_id"],
+      },
+    },
+  },
+  // --- Inventory Management ---
+  {
+    type: "function",
+    function: {
+      name: "get_inventory_levels",
+      description: "Get current inventory levels by location with total stock value.",
+      parameters: {
+        type: "object",
+        properties: {
+          location_name: { type: "string", description: "Location name filter (optional)" },
+          status: { type: "string", description: "Item status filter (default: active)" },
+        },
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "list_manual_metrics",
+      description: "List manually recorded KPI metrics (sales, covers, transactions, etc.). Groups by metric name with averages.",
+      parameters: {
+        type: "object",
+        properties: {
+          metric_name: { type: "string", description: "Metric name filter (partial match)" },
+          location_name: { type: "string", description: "Location name filter (optional)" },
+          from: { type: "string", description: "Start date YYYY-MM-DD" },
+          to: { type: "string", description: "End date YYYY-MM-DD" },
+          include_raw: { type: "boolean", description: "Include all raw entries (default: false)" },
+        },
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "log_metric_draft",
+      description: "Create a draft to record a manual KPI metric value (e.g. daily sales, customer count).",
+      parameters: {
+        type: "object",
+        properties: {
+          metric_name: { type: "string", description: "Metric name (e.g. 'daily_sales', 'covers', 'transactions')" },
+          metric_value: { type: "number", description: "Numeric value to record" },
+          metric_date: { type: "string", description: "Date YYYY-MM-DD (default: today)" },
+          location_name: { type: "string", description: "Location name (optional)" },
+          notes: { type: "string", description: "Optional notes" },
+        },
+        required: ["metric_name", "metric_value"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_log_metric",
+      description: "Execute logging a metric after user approves the draft.",
+      parameters: {
+        type: "object",
+        properties: {
+          pending_action_id: { type: "string", description: "Pending action UUID from log_metric_draft" },
+        },
+        required: ["pending_action_id"],
+      },
+    },
+  },
+  // --- Mystery Shopper ---
+  {
+    type: "function",
+    function: {
+      name: "list_mystery_shopper_results",
+      description: "List mystery shopper survey submissions with scores and customer info.",
+      parameters: {
+        type: "object",
+        properties: {
+          template_name: { type: "string", description: "Template name filter (partial match)" },
+          from: { type: "string", description: "Start date YYYY-MM-DD" },
+          to: { type: "string", description: "End date YYYY-MM-DD" },
+          limit: { type: "number", description: "Max results (default 50)" },
+        },
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "get_mystery_shopper_scores",
+      description: "Get aggregated mystery shopper score averages by template over a date range.",
+      parameters: {
+        type: "object",
+        properties: {
+          from: { type: "string", description: "Start date YYYY-MM-DD" },
+          to: { type: "string", description: "End date YYYY-MM-DD" },
+        },
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "list_vouchers",
+      description: "List mystery shopper vouchers by status (active/redeemed/expired).",
+      parameters: {
+        type: "object",
+        properties: {
+          status: { type: "string", description: "Filter by status: active, redeemed, expired" },
+          from: { type: "string", description: "Start date YYYY-MM-DD" },
+          to: { type: "string", description: "End date YYYY-MM-DD" },
+          limit: { type: "number", description: "Max results (default 50)" },
+        },
+      },
+    },
+  },
+  // --- General Approval Workflows ---
+  {
+    type: "function",
+    function: {
+      name: "list_pending_approvals",
+      description: "List all pending approval requests across all entity types (not just time-off).",
+      parameters: {
+        type: "object",
+        properties: {
+          status: { type: "string", description: "Filter by status (default: pending)" },
+          entity_type: { type: "string", description: "Filter by entity type (optional)" },
+          limit: { type: "number", description: "Max results (default 50)" },
+        },
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "get_approval_request_details",
+      description: "Get full details and decision history for a specific approval request.",
+      parameters: {
+        type: "object",
+        properties: {
+          request_id: { type: "string", description: "Approval request UUID" },
+        },
+        required: ["request_id"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "make_approval_decision_draft",
+      description: "Create a draft to approve or reject a pending approval request.",
+      parameters: {
+        type: "object",
+        properties: {
+          request_id: { type: "string", description: "Approval request UUID" },
+          decision: { type: "string", enum: ["approve", "reject"], description: "Decision to make" },
+          comment: { type: "string", description: "Optional comment/reason" },
+        },
+        required: ["request_id", "decision"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_approval_decision",
+      description: "Execute an approval decision after user confirms the draft.",
+      parameters: {
+        type: "object",
+        properties: {
+          pending_action_id: { type: "string", description: "Pending action UUID from make_approval_decision_draft" },
+        },
+        required: ["pending_action_id"],
+      },
+    },
+  },
+  // --- Notification Analytics ---
+  {
+    type: "function",
+    function: {
+      name: "get_notification_analytics",
+      description: "Get notification delivery and read rate analytics by channel over a date range.",
+      parameters: {
+        type: "object",
+        properties: {
+          from: { type: "string", description: "Start date YYYY-MM-DD (default: last 30 days)" },
+          to: { type: "string", description: "End date YYYY-MM-DD (default: today)" },
+        },
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "list_notification_audit_log",
+      description: "List the notification audit trail (who sent what, when, delivery status).",
+      parameters: {
+        type: "object",
+        properties: {
+          from: { type: "string", description: "Start date YYYY-MM-DD" },
+          to: { type: "string", description: "End date YYYY-MM-DD" },
+          limit: { type: "number", description: "Max results (default 50)" },
+        },
+      },
+    },
+  },
+  // --- Activity Log ---
+  {
+    type: "function",
+    function: {
+      name: "get_activity_log",
+      description: "Get the audit trail of user actions in the platform. Filter by user, action type, entity type, or date range.",
+      parameters: {
+        type: "object",
+        properties: {
+          user_name: { type: "string", description: "Filter by user name (partial match)" },
+          user_id: { type: "string", description: "Filter by user UUID" },
+          action_type: { type: "string", description: "Filter by action type (e.g. create, update, delete)" },
+          entity_type: { type: "string", description: "Filter by entity type (e.g. employee, shift, audit)" },
+          from: { type: "string", description: "Start date YYYY-MM-DD" },
+          to: { type: "string", description: "End date YYYY-MM-DD" },
+          limit: { type: "number", description: "Max results (default 50)" },
+        },
+      },
+    },
+  },
+  // --- CMMS Teams ---
+  {
+    type: "function",
+    function: {
+      name: "list_cmms_teams",
+      description: "List active CMMS maintenance teams with member counts.",
+      parameters: {
+        type: "object",
+        properties: {},
+      },
+    },
+  },
+  // --- Marketplace ---
+  {
+    type: "function",
+    function: {
+      name: "list_marketplace_templates",
+      description: "Browse audit templates available in the marketplace. Filter by category, search term, or featured status.",
+      parameters: {
+        type: "object",
+        properties: {
+          search: { type: "string", description: "Search by template name (partial match)" },
+          category: { type: "string", description: "Category name filter (partial match)" },
+          featured_only: { type: "boolean", description: "Show only featured templates" },
+          limit: { type: "number", description: "Max results (default 30)" },
+        },
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "install_marketplace_template_draft",
+      description: "Create a draft to install an audit template from the marketplace into this company.",
+      parameters: {
+        type: "object",
+        properties: {
+          template_name: { type: "string", description: "Marketplace template name (partial match)" },
+          template_id: { type: "string", description: "Template UUID (if known)" },
+        },
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_install_marketplace_template",
+      description: "Execute installing a marketplace template after user approves the draft.",
+      parameters: {
+        type: "object",
+        properties: {
+          pending_action_id: { type: "string", description: "Pending action UUID from install_marketplace_template_draft" },
+        },
+        required: ["pending_action_id"],
+      },
+    },
+  },
+  // --- Equipment Management ---
+  {
+    type: "function",
+    function: {
+      name: "list_equipment",
+      description: "List equipment assets by location, status, or upcoming check dates.",
+      parameters: {
+        type: "object",
+        properties: {
+          location_name: { type: "string", description: "Location name filter (partial match)" },
+          status: { type: "string", description: "Filter by status: active, inactive, maintenance, retired" },
+          limit: { type: "number", description: "Max results (default 50)" },
+        },
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "get_equipment_details",
+      description: "Get full details and intervention history for a specific piece of equipment.",
+      parameters: {
+        type: "object",
+        properties: {
+          equipment_id: { type: "string", description: "Equipment UUID" },
+          equipment_name: { type: "string", description: "Equipment name (partial match) if ID unknown" },
+        },
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "get_equipment_expiries",
+      description: "List equipment due for a check or with overdue next_check_date within N days.",
+      parameters: {
+        type: "object",
+        properties: {
+          days_ahead: { type: "number", description: "Days ahead to look (default 30)" },
+          location_name: { type: "string", description: "Location name filter (optional)" },
+        },
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "log_equipment_intervention_draft",
+      description: "Create a draft to log an intervention (check, repair, calibration, etc.) on a piece of equipment.",
+      parameters: {
+        type: "object",
+        properties: {
+          equipment_name: { type: "string", description: "Equipment name (partial match)" },
+          equipment_id: { type: "string", description: "Equipment UUID (if known)" },
+          intervention_type: { type: "string", enum: ["check", "repair", "replacement", "calibration", "cleaning", "other"], description: "Type of intervention" },
+          description: { type: "string", description: "Description of the intervention performed" },
+          cost: { type: "number", description: "Cost of the intervention (optional)" },
+          performed_by: { type: "string", description: "Name of who performed the intervention (optional)" },
+          performed_at: { type: "string", description: "ISO timestamp when performed (default: now)" },
+          new_status: { type: "string", enum: ["active", "inactive", "maintenance", "retired"], description: "Update equipment status (optional)" },
+        },
+        required: ["description"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_equipment_intervention",
+      description: "Execute an equipment intervention log after user approves the draft.",
+      parameters: {
+        type: "object",
+        properties: {
+          pending_action_id: { type: "string", description: "Pending action UUID from log_equipment_intervention_draft" },
+        },
+        required: ["pending_action_id"],
+      },
+    },
+  },
+  // --- QR Forms / Digital Records ---
+  {
+    type: "function",
+    function: {
+      name: "list_form_templates",
+      description: "List QR form templates (HACCP logs, quality records, event logs) for this company.",
+      parameters: {
+        type: "object",
+        properties: {
+          is_active: { type: "boolean", description: "Filter by active status" },
+          type: { type: "string", description: "Form type: monthly_grid or event_log" },
+          category: { type: "string", description: "Category name filter (partial match)" },
+        },
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "list_form_assignments",
+      description: "List QR form assignments — which form templates are assigned to which locations.",
+      parameters: {
+        type: "object",
+        properties: {
+          location_name: { type: "string", description: "Filter by location name (partial match)" },
+        },
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "list_form_submissions",
+      description: "List submitted QR form records. Filter by location, status, or period (year/month).",
+      parameters: {
+        type: "object",
+        properties: {
+          location_name: { type: "string", description: "Location name filter (partial match)" },
+          status: { type: "string", description: "Filter by status: draft, submitted, locked" },
+          period_year: { type: "number", description: "Filter by year (e.g. 2026)" },
+          period_month: { type: "number", description: "Filter by month (1-12)" },
+          limit: { type: "number", description: "Max results (default 50)" },
+        },
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "get_form_submission_details",
+      description: "Get the full data of a specific QR form submission.",
+      parameters: {
+        type: "object",
+        properties: {
+          submission_id: { type: "string", description: "Form submission UUID" },
+        },
+        required: ["submission_id"],
+      },
+    },
+  },
+  // --- WhatsApp Messaging ---
+  {
+    type: "function",
+    function: {
+      name: "list_whatsapp_templates",
+      description: "List approved WhatsApp message templates for this company.",
+      parameters: {
+        type: "object",
+        properties: {
+          approval_status: { type: "string", description: "Filter by approval_status: approved, pending, rejected" },
+          category: { type: "string", description: "Template category filter" },
+        },
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "list_outbound_messages",
+      description: "List sent/queued WhatsApp or push messages with delivery status.",
+      parameters: {
+        type: "object",
+        properties: {
+          status: { type: "string", description: "Filter by status: queued, sent, failed" },
+          channel: { type: "string", description: "Filter by channel: whatsapp, push, email" },
+          from: { type: "string", description: "Start date YYYY-MM-DD" },
+          to: { type: "string", description: "End date YYYY-MM-DD" },
+          limit: { type: "number", description: "Max results (default 50)" },
+        },
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "send_whatsapp_message_draft",
+      description: "Create a draft to send a WhatsApp message to one employee or all staff at a location using an approved template.",
+      parameters: {
+        type: "object",
+        properties: {
+          template_name: { type: "string", description: "WhatsApp template name (partial match)" },
+          template_id: { type: "string", description: "Template UUID (if known)" },
+          employee_name: { type: "string", description: "Employee name to send to (partial match). Use either employee_name OR location_name." },
+          location_name: { type: "string", description: "Send to all active staff at this location. Use either location_name OR employee_name." },
+          variables: { type: "object", description: "Template variable substitutions (optional)" },
+          scheduled_for: { type: "string", description: "ISO timestamp to schedule for (optional, default: send immediately)" },
+        },
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_send_whatsapp_message",
+      description: "Execute a WhatsApp message send after user approves the draft.",
+      parameters: {
+        type: "object",
+        properties: {
+          pending_action_id: { type: "string", description: "Pending action UUID from send_whatsapp_message_draft" },
+        },
+        required: ["pending_action_id"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "list_notification_rules",
+      description: "List automated notification/alert rules including WhatsApp routing and escalation chains.",
+      parameters: {
+        type: "object",
+        properties: {},
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "create_notification_rule_draft",
+      description: "Create a draft for an automated notification rule — e.g. when an event occurs, send via a channel to certain roles, with optional escalation.",
+      parameters: {
+        type: "object",
+        properties: {
+          event_type: { type: "string", description: "Event trigger name (e.g. audit_score_low, asset_down, shift_unassigned)" },
+          channel: { type: "string", description: "Notification channel: whatsapp, push, email" },
+          target_roles: { type: "array", items: { type: "string" }, description: "Roles to notify (e.g. [\"manager\", \"admin\"]). Omit for all." },
+          throttle_max_per_day: { type: "number", description: "Max notifications per day per recipient (default 20)" },
+          escalation_after_minutes: { type: "number", description: "Minutes before escalating if unacknowledged (optional)" },
+          escalation_channel: { type: "string", description: "Channel to use for escalation (optional)" },
+        },
+        required: ["event_type", "channel"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_create_notification_rule",
+      description: "Execute creating a notification rule after user approves the draft.",
+      parameters: {
+        type: "object",
+        properties: {
+          pending_action_id: { type: "string", description: "Pending action UUID from create_notification_rule_draft" },
+        },
+        required: ["pending_action_id"],
+      },
+    },
+  },
+  // --- Staff Audits ---
+  {
+    type: "function",
+    function: {
+      name: "list_staff_audits",
+      description: "List staff performance audits/evaluations. Filter by employee, location, or date range.",
+      parameters: {
+        type: "object",
+        properties: {
+          employee_name: { type: "string", description: "Employee name filter (partial match)" },
+          location_name: { type: "string", description: "Location name filter (partial match)" },
+          from: { type: "string", description: "Start date YYYY-MM-DD" },
+          to: { type: "string", description: "End date YYYY-MM-DD" },
+          limit: { type: "number", description: "Max results (default 50)" },
+        },
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "get_staff_audit_details",
+      description: "Get full details of a specific staff audit/performance evaluation.",
+      parameters: {
+        type: "object",
+        properties: {
+          audit_id: { type: "string", description: "Staff audit UUID" },
+        },
+        required: ["audit_id"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "create_staff_audit_draft",
+      description: "Create a draft for a staff performance audit/evaluation.",
+      parameters: {
+        type: "object",
+        properties: {
+          employee_name: { type: "string", description: "Employee to evaluate (partial match)" },
+          employee_id: { type: "string", description: "Employee UUID (if known)" },
+          location_name: { type: "string", description: "Location name (optional)" },
+          template_name: { type: "string", description: "Audit template name (partial match, optional)" },
+          audit_date: { type: "string", description: "Evaluation date YYYY-MM-DD (default: today)" },
+          score: { type: "number", description: "Score 0-100 (optional, can be filled later)" },
+          notes: { type: "string", description: "Evaluation notes (optional)" },
+        },
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_staff_audit_creation",
+      description: "Execute creating a staff audit after user approves the draft.",
+      parameters: {
+        type: "object",
+        properties: {
+          pending_action_id: { type: "string", description: "Pending action UUID from create_staff_audit_draft" },
+        },
+        required: ["pending_action_id"],
+      },
+    },
+  },
+  // --- Scout Payouts ---
+  {
+    type: "function",
+    function: {
+      name: "list_scout_payouts",
+      description: "List scout payouts. Filter by status (pending/paid/failed) or date range.",
+      parameters: {
+        type: "object",
+        properties: {
+          status: { type: "string", description: "Filter by status: pending, paid, failed" },
+          from: { type: "string", description: "Start date YYYY-MM-DD" },
+          to: { type: "string", description: "End date YYYY-MM-DD" },
+          limit: { type: "number", description: "Max results (default 50)" },
+        },
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "get_scout_payout_summary",
+      description: "Get a summary of scout payout totals grouped by status (pending/paid/failed).",
+      parameters: {
+        type: "object",
+        properties: {
+          from: { type: "string", description: "Start date YYYY-MM-DD (optional)" },
+          to: { type: "string", description: "End date YYYY-MM-DD (optional)" },
+        },
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "process_scout_payout_draft",
+      description: "Create a draft to mark a scout payout as paid or failed.",
+      parameters: {
+        type: "object",
+        properties: {
+          payout_id: { type: "string", description: "Scout payout UUID" },
+          new_status: { type: "string", enum: ["paid", "failed"], description: "New payout status" },
+          notes: { type: "string", description: "Optional notes" },
+        },
+        required: ["payout_id", "new_status"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_process_scout_payout",
+      description: "Execute a scout payout status update after user approves the draft.",
+      parameters: {
+        type: "object",
+        properties: {
+          pending_action_id: { type: "string", description: "Pending action UUID from process_scout_payout_draft" },
+        },
+        required: ["pending_action_id"],
+      },
+    },
+  },
   // --- META: Capability discovery ---
   {
     type: "function",
@@ -2397,6 +3212,201 @@ export const tools = [
       parameters: {
         type: "object",
         properties: {},
+      },
+    },
+  },
+
+  // ─── Phase 6: Workforce Deep Dive ───
+
+  // Payroll Writes
+  {
+    type: "function",
+    function: {
+      name: "create_payroll_period_draft",
+      description: "Create a new payroll period draft. Use when user says 'create payroll for March', 'open new pay period', etc.",
+      parameters: {
+        type: "object",
+        properties: {
+          name: { type: "string", description: "Period name (e.g. 'March 2026')" },
+          period_start: { type: "string", description: "Start date YYYY-MM-DD" },
+          period_end: { type: "string", description: "End date YYYY-MM-DD" },
+          notes: { type: "string", description: "Optional notes" },
+        },
+        required: ["name", "period_start", "period_end"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_create_payroll_period",
+      description: "Execute payroll period creation after approval.",
+      parameters: {
+        type: "object",
+        properties: { pending_action_id: { type: "string" } },
+        required: ["pending_action_id"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "add_payroll_item_draft",
+      description: "Add a payroll item (base, overtime, bonus, penalty, tips, deduction, adjustment) for an employee in a payroll period. Use for 'add bonus for [employee]', 'add overtime hours to payroll', etc.",
+      parameters: {
+        type: "object",
+        properties: {
+          period_name: { type: "string", description: "Payroll period name (partial match)" },
+          period_id: { type: "string", description: "Payroll period UUID (if known)" },
+          employee_name: { type: "string", description: "Employee name" },
+          employee_id: { type: "string", description: "Employee UUID (if known)" },
+          item_type: { type: "string", enum: ["base", "overtime", "bonus", "penalty", "tips", "deduction", "adjustment"], description: "Type of payroll item" },
+          amount: { type: "number", description: "Amount for this item" },
+          description: { type: "string", description: "Description (optional)" },
+        },
+        required: ["employee_name", "item_type", "amount"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_add_payroll_item",
+      description: "Execute adding a payroll item after approval.",
+      parameters: {
+        type: "object",
+        properties: { pending_action_id: { type: "string" } },
+        required: ["pending_action_id"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "update_payroll_period_status_draft",
+      description: "Change payroll period status: calculated → approved → paid → closed. Use for 'approve payroll', 'mark payroll as paid', 'close pay period'.",
+      parameters: {
+        type: "object",
+        properties: {
+          period_name: { type: "string", description: "Payroll period name (partial match)" },
+          period_id: { type: "string", description: "Payroll period UUID (if known)" },
+          new_status: { type: "string", enum: ["calculated", "approved", "paid", "closed"], description: "New status for the period" },
+          notes: { type: "string", description: "Optional notes" },
+        },
+        required: ["new_status"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_update_payroll_period_status",
+      description: "Execute payroll period status update after approval.",
+      parameters: {
+        type: "object",
+        properties: { pending_action_id: { type: "string" } },
+        required: ["pending_action_id"],
+      },
+    },
+  },
+
+  // Staff Events (expanded)
+  {
+    type: "function",
+    function: {
+      name: "list_staff_events",
+      description: "List all staff events for employees: warnings, coaching notes, raises, bonuses, promotions, demotions, terminations. Use for 'show all events for [employee]', 'list promotions this year', etc.",
+      parameters: {
+        type: "object",
+        properties: {
+          employee_name: { type: "string", description: "Filter by employee name" },
+          event_type: { type: "string", enum: ["warning", "coaching_note", "raise", "bonus", "promotion", "demotion", "termination"], description: "Filter by event type" },
+          from: { type: "string", description: "Start date YYYY-MM-DD" },
+          to: { type: "string", description: "End date YYYY-MM-DD" },
+          limit: { type: "number", description: "Max results (default 50)" },
+        },
+      },
+    },
+  },
+
+  // Test Analytics
+  {
+    type: "function",
+    function: {
+      name: "get_test_analytics",
+      description: "Get test analytics: pass rate, average score, trends by month. Use for 'how are employees doing on tests?', 'test pass rate', 'training assessment analytics'.",
+      parameters: {
+        type: "object",
+        properties: {
+          test_name: { type: "string", description: "Filter by test name (partial match)" },
+          test_id: { type: "string", description: "Test UUID (if known)" },
+          from: { type: "string", description: "Start date YYYY-MM-DD" },
+          to: { type: "string", description: "End date YYYY-MM-DD" },
+        },
+      },
+    },
+  },
+
+  // Corrective Action Events
+  {
+    type: "function",
+    function: {
+      name: "list_ca_events",
+      description: "List the audit trail / event history for a specific corrective action. Use for 'show CA history', 'what happened to CA [title]?', 'CA timeline'.",
+      parameters: {
+        type: "object",
+        properties: {
+          ca_id: { type: "string", description: "Corrective action UUID" },
+          ca_title: { type: "string", description: "CA title (partial match)" },
+        },
+      },
+    },
+  },
+
+  // Training Session Attendees
+  {
+    type: "function",
+    function: {
+      name: "list_training_session_attendees",
+      description: "List attendees and their scores for a specific training session.",
+      parameters: {
+        type: "object",
+        properties: {
+          session_id: { type: "string", description: "Training session UUID" },
+          session_name: { type: "string", description: "Session title (partial match)" },
+        },
+      },
+    },
+  },
+
+  // Training Evaluations
+  {
+    type: "function",
+    function: {
+      name: "create_training_evaluation_draft",
+      description: "Record a training evaluation for an employee (score, pass/fail, feedback). Use for 'mark training as complete', 'record training score', 'evaluate employee training'.",
+      parameters: {
+        type: "object",
+        properties: {
+          assignment_id: { type: "string", description: "Training assignment UUID (if known)" },
+          employee_name: { type: "string", description: "Employee name (to resolve assignment)" },
+          score: { type: "number", description: "Score (0-100)" },
+          passed: { type: "boolean", description: "Whether the employee passed (auto-calculated from score if omitted)" },
+          passing_score: { type: "number", description: "Minimum passing score (default 70)" },
+          feedback: { type: "string", description: "Evaluator feedback" },
+        },
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_training_evaluation",
+      description: "Execute training evaluation recording after approval.",
+      parameters: {
+        type: "object",
+        properties: { pending_action_id: { type: "string" } },
+        required: ["pending_action_id"],
       },
     },
   },

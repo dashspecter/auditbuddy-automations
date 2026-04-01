@@ -19,13 +19,19 @@ import {
 } from "./capabilities/time-off.ts";
 
 // ─── Domain Capability Imports ───
-import { getAuditResults, compareLocationPerformance, createAuditTemplateDraft, executeAuditTemplateCreation, listScheduledAudits, scheduleAuditDraft, executeAuditScheduling, cancelScheduledAuditDraft, executeCancelScheduledAudit } from "./capabilities/audits.ts";
-import { getOpenCorrectiveActions, reassignCorrectiveAction, executeCaReassignment, createCaDraft, executeCaCreation, updateCaStatusDraft, executeCaStatusUpdate, listCaItems, updateCaItemStatusDraft, executeUpdateCaItemStatus, addCaItemDraft, executeAddCaItem } from "./capabilities/corrective-actions.ts";
-import { listScoutJobs, getScoutJobDetails, listScoutSubmissions, reviewScoutSubmissionDraft, executeScoutSubmissionReview } from "./capabilities/scouts.ts";
+import { getAuditResults, compareLocationPerformance, createAuditTemplateDraft, executeAuditTemplateCreation, listScheduledAudits, scheduleAuditDraft, executeAuditScheduling, cancelScheduledAuditDraft, executeCancelScheduledAudit, listStaffAudits, getStaffAuditDetails, createStaffAuditDraft, executeStaffAuditCreation } from "./capabilities/audits.ts";
+import { listEquipment, getEquipmentDetails, getEquipmentExpiries, logEquipmentInterventionDraft, executeEquipmentIntervention } from "./capabilities/equipment.ts";
+import { listFormTemplates, listFormAssignments, listFormSubmissions, getFormSubmissionDetails } from "./capabilities/qr-forms.ts";
+import { listWhatsappTemplates, listOutboundMessages, listNotificationRules, sendWhatsappMessageDraft, executeeSendWhatsappMessage, createNotificationRuleDraft, executeCreateNotificationRule, getNotificationAnalytics, listNotificationAuditLog } from "./capabilities/messaging.ts";
+import { getOpenCorrectiveActions, reassignCorrectiveAction, executeCaReassignment, createCaDraft, executeCaCreation, updateCaStatusDraft, executeCaStatusUpdate, listCaItems, updateCaItemStatusDraft, executeUpdateCaItemStatus, addCaItemDraft, executeAddCaItem, listCaEvents } from "./capabilities/corrective-actions.ts";
+import { listScoutJobs, getScoutJobDetails, listScoutSubmissions, reviewScoutSubmissionDraft, executeScoutSubmissionReview, listScoutPayouts, getScoutPayoutSummary, processScoutPayoutDraft, executeProcessScoutPayout } from "./capabilities/scouts.ts";
 import { getWasteReport, listWasteEntries, listWasteProducts, logWasteDraft, executeWasteEntry } from "./capabilities/waste.ts";
-import { searchEmployees, getEmployeeShifts, getAttendanceExceptions, getAttendanceSummary, createEmployeeDraft, createShiftDraft, executeEmployeeCreation, executeShiftCreation, updateShiftDraft, executeShiftUpdate, deleteShiftDraft, executeShiftDeletion, swapShiftDraft, executeShiftSwap, listEmployeeWarnings, issueWarningDraft, executeWarningIssuance, getEmployeeDossier, publishShiftsDraft, executePublishShifts, manualClockInDraft, executeManualClockIn } from "./capabilities/workforce.ts";
-import { listTests, getTestResults, listTestAssignments, assignTestDraft, executeTestAssignment } from "./capabilities/tests.ts";
-import { getTaskCompletionSummary, getWorkOrderStatus, getDocumentExpiries, getTrainingGaps, updateEmployeeDraft, executeEmployeeUpdate, deactivateEmployeeDraft, executeEmployeeDeactivation, correctAttendanceDraft, executeAttendanceCorrection, excuseLateDraft, executeExcuseLate, createWorkOrderDraft, executeWorkOrderCreation, updateWoStatusDraft, executeWoStatusUpdate, createTaskDraft, executeTaskCreation, createTrainingAssignmentDraft, executeTrainingAssignment, updateTrainingStatusDraft, executeTrainingStatusUpdate, listDepartments, createDepartmentDraft, executeCreateDepartment, updateDepartmentDraft, executeUpdateDepartment, deleteDepartmentDraft, executeDeleteDepartment, listTasks, updateTaskDraft, executeTaskUpdate, deleteTaskDraft, executeTaskDeletion, completeTaskDraft, executeTaskCompletion, listDocuments, linkDocumentDraft, executeDocumentLink, createDocumentCategoryDraft, executeDocumentCategoryCreation, deleteDocumentDraft, executeDocumentDeletion, listAlerts, resolveAlertDraft, executeAlertResolution, listTrainingPrograms, createTrainingProgramDraft, executeTrainingProgramCreation, listAssets, getAssetDetails, getLaborCosts, listTrainingSessions, createTrainingSessionDraft, executeTrainingSessionCreation, listPayrollPeriods, getPayrollSummary, getEmployeePerformanceReport } from "./capabilities/operations.ts";
+import { searchEmployees, getEmployeeShifts, getAttendanceExceptions, getAttendanceSummary, createEmployeeDraft, createShiftDraft, executeEmployeeCreation, executeShiftCreation, updateShiftDraft, executeShiftUpdate, deleteShiftDraft, executeShiftDeletion, swapShiftDraft, executeShiftSwap, listEmployeeWarnings, issueStaffEventDraft, executeStaffEventIssuance, getEmployeeDossier, publishShiftsDraft, executePublishShifts, manualClockInDraft, executeManualClockIn, listStaffEvents } from "./capabilities/workforce.ts";
+import { listTests, getTestResults, listTestAssignments, assignTestDraft, executeTestAssignment, getTestAnalytics } from "./capabilities/tests.ts";
+import { getTaskCompletionSummary, getWorkOrderStatus, getDocumentExpiries, getTrainingGaps, updateEmployeeDraft, executeEmployeeUpdate, deactivateEmployeeDraft, executeEmployeeDeactivation, correctAttendanceDraft, executeAttendanceCorrection, excuseLateDraft, executeExcuseLate, createWorkOrderDraft, executeWorkOrderCreation, updateWoStatusDraft, executeWoStatusUpdate, createTaskDraft, executeTaskCreation, createTrainingAssignmentDraft, executeTrainingAssignment, updateTrainingStatusDraft, executeTrainingStatusUpdate, listDepartments, createDepartmentDraft, executeCreateDepartment, updateDepartmentDraft, executeUpdateDepartment, deleteDepartmentDraft, executeDeleteDepartment, listTasks, updateTaskDraft, executeTaskUpdate, deleteTaskDraft, executeTaskDeletion, completeTaskDraft, executeTaskCompletion, listDocuments, linkDocumentDraft, executeDocumentLink, createDocumentCategoryDraft, executeDocumentCategoryCreation, deleteDocumentDraft, executeDocumentDeletion, listAlerts, resolveAlertDraft, executeAlertResolution, listTrainingPrograms, createTrainingProgramDraft, executeTrainingProgramCreation, listAssets, getAssetDetails, getLaborCosts, listTrainingSessions, createTrainingSessionDraft, executeTrainingSessionCreation, listPayrollPeriods, getPayrollSummary, getEmployeePerformanceReport, listPmPlans, getPmComplianceReport, createPmPlanDraft, executeCreatePmPlan, listCmmsParts, getPartsStockReport, listCmmsVendors, createPurchaseOrderDraft, executeCreatePurchaseOrder, listAllPendingApprovals, getApprovalRequestDetails, makeApprovalDecisionDraft, executeMakeApprovalDecision, getActivityLog, listCmmsTeams, createPayrollPeriodDraft, executeCreatePayrollPeriod, addPayrollItemDraft, executeAddPayrollItem, updatePayrollPeriodStatusDraft, executeUpdatePayrollPeriodStatus, listTrainingSessionAttendees, createTrainingEvaluationDraft, executeTrainingEvaluation } from "./capabilities/operations.ts";
+import { getInventoryLevels, listManualMetrics, logMetricDraft, executeLogMetric } from "./capabilities/inventory.ts";
+import { listMysteryShopperResults, getMysteryShopperScores, listVouchers } from "./capabilities/mystery-shopper.ts";
+import { listMarketplaceTemplates, installMarketplaceTemplateDraft, executeInstallMarketplaceTemplate } from "./capabilities/marketplace.ts";
 import { searchLocations, getLocationOverview, getCrossModuleSummary } from "./capabilities/overview.ts";
 import { listLocations, getLocationDetails, createLocationDraft, executeLocationCreation, updateLocationDraft, executeLocationUpdate, deactivateLocationDraft, executeLocationDeactivation } from "./capabilities/locations.ts";
 import { listNotifications, sendNotificationDraft, executeNotificationSend } from "./capabilities/notifications.ts";
@@ -203,8 +209,91 @@ const TOOL_MODULE_MAP: Record<string, string> = {
   // Payroll
   list_payroll_periods: "payroll",
   get_payroll_summary: "payroll",
-  // Employee performance
   get_employee_performance_report: "workforce",
+  // Payroll writes (Phase 6)
+  create_payroll_period_draft: "payroll",
+  execute_create_payroll_period: "payroll",
+  add_payroll_item_draft: "payroll",
+  execute_add_payroll_item: "payroll",
+  update_payroll_period_status_draft: "payroll",
+  execute_update_payroll_period_status: "payroll",
+  // Staff events (Phase 6)
+  list_staff_events: "workforce",
+  issue_staff_event_draft: "workforce",
+  execute_staff_event_issuance: "workforce",
+  // Test analytics (Phase 6)
+  get_test_analytics: "testing_training",
+  // CA events (Phase 6)
+  list_ca_events: "corrective_actions",
+  // Training evaluations (Phase 6)
+  list_training_session_attendees: "workforce",
+  create_training_evaluation_draft: "workforce",
+  execute_training_evaluation: "workforce",
+  // Equipment management
+  list_equipment: "equipment_management",
+  get_equipment_details: "equipment_management",
+  get_equipment_expiries: "equipment_management",
+  log_equipment_intervention_draft: "equipment_management",
+  execute_equipment_intervention: "equipment_management",
+  // QR forms
+  list_form_templates: "qr_forms",
+  list_form_assignments: "qr_forms",
+  list_form_submissions: "qr_forms",
+  get_form_submission_details: "qr_forms",
+  // WhatsApp / messaging
+  list_whatsapp_templates: "whatsapp_messaging",
+  list_outbound_messages: "whatsapp_messaging",
+  send_whatsapp_message_draft: "whatsapp_messaging",
+  execute_send_whatsapp_message: "whatsapp_messaging",
+  list_notification_rules: "notifications",
+  create_notification_rule_draft: "notifications",
+  execute_create_notification_rule: "notifications",
+  // Staff audits
+  list_staff_audits: "location_audits",
+  get_staff_audit_details: "location_audits",
+  create_staff_audit_draft: "location_audits",
+  execute_staff_audit_creation: "location_audits",
+  // Scout payouts
+  list_scout_payouts: "scouts",
+  get_scout_payout_summary: "scouts",
+  process_scout_payout_draft: "scouts",
+  execute_process_scout_payout: "scouts",
+  // CMMS PM plans
+  list_pm_plans: "cmms",
+  get_pm_compliance_report: "cmms",
+  create_pm_plan_draft: "cmms",
+  execute_create_pm_plan: "cmms",
+  // CMMS parts & vendors
+  list_cmms_parts: "cmms",
+  get_parts_stock_report: "cmms",
+  list_cmms_vendors: "cmms",
+  create_purchase_order_draft: "cmms",
+  execute_create_purchase_order: "cmms",
+  // Inventory
+  get_inventory_levels: "inventory",
+  list_manual_metrics: "workforce",
+  log_metric_draft: "workforce",
+  execute_log_metric: "workforce",
+  // Mystery shopper
+  list_mystery_shopper_results: "location_audits",
+  get_mystery_shopper_scores: "location_audits",
+  list_vouchers: "location_audits",
+  // General approvals
+  list_pending_approvals: "government_ops",
+  get_approval_request_details: "government_ops",
+  make_approval_decision_draft: "government_ops",
+  execute_approval_decision: "government_ops",
+  // Notification analytics
+  get_notification_analytics: "notifications",
+  list_notification_audit_log: "notifications",
+  // Activity log
+  get_activity_log: "workforce",
+  // CMMS teams
+  list_cmms_teams: "cmms",
+  // Marketplace
+  list_marketplace_templates: "location_audits",
+  install_marketplace_template_draft: "location_audits",
+  execute_install_marketplace_template: "location_audits",
 };
 
 // ─── Action-name to execute-tool resolver (server-authoritative) ───
@@ -258,8 +347,9 @@ const ACTION_EXECUTE_MAP: Record<string, string> = {
   create_training_program: "execute_training_program_creation",
   // Tests
   assign_test: "execute_test_assignment",
-  // Warnings
-  issue_warning: "execute_warning_issuance",
+  // Staff events (warning, bonus, promotion, etc.)
+  issue_warning: "execute_staff_event_issuance",
+  issue_staff_event: "execute_staff_event_issuance",
   // Shift publish
   publish_shifts: "execute_publish_shifts",
   unpublish_shifts: "execute_publish_shifts",
@@ -269,11 +359,35 @@ const ACTION_EXECUTE_MAP: Record<string, string> = {
   create_training_session: "execute_training_session_creation",
   // Scouts
   review_scout_submission: "execute_scout_submission_review",
+  process_scout_payout: "execute_process_scout_payout",
   // Waste
   log_waste: "execute_waste_entry",
   // CA items
   update_ca_item_status: "execute_update_ca_item_status",
   add_ca_item: "execute_add_ca_item",
+  // Equipment
+  log_equipment_intervention: "execute_equipment_intervention",
+  // Messaging
+  send_whatsapp_message: "execute_send_whatsapp_message",
+  create_notification_rule: "execute_create_notification_rule",
+  // Staff audits
+  create_staff_audit: "execute_staff_audit_creation",
+  // CMMS PM plans
+  create_pm_plan: "execute_create_pm_plan",
+  // CMMS purchase orders
+  create_purchase_order: "execute_create_purchase_order",
+  // Inventory metrics
+  log_metric: "execute_log_metric",
+  // Approvals
+  make_approval_decision: "execute_approval_decision",
+  // Marketplace
+  install_marketplace_template: "execute_install_marketplace_template",
+  // Payroll writes (Phase 6)
+  create_payroll_period: "execute_create_payroll_period",
+  add_payroll_item: "execute_add_payroll_item",
+  update_payroll_status: "execute_update_payroll_period_status",
+  // Training evaluations (Phase 6)
+  create_training_evaluation: "execute_training_evaluation",
 };
 
 /** Hydrate execution args from pending action's preview_json based on action_name.
@@ -303,6 +417,12 @@ function hydrateArgsFromDraft(actionName: string, previewJson: any): Record<stri
         id_number: previewJson.id_number || null,
         address: previewJson.address || null,
         start_date: previewJson.start_date || null,
+        hire_date: previewJson.hire_date || null,
+        contract_type: previewJson.contract_type || null,
+        base_salary: previewJson.base_salary != null ? Number(previewJson.base_salary) : null,
+        hourly_rate: previewJson.hourly_rate != null ? Number(previewJson.hourly_rate) : null,
+        emergency_contact_name: previewJson.emergency_contact_name || null,
+        emergency_contact_phone: previewJson.emergency_contact_phone || null,
       };
     case "create_shift":
       return {
@@ -1277,17 +1397,23 @@ async function executeToolInner(
       const ctx = buildPermCtx(companyId, userId, platformRoles, companyRole, activeModules);
       return resultToToolResponse(await executeTestAssignment(sbService, companyId, userId, args, structuredEvents, ctx));
     }
+    case "get_test_analytics":
+      return resultToToolResponse(await getTestAnalytics(sb, companyId, args));
 
-    // ────────── WARNINGS ──────────
+    // ────────── WARNINGS / STAFF EVENTS ──────────
     case "list_employee_warnings":
       return resultToToolResponse(await listEmployeeWarnings(sb, companyId, args, utcRange));
-    case "issue_warning_draft": {
+    case "list_staff_events":
+      return resultToToolResponse(await listStaffEvents(sb, companyId, args));
+    case "issue_warning_draft":
+    case "issue_staff_event_draft": {
       const ctx = buildPermCtx(companyId, userId, platformRoles, companyRole, activeModules);
-      return resultToToolResponse(await issueWarningDraft(sb, sbService, companyId, userId, args, structuredEvents, ctx));
+      return resultToToolResponse(await issueStaffEventDraft(sb, sbService, companyId, userId, args, structuredEvents, ctx));
     }
-    case "execute_warning_issuance": {
+    case "execute_warning_issuance":
+    case "execute_staff_event_issuance": {
       const ctx = buildPermCtx(companyId, userId, platformRoles, companyRole, activeModules);
-      return resultToToolResponse(await executeWarningIssuance(sbService, companyId, userId, args, structuredEvents, ctx));
+      return resultToToolResponse(await executeStaffEventIssuance(sbService, companyId, userId, args, structuredEvents, ctx));
     }
 
     // ────────── EMPLOYEE DOSSIER ──────────
@@ -1335,6 +1461,16 @@ async function executeToolInner(
       const ctx = buildPermCtx(companyId, userId, platformRoles, companyRole, activeModules);
       return resultToToolResponse(await executeTrainingSessionCreation(sbService, companyId, userId, args, structuredEvents, ctx));
     }
+    case "list_training_session_attendees":
+      return resultToToolResponse(await listTrainingSessionAttendees(sb, companyId, args));
+    case "create_training_evaluation_draft": {
+      const ctx = buildPermCtx(companyId, userId, platformRoles, companyRole, activeModules);
+      return resultToToolResponse(await createTrainingEvaluationDraft(sb, sbService, companyId, userId, args, structuredEvents, ctx));
+    }
+    case "execute_training_evaluation": {
+      const ctx = buildPermCtx(companyId, userId, platformRoles, companyRole, activeModules);
+      return resultToToolResponse(await executeTrainingEvaluation(sbService, companyId, userId, args, structuredEvents, ctx));
+    }
 
     // ────────── SCOUT JOBS ──────────
     case "list_scout_jobs":
@@ -1371,6 +1507,8 @@ async function executeToolInner(
     // ────────── CA ITEMS ──────────
     case "list_ca_items":
       return resultToToolResponse(await listCaItems(sb, companyId, args));
+    case "list_ca_events":
+      return resultToToolResponse(await listCaEvents(sb, companyId, args));
     case "update_ca_item_status_draft": {
       const ctx = buildPermCtx(companyId, userId, platformRoles, companyRole, activeModules);
       return resultToToolResponse(await updateCaItemStatusDraft(sb, sbService, companyId, userId, args, structuredEvents, ctx));
@@ -1393,10 +1531,204 @@ async function executeToolInner(
       return resultToToolResponse(await listPayrollPeriods(sb, companyId, args));
     case "get_payroll_summary":
       return resultToToolResponse(await getPayrollSummary(sb, companyId, args));
+    case "create_payroll_period_draft": {
+      const ctx = buildPermCtx(companyId, userId, platformRoles, companyRole, activeModules);
+      return resultToToolResponse(await createPayrollPeriodDraft(sb, sbService, companyId, userId, args, structuredEvents, ctx));
+    }
+    case "execute_create_payroll_period": {
+      const ctx = buildPermCtx(companyId, userId, platformRoles, companyRole, activeModules);
+      return resultToToolResponse(await executeCreatePayrollPeriod(sbService, companyId, userId, args, structuredEvents, ctx));
+    }
+    case "add_payroll_item_draft": {
+      const ctx = buildPermCtx(companyId, userId, platformRoles, companyRole, activeModules);
+      return resultToToolResponse(await addPayrollItemDraft(sb, sbService, companyId, userId, args, structuredEvents, ctx));
+    }
+    case "execute_add_payroll_item": {
+      const ctx = buildPermCtx(companyId, userId, platformRoles, companyRole, activeModules);
+      return resultToToolResponse(await executeAddPayrollItem(sbService, companyId, userId, args, structuredEvents, ctx));
+    }
+    case "update_payroll_period_status_draft": {
+      const ctx = buildPermCtx(companyId, userId, platformRoles, companyRole, activeModules);
+      return resultToToolResponse(await updatePayrollPeriodStatusDraft(sb, sbService, companyId, userId, args, structuredEvents, ctx));
+    }
+    case "execute_update_payroll_period_status": {
+      const ctx = buildPermCtx(companyId, userId, platformRoles, companyRole, activeModules);
+      return resultToToolResponse(await executeUpdatePayrollPeriodStatus(sbService, companyId, userId, args, structuredEvents, ctx));
+    }
 
     // ────────── EMPLOYEE PERFORMANCE ──────────
     case "get_employee_performance_report":
       return resultToToolResponse(await getEmployeePerformanceReport(sb, companyId, args));
+
+    // ────────── CMMS PM PLANS ──────────
+    case "list_pm_plans":
+      return resultToToolResponse(await listPmPlans(sb, companyId, args));
+    case "get_pm_compliance_report":
+      return resultToToolResponse(await getPmComplianceReport(sb, companyId, args));
+    case "create_pm_plan_draft": {
+      const ctx = buildPermCtx(companyId, userId, platformRoles, companyRole, activeModules);
+      return resultToToolResponse(await createPmPlanDraft(sb, sbService, companyId, userId, args, structuredEvents, ctx));
+    }
+    case "execute_create_pm_plan": {
+      const ctx = buildPermCtx(companyId, userId, platformRoles, companyRole, activeModules);
+      return resultToToolResponse(await executeCreatePmPlan(sbService, companyId, userId, args, structuredEvents, ctx));
+    }
+
+    // ────────── CMMS PARTS & VENDORS ──────────
+    case "list_cmms_parts":
+      return resultToToolResponse(await listCmmsParts(sb, companyId, args));
+    case "get_parts_stock_report":
+      return resultToToolResponse(await getPartsStockReport(sb, companyId, args));
+    case "list_cmms_vendors":
+      return resultToToolResponse(await listCmmsVendors(sb, companyId, args));
+    case "create_purchase_order_draft": {
+      const ctx = buildPermCtx(companyId, userId, platformRoles, companyRole, activeModules);
+      return resultToToolResponse(await createPurchaseOrderDraft(sb, sbService, companyId, userId, args, structuredEvents, ctx));
+    }
+    case "execute_create_purchase_order": {
+      const ctx = buildPermCtx(companyId, userId, platformRoles, companyRole, activeModules);
+      return resultToToolResponse(await executeCreatePurchaseOrder(sbService, companyId, userId, args, structuredEvents, ctx));
+    }
+
+    // ────────── INVENTORY & MANUAL METRICS ──────────
+    case "get_inventory_levels":
+      return resultToToolResponse(await getInventoryLevels(sb, companyId, args));
+    case "list_manual_metrics":
+      return resultToToolResponse(await listManualMetrics(sb, companyId, args));
+    case "log_metric_draft": {
+      const ctx = buildPermCtx(companyId, userId, platformRoles, companyRole, activeModules);
+      return resultToToolResponse(await logMetricDraft(sb, sbService, companyId, userId, args, structuredEvents, ctx));
+    }
+    case "execute_log_metric": {
+      const ctx = buildPermCtx(companyId, userId, platformRoles, companyRole, activeModules);
+      return resultToToolResponse(await executeLogMetric(sbService, companyId, userId, args, structuredEvents, ctx));
+    }
+
+    // ────────── MYSTERY SHOPPER ──────────
+    case "list_mystery_shopper_results":
+      return resultToToolResponse(await listMysteryShopperResults(sb, companyId, args));
+    case "get_mystery_shopper_scores":
+      return resultToToolResponse(await getMysteryShopperScores(sb, companyId, args));
+    case "list_vouchers":
+      return resultToToolResponse(await listVouchers(sb, companyId, args));
+
+    // ────────── GENERAL APPROVAL WORKFLOWS ──────────
+    case "list_pending_approvals":
+      return resultToToolResponse(await listAllPendingApprovals(sb, companyId, args));
+    case "get_approval_request_details":
+      return resultToToolResponse(await getApprovalRequestDetails(sb, companyId, args));
+    case "make_approval_decision_draft": {
+      const ctx = buildPermCtx(companyId, userId, platformRoles, companyRole, activeModules);
+      return resultToToolResponse(await makeApprovalDecisionDraft(sb, sbService, companyId, userId, args, structuredEvents, ctx));
+    }
+    case "execute_approval_decision": {
+      const ctx = buildPermCtx(companyId, userId, platformRoles, companyRole, activeModules);
+      return resultToToolResponse(await executeMakeApprovalDecision(sbService, companyId, userId, args, structuredEvents, ctx));
+    }
+
+    // ────────── NOTIFICATION ANALYTICS ──────────
+    case "get_notification_analytics":
+      return resultToToolResponse(await getNotificationAnalytics(sb, companyId, args));
+    case "list_notification_audit_log":
+      return resultToToolResponse(await listNotificationAuditLog(sb, companyId, args));
+
+    // ────────── ACTIVITY LOG ──────────
+    case "get_activity_log":
+      return resultToToolResponse(await getActivityLog(sb, companyId, args));
+
+    // ────────── CMMS TEAMS ──────────
+    case "list_cmms_teams":
+      return resultToToolResponse(await listCmmsTeams(sb, companyId, args));
+
+    // ────────── MARKETPLACE ──────────
+    case "list_marketplace_templates":
+      return resultToToolResponse(await listMarketplaceTemplates(sb, companyId, args));
+    case "install_marketplace_template_draft": {
+      const ctx = buildPermCtx(companyId, userId, platformRoles, companyRole, activeModules);
+      return resultToToolResponse(await installMarketplaceTemplateDraft(sb, sbService, companyId, userId, args, structuredEvents, ctx));
+    }
+    case "execute_install_marketplace_template": {
+      const ctx = buildPermCtx(companyId, userId, platformRoles, companyRole, activeModules);
+      return resultToToolResponse(await executeInstallMarketplaceTemplate(sbService, companyId, userId, args, structuredEvents, ctx));
+    }
+
+    // ────────── EQUIPMENT MANAGEMENT ──────────
+    case "list_equipment":
+      return resultToToolResponse(await listEquipment(sb, companyId, args));
+    case "get_equipment_details":
+      return resultToToolResponse(await getEquipmentDetails(sb, companyId, args));
+    case "get_equipment_expiries":
+      return resultToToolResponse(await getEquipmentExpiries(sb, companyId, args));
+    case "log_equipment_intervention_draft": {
+      const ctx = buildPermCtx(companyId, userId, platformRoles, companyRole, activeModules);
+      return resultToToolResponse(await logEquipmentInterventionDraft(sb, sbService, companyId, userId, args, structuredEvents, ctx));
+    }
+    case "execute_equipment_intervention": {
+      const ctx = buildPermCtx(companyId, userId, platformRoles, companyRole, activeModules);
+      return resultToToolResponse(await executeEquipmentIntervention(sbService, companyId, userId, args, structuredEvents, ctx));
+    }
+
+    // ────────── QR FORMS ──────────
+    case "list_form_templates":
+      return resultToToolResponse(await listFormTemplates(sb, companyId, args));
+    case "list_form_assignments":
+      return resultToToolResponse(await listFormAssignments(sb, companyId, args));
+    case "list_form_submissions":
+      return resultToToolResponse(await listFormSubmissions(sb, companyId, args));
+    case "get_form_submission_details":
+      return resultToToolResponse(await getFormSubmissionDetails(sb, companyId, args));
+
+    // ────────── WHATSAPP / MESSAGING ──────────
+    case "list_whatsapp_templates":
+      return resultToToolResponse(await listWhatsappTemplates(sb, companyId, args));
+    case "list_outbound_messages":
+      return resultToToolResponse(await listOutboundMessages(sb, companyId, args));
+    case "list_notification_rules":
+      return resultToToolResponse(await listNotificationRules(sb, companyId, args));
+    case "send_whatsapp_message_draft": {
+      const ctx = buildPermCtx(companyId, userId, platformRoles, companyRole, activeModules);
+      return resultToToolResponse(await sendWhatsappMessageDraft(sb, sbService, companyId, userId, args, structuredEvents, ctx));
+    }
+    case "execute_send_whatsapp_message": {
+      const ctx = buildPermCtx(companyId, userId, platformRoles, companyRole, activeModules);
+      return resultToToolResponse(await executeeSendWhatsappMessage(sbService, companyId, userId, args, structuredEvents, ctx));
+    }
+    case "create_notification_rule_draft": {
+      const ctx = buildPermCtx(companyId, userId, platformRoles, companyRole, activeModules);
+      return resultToToolResponse(await createNotificationRuleDraft(sb, sbService, companyId, userId, args, structuredEvents, ctx));
+    }
+    case "execute_create_notification_rule": {
+      const ctx = buildPermCtx(companyId, userId, platformRoles, companyRole, activeModules);
+      return resultToToolResponse(await executeCreateNotificationRule(sbService, companyId, userId, args, structuredEvents, ctx));
+    }
+
+    // ────────── STAFF AUDITS ──────────
+    case "list_staff_audits":
+      return resultToToolResponse(await listStaffAudits(sb, companyId, args));
+    case "get_staff_audit_details":
+      return resultToToolResponse(await getStaffAuditDetails(sb, companyId, args));
+    case "create_staff_audit_draft": {
+      const ctx = buildPermCtx(companyId, userId, platformRoles, companyRole, activeModules);
+      return resultToToolResponse(await createStaffAuditDraft(sb, sbService, companyId, userId, args, structuredEvents, ctx));
+    }
+    case "execute_staff_audit_creation": {
+      const ctx = buildPermCtx(companyId, userId, platformRoles, companyRole, activeModules);
+      return resultToToolResponse(await executeStaffAuditCreation(sbService, companyId, userId, args, structuredEvents, ctx));
+    }
+
+    // ────────── SCOUT PAYOUTS ──────────
+    case "list_scout_payouts":
+      return resultToToolResponse(await listScoutPayouts(sb, companyId, args));
+    case "get_scout_payout_summary":
+      return resultToToolResponse(await getScoutPayoutSummary(sb, companyId, args));
+    case "process_scout_payout_draft": {
+      const ctx = buildPermCtx(companyId, userId, platformRoles, companyRole, activeModules);
+      return resultToToolResponse(await processScoutPayoutDraft(sb, sbService, companyId, userId, args, structuredEvents, ctx));
+    }
+    case "execute_process_scout_payout": {
+      const ctx = buildPermCtx(companyId, userId, platformRoles, companyRole, activeModules);
+      return resultToToolResponse(await executeProcessScoutPayout(sbService, companyId, userId, args, structuredEvents, ctx));
+    }
 
     case "get_capabilities": {
       // Build a human-readable summary of active capabilities for this company
@@ -1470,7 +1802,7 @@ ${generateCapabilityDocs()}
 ### Draft & Execute (APPROVAL-GATED WRITES)
 You can now create AND execute records in the platform:
 
-**CRITICAL — STOP AFTER DRAFT**: After calling ANY draft tool (create_employee_draft, create_audit_template_draft, create_shift_draft, update_shift_draft, delete_shift_draft, swap_shift_draft, reassign_corrective_action, create_ca_draft, update_ca_status_draft, update_employee_draft, deactivate_employee_draft, correct_attendance_draft, excuse_late_draft, create_work_order_draft, update_wo_status_draft, create_task_draft, update_task_draft, delete_task_draft, complete_task_draft, create_training_assignment_draft, update_training_status_draft, create_training_program_draft, schedule_audit_draft, cancel_scheduled_audit_draft, create_location_draft, update_location_draft, deactivate_location_draft, create_department_draft, update_department_draft, delete_department_draft, link_document_draft, create_document_category_draft, delete_document_draft, send_notification_draft, resolve_alert_draft, create_time_off_request_draft, approve_time_off_request_draft, issue_warning_draft, assign_test_draft, publish_shifts_draft, manual_clock_in_draft, create_training_session_draft, review_scout_submission_draft, log_waste_draft, update_ca_item_status_draft, add_ca_item_draft), you MUST immediately STOP making tool calls and present the draft preview to the user. Do NOT call any execute tool in the same response. The approval card UI will handle the approval flow. You must wait for the NEXT user message containing explicit approval before executing.
+**CRITICAL — STOP AFTER DRAFT**: After calling ANY draft tool (create_employee_draft, create_audit_template_draft, create_shift_draft, update_shift_draft, delete_shift_draft, swap_shift_draft, reassign_corrective_action, create_ca_draft, update_ca_status_draft, update_employee_draft, deactivate_employee_draft, correct_attendance_draft, excuse_late_draft, create_work_order_draft, update_wo_status_draft, create_task_draft, update_task_draft, delete_task_draft, complete_task_draft, create_training_assignment_draft, update_training_status_draft, create_training_program_draft, schedule_audit_draft, cancel_scheduled_audit_draft, create_location_draft, update_location_draft, deactivate_location_draft, create_department_draft, update_department_draft, delete_department_draft, link_document_draft, create_document_category_draft, delete_document_draft, send_notification_draft, resolve_alert_draft, create_time_off_request_draft, approve_time_off_request_draft, issue_warning_draft, issue_staff_event_draft, assign_test_draft, publish_shifts_draft, manual_clock_in_draft, create_training_session_draft, review_scout_submission_draft, log_waste_draft, update_ca_item_status_draft, add_ca_item_draft, log_equipment_intervention_draft, send_whatsapp_message_draft, create_notification_rule_draft, create_staff_audit_draft, process_scout_payout_draft, create_pm_plan_draft, create_purchase_order_draft, log_metric_draft, make_approval_decision_draft, install_marketplace_template_draft, create_payroll_period_draft, add_payroll_item_draft, update_payroll_period_status_draft, create_training_evaluation_draft), you MUST immediately STOP making tool calls and present the draft preview to the user. Do NOT call any execute tool in the same response. The approval card UI will handle the approval flow. You must wait for the NEXT user message containing explicit approval before executing.
 
 **Employee Creation Flow:**
 1. Use \`create_employee_draft\` to prepare the draft and show preview
@@ -1520,11 +1852,17 @@ You can now create AND execute records in the platform:
 3. Wait for user approval
 4. ONLY THEN call \`execute_publish_shifts\` with the pending_action_id
 
-**Issue Warning Flow:**
-1. Use \`issue_warning_draft\` with employee_name, description, and severity (minor/major/critical). event_type can be "warning" or "coaching_note".
-2. STOP — this is HIGH RISK. Show clearly who will receive the warning.
+**Staff Events Flow (warnings, bonuses, promotions, terminations, etc.):**
+1. Use \`issue_staff_event_draft\` with employee_name, event_type (warning/coaching_note/raise/bonus/promotion/demotion/termination), and description.
+   - For warnings: include severity (minor/major/critical) and optional category
+   - For raise/bonus: include amount and optional effective_date
+   - For promotion/demotion: include new_role and optional effective_date
+   - For termination: include effective_date
+2. STOP — this is HIGH RISK for warnings/demotions/terminations. Show clearly what will be recorded.
 3. Wait for user approval
-4. ONLY THEN call \`execute_warning_issuance\` with the pending_action_id
+4. ONLY THEN call \`execute_staff_event_issuance\` with the pending_action_id
+- Use \`list_staff_events\` to view all event types for an employee (optionally filter by event_type)
+- Use \`list_employee_warnings\` to view warnings and coaching notes only (alias for backward compatibility)
 
 **Assign Test Flow:**
 1. Use \`assign_test_draft\` with test_name and employee_name.
@@ -1562,12 +1900,108 @@ You can now create AND execute records in the platform:
 - To update an item status: use \`update_ca_item_status_draft\` with item_id and new_status (open/in_progress/done/verified/rejected), then execute_update_ca_item_status
 - To add a new item: use \`add_ca_item_draft\` with ca_id, title, and optionally assigned_name and due_date, then execute_add_ca_item
 
-**Payroll Reads:**
+**Payroll (Full Workflow):**
 - List periods: \`list_payroll_periods\` — optionally filter by status (draft/calculated/approved/paid/closed)
 - Period details: \`get_payroll_summary\` — omit period_name for most recent period; shows totals by location and top earners
+- Create period: \`create_payroll_period_draft\` with name, period_start, period_end → execute: \`execute_create_payroll_period\`
+- Add item: \`add_payroll_item_draft\` with employee_name, item_type (base/overtime/bonus/penalty/tips/deduction/adjustment), amount, and period_name → execute: \`execute_add_payroll_item\`
+- Update status: \`update_payroll_period_status_draft\` with period_name and new_status (calculated/approved/paid/closed) → execute: \`execute_update_payroll_period_status\`
 
 **Employee Performance:**
 - Use \`get_employee_performance_report\` to view monthly performance scores. Filter by location_name, employee_name, or month (YYYY-MM). Shows effective_score, attendance_score, punctuality_score, task_score, test_score, warning_penalty, and rank_in_location.
+
+**Test Analytics:**
+- Use \`get_test_analytics\` to get company-wide pass rates, average scores, and trends by month. Optionally filter by test_name or date range.
+- Use \`get_test_results\` for individual submission records; \`list_test_assignments\` for pending/completed assignments.
+
+**Training Evaluations:**
+- \`list_training_session_attendees\` with session_name — shows attendance and scores per session
+- \`create_training_evaluation_draft\` with employee_name (or assignment_id), score (0-100), and optional feedback → execute: \`execute_training_evaluation\` — marks assignment as completed
+
+**Corrective Action Events (Audit Trail):**
+- \`list_ca_events\` with ca_id or ca_title — shows the full timeline of events (status changes, comments, etc.) for a CA
+
+**Employee Onboarding (Full Fields):**
+- \`create_employee_draft\` now supports: full_name, role, location_name, start_date, hire_date, phone, email, contract_type (permanent/part-time/contract/temporary), base_salary, hourly_rate, emergency_contact_name, emergency_contact_phone, plus Romanian ID fields (cnp, date_of_birth, id_series, id_number, address)
+
+**Equipment Management Flow:**
+- List equipment: \`list_equipment\` with optional location_name and status filters
+- Equipment due for check: \`get_equipment_expiries\` — defaults to 30 days ahead
+- Equipment history: \`get_equipment_details\` with equipment_name
+- Log intervention: \`log_equipment_intervention_draft\` with equipment_name, intervention_type (check/repair/replacement/calibration/cleaning/other), and description. Optionally set new_status to update equipment status.
+- Execute: \`execute_equipment_intervention\` after approval
+
+**QR Forms / Digital Records:**
+- Templates: \`list_form_templates\` — HACCP logs, quality records, event logs
+- Assignments: \`list_form_assignments\` — which templates are assigned where
+- Submissions: \`list_form_submissions\` — filter by location_name, status (draft/submitted/locked), period_year/month
+- Details: \`get_form_submission_details\` with submission_id
+
+**WhatsApp & Notification Rules:**
+- List templates: \`list_whatsapp_templates\` — shows approved templates with message body
+- Message history: \`list_outbound_messages\` — filter by status (queued/sent/failed) or date range
+- Send message: \`send_whatsapp_message_draft\` — specify template_name and either employee_name OR location_name. ALWAYS check available templates first with \`list_whatsapp_templates\` if the user hasn't specified one. Only approved templates can be sent.
+- Execute send: \`execute_send_whatsapp_message\` after approval
+- Notification rules: \`list_notification_rules\` — shows automated alert routing and escalation chains
+- Create rule: \`create_notification_rule_draft\` with event_type, channel, target_roles, and optional escalation_after_minutes + escalation_channel
+- Execute rule: \`execute_create_notification_rule\` after approval
+
+**Staff Audits (Performance Evaluations):**
+- These are DIFFERENT from location audits. Staff audits are employee performance scorecards (0-100).
+- List: \`list_staff_audits\` — filter by employee_name, location_name, date range
+- Details: \`get_staff_audit_details\` with audit_id
+- Create: \`create_staff_audit_draft\` with employee_name, optional score (0-100), template_name, notes
+- Execute: \`execute_staff_audit_creation\` after approval
+
+**Scout Payouts:**
+- List: \`list_scout_payouts\` — filter by status (pending/paid/failed)
+- Summary: \`get_scout_payout_summary\` — totals by status
+- Process: \`process_scout_payout_draft\` with payout_id and new_status (paid or failed). HIGH RISK — show amount and scout name clearly.
+- Execute: \`execute_process_scout_payout\` after approval
+
+**CMMS PM Plans:**
+- List: \`list_pm_plans\` — shows next_due_at and overdue flag; use overdue_only=true for overdue
+- Compliance: \`get_pm_compliance_report\` — completed vs missed runs over a period
+- Create: \`create_pm_plan_draft\` with name, frequency_type (daily/weekly/monthly/quarterly/yearly/cycles), frequency_value, and either asset_name or location_name
+- Execute: \`execute_create_pm_plan\` after approval
+
+**CMMS Parts & Vendors:**
+- Parts: \`list_cmms_parts\` — spare parts catalog; \`get_parts_stock_report\` for stock levels with low-stock alerts
+- Vendors: \`list_cmms_vendors\` — active vendor contacts
+- Purchase order: \`create_purchase_order_draft\` with items array (part_name + quantity) and optional vendor_name
+- Execute: \`execute_create_purchase_order\` after approval
+
+**Inventory & Manual Metrics:**
+- Inventory: \`get_inventory_levels\` — stock by location with total value
+- KPI metrics: \`list_manual_metrics\` — shows all recorded metrics (sales, covers, etc.) grouped by name with averages
+- Log metric: \`log_metric_draft\` with metric_name, metric_value, and optional metric_date + location_name
+- Execute: \`execute_log_metric\` after approval
+
+**Mystery Shopper:**
+- Results: \`list_mystery_shopper_results\` — recent submissions with scores
+- Scores: \`get_mystery_shopper_scores\` — averages by template (read-only, no writes needed)
+- Vouchers: \`list_vouchers\` — status breakdown (active/redeemed/expired)
+
+**General Approval Workflows:**
+- List: \`list_pending_approvals\` — ALL pending approvals across entity types (not just time-off)
+- Details: \`get_approval_request_details\` with request_id — full decision history
+- Decide: \`make_approval_decision_draft\` with request_id and decision (approve/reject) — HIGH RISK
+- Execute: \`execute_approval_decision\` after approval
+
+**Notification Analytics:**
+- Analytics: \`get_notification_analytics\` — delivery rate, read rate, by channel over a period
+- Audit log: \`list_notification_audit_log\` — full history of notification actions
+
+**Activity Log:**
+- Use \`get_activity_log\` to see who did what in the platform. Filter by user_name, action_type, entity_type, or date range.
+
+**CMMS Teams:**
+- Use \`list_cmms_teams\` to see maintenance teams with member counts. Useful before assigning work orders to a team.
+
+**Marketplace Templates:**
+- Browse: \`list_marketplace_templates\` — filter by category or search; sorted by popularity
+- Install: \`install_marketplace_template_draft\` with template_name. This records a download and makes the template available in your audit templates.
+- Execute: \`execute_install_marketplace_template\` after approval
 
 ### Approval Rules
 - MEDIUM risk: User must confirm with clear affirmative response
