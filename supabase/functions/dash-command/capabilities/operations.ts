@@ -1703,3 +1703,170 @@ export async function executeTrainingSessionCreation(
 
   return success({ type: "training_session_created", session_id: sessData.id });
 }
+
+// ─── Payroll ───
+
+export async function listPayrollPeriods(
+  sb: any, companyId: string, args: any
+): Promise<CapabilityResult<any>> {
+  const limit = Math.min(args.limit || 20, 100);
+  let q = sb.from("payroll_periods")
+    .select("id, name, period_start, period_end, status, total_gross, total_net, employee_count, approved_at, paid_at, created_at")
+    .eq("company_id", companyId)
+    .order("period_start", { ascending: false })
+    .limit(limit);
+
+  if (args.status) q = q.eq("status", args.status);
+  if (args.from) q = q.gte("period_start", args.from);
+  if (args.to) q = q.lte("period_end", args.to);
+
+  const { data, error } = await q;
+  if (error) return capabilityError(error.message);
+
+  return success({
+    total: data?.length ?? 0,
+    periods: (data || []).map((p: any) => ({
+      id: p.id,
+      name: p.name,
+      period_start: p.period_start,
+      period_end: p.period_end,
+      status: p.status,
+      total_gross: p.total_gross,
+      total_net: p.total_net,
+      employee_count: p.employee_count,
+      approved_at: p.approved_at,
+      paid_at: p.paid_at,
+    })),
+  });
+}
+
+export async function getPayrollSummary(
+  sb: any, companyId: string, args: any
+): Promise<CapabilityResult<any>> {
+  // Resolve payroll period
+  let periodId = args.period_id || null;
+  if (!periodId && args.period_name) {
+    const { data: per } = await sb.from("payroll_periods")
+      .select("id, name, period_start, period_end, status")
+      .eq("company_id", companyId)
+      .ilike("name", `%${args.period_name}%`)
+      .order("period_start", { ascending: false })
+      .limit(1).maybeSingle();
+    if (!per) return capabilityError(`No payroll period matching "${args.period_name}".`);
+    periodId = per.id;
+  }
+
+  if (!periodId) {
+    // Default: most recent period
+    const { data: latest } = await sb.from("payroll_periods")
+      .select("id, name, period_start, period_end, status, total_gross, total_net, employee_count")
+      .eq("company_id", companyId)
+      .order("period_start", { ascending: false })
+      .limit(1).maybeSingle();
+    if (!latest) return capabilityError("No payroll periods found.");
+    periodId = latest.id;
+  }
+
+  const { data: period } = await sb.from("payroll_periods")
+    .select("id, name, period_start, period_end, status, total_gross, total_net, employee_count, approved_at, paid_at")
+    .eq("id", periodId).maybeSingle();
+  if (!period) return capabilityError("Payroll period not found.");
+
+  // Get items
+  const { data: items, error } = await sb.from("payroll_items")
+    .select("id, employee_id, employees(full_name), gross_pay, net_pay, hours_worked, overtime_hours, status, location_id, locations(name)")
+    .eq("payroll_period_id", periodId)
+    .order("gross_pay", { ascending: false })
+    .limit(200);
+
+  if (error) return capabilityError(error.message);
+
+  const entries = items || [];
+
+  // By location
+  const byLocation: Record<string, any> = {};
+  for (const item of entries) {
+    const loc = item.locations?.name || "Unknown";
+    if (!byLocation[loc]) byLocation[loc] = { location: loc, employee_count: 0, total_gross: 0, total_net: 0 };
+    byLocation[loc].employee_count++;
+    byLocation[loc].total_gross += item.gross_pay || 0;
+    byLocation[loc].total_net += item.net_pay || 0;
+  }
+
+  return success({
+    period: {
+      id: period.id,
+      name: period.name,
+      period_start: period.period_start,
+      period_end: period.period_end,
+      status: period.status,
+      total_gross: period.total_gross,
+      total_net: period.total_net,
+      employee_count: period.employee_count,
+      approved_at: period.approved_at,
+      paid_at: period.paid_at,
+    },
+    by_location: Object.values(byLocation).sort((a: any, b: any) => b.total_gross - a.total_gross),
+    top_earners: entries.slice(0, 10).map((i: any) => ({
+      employee: i.employees?.full_name,
+      location: i.locations?.name,
+      gross_pay: i.gross_pay,
+      net_pay: i.net_pay,
+      hours_worked: i.hours_worked,
+      overtime_hours: i.overtime_hours,
+      status: i.status,
+    })),
+    total_items: entries.length,
+  });
+}
+
+// ─── Employee Performance ───
+
+export async function getEmployeePerformanceReport(
+  sb: any, companyId: string, args: any
+): Promise<CapabilityResult<any>> {
+  let locationId: string | null = null;
+  if (args.location_name) {
+    const { data: loc } = await sb.from("locations").select("id").eq("company_id", companyId).ilike("name", `%${args.location_name}%`).limit(1).maybeSingle();
+    if (!loc) return capabilityError(`No location matching "${args.location_name}".`);
+    locationId = loc.id;
+  }
+
+  let employeeId: string | null = null;
+  if (args.employee_name) {
+    const { data: emp } = await sb.from("employees").select("id, full_name").eq("company_id", companyId).ilike("full_name", `%${args.employee_name}%`).limit(1).maybeSingle();
+    if (!emp) return capabilityError(`No employee matching "${args.employee_name}".`);
+    employeeId = emp.id;
+  }
+
+  let q = sb.from("performance_monthly_scores")
+    .select("id, employee_id, employees(full_name, location_id, locations(name)), month, effective_score, attendance_score, punctuality_score, task_score, test_score, warning_penalty, rank_in_location")
+    .eq("company_id", companyId)
+    .order("month", { ascending: false })
+    .limit(100);
+
+  if (employeeId) q = q.eq("employee_id", employeeId);
+  if (locationId) q = q.eq("location_id", locationId);
+  if (args.month) q = q.eq("month", args.month); // YYYY-MM
+
+  const { data, error } = await q;
+  if (error) return capabilityError(error.message);
+
+  const records = data || [];
+
+  return success({
+    total: records.length,
+    records: records.map((r: any) => ({
+      employee: r.employees?.full_name,
+      location: r.employees?.locations?.name,
+      month: r.month,
+      effective_score: r.effective_score,
+      attendance_score: r.attendance_score,
+      punctuality_score: r.punctuality_score,
+      task_score: r.task_score,
+      test_score: r.test_score,
+      warning_penalty: r.warning_penalty,
+      rank_in_location: r.rank_in_location,
+    })),
+  });
+}

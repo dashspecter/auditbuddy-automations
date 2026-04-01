@@ -2108,6 +2108,286 @@ export const tools = [
       },
     },
   },
+  // --- READ: Scout Jobs ---
+  {
+    type: "function",
+    function: {
+      name: "list_scout_jobs",
+      description: "List scout jobs for this company. Filter by status, location, or date range.",
+      parameters: {
+        type: "object",
+        properties: {
+          status: { type: "string", description: "Filter by status: draft, posted, accepted, in_progress, submitted, approved, rejected, paid, cancelled, expired" },
+          location_name: { type: "string", description: "Location name filter (partial match)" },
+          from: { type: "string", description: "Start date YYYY-MM-DD" },
+          to: { type: "string", description: "End date YYYY-MM-DD" },
+          limit: { type: "number", description: "Max results (default 50)" },
+        },
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "get_scout_job_details",
+      description: "Get full details for a specific scout job including submissions.",
+      parameters: {
+        type: "object",
+        properties: {
+          job_id: { type: "string", description: "Scout job UUID" },
+          job_title: { type: "string", description: "Job title (partial match) if ID unknown" },
+        },
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "list_scout_submissions",
+      description: "List scout submissions for company's jobs. Filter by status or specific job.",
+      parameters: {
+        type: "object",
+        properties: {
+          status: { type: "string", description: "Filter by status: pending_review, approved, rejected, resubmit_required" },
+          job_id: { type: "string", description: "Filter by specific job UUID" },
+          limit: { type: "number", description: "Max results (default 50)" },
+        },
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "review_scout_submission_draft",
+      description: "Create a draft to review (approve/reject/request resubmission of) a scout submission.",
+      parameters: {
+        type: "object",
+        properties: {
+          submission_id: { type: "string", description: "Scout submission UUID" },
+          action: { type: "string", enum: ["approve", "reject", "request_resubmit"], description: "Review action" },
+          reviewer_notes: { type: "string", description: "Optional notes for the scout" },
+        },
+        required: ["submission_id", "action"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_scout_submission_review",
+      description: "Execute a scout submission review after user approves the draft.",
+      parameters: {
+        type: "object",
+        properties: {
+          pending_action_id: { type: "string", description: "Pending action UUID from review_scout_submission_draft" },
+        },
+        required: ["pending_action_id"],
+      },
+    },
+  },
+  // --- READ: Waste Management ---
+  {
+    type: "function",
+    function: {
+      name: "get_waste_report",
+      description: "Get a waste report with KPIs, top wasted products, and breakdown by category. Optionally filter by location and date range.",
+      parameters: {
+        type: "object",
+        properties: {
+          location_name: { type: "string", description: "Location name filter (partial match). Omit for all locations." },
+          from: { type: "string", description: "Start date YYYY-MM-DD" },
+          to: { type: "string", description: "End date YYYY-MM-DD" },
+        },
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "list_waste_entries",
+      description: "List individual waste log entries. Filter by location, status, or date range.",
+      parameters: {
+        type: "object",
+        properties: {
+          location_name: { type: "string", description: "Location name filter" },
+          status: { type: "string", description: "Entry status (default: recorded)" },
+          from: { type: "string", description: "Start date YYYY-MM-DD" },
+          to: { type: "string", description: "End date YYYY-MM-DD" },
+          limit: { type: "number", description: "Max results (default 50)" },
+        },
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "list_waste_products",
+      description: "List all active waste products for this company (name, category, unit cost).",
+      parameters: {
+        type: "object",
+        properties: {},
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "log_waste_draft",
+      description: "Create a draft to log a waste entry. Requires product name, location, and weight.",
+      parameters: {
+        type: "object",
+        properties: {
+          product_name: { type: "string", description: "Waste product name (partial match)" },
+          location_name: { type: "string", description: "Location name where waste occurred" },
+          weight_kg: { type: "number", description: "Weight in kilograms" },
+          weight_g: { type: "number", description: "Weight in grams (use weight_kg or weight_g)" },
+          reason_name: { type: "string", description: "Waste reason name (optional)" },
+          notes: { type: "string", description: "Optional notes" },
+          occurred_at: { type: "string", description: "ISO timestamp when waste occurred (default: now)" },
+        },
+        required: ["product_name", "location_name"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_waste_entry",
+      description: "Execute a waste entry log after user approves the draft.",
+      parameters: {
+        type: "object",
+        properties: {
+          pending_action_id: { type: "string", description: "Pending action UUID from log_waste_draft" },
+        },
+        required: ["pending_action_id"],
+      },
+    },
+  },
+  // --- CA Items ---
+  {
+    type: "function",
+    function: {
+      name: "list_ca_items",
+      description: "List corrective action items (sub-tasks) for a specific corrective action.",
+      parameters: {
+        type: "object",
+        properties: {
+          ca_id: { type: "string", description: "Corrective action UUID" },
+          status: { type: "string", description: "Filter by status: open, in_progress, done, verified, rejected" },
+        },
+        required: ["ca_id"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "update_ca_item_status_draft",
+      description: "Create a draft to update the status of a corrective action item.",
+      parameters: {
+        type: "object",
+        properties: {
+          item_id: { type: "string", description: "CA item UUID" },
+          new_status: { type: "string", enum: ["open", "in_progress", "done", "verified", "rejected"], description: "New status" },
+          notes: { type: "string", description: "Optional update notes" },
+        },
+        required: ["item_id", "new_status"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_update_ca_item_status",
+      description: "Execute a CA item status update after user approves the draft.",
+      parameters: {
+        type: "object",
+        properties: {
+          pending_action_id: { type: "string", description: "Pending action UUID from update_ca_item_status_draft" },
+        },
+        required: ["pending_action_id"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "add_ca_item_draft",
+      description: "Create a draft to add a new action item to an existing corrective action.",
+      parameters: {
+        type: "object",
+        properties: {
+          ca_id: { type: "string", description: "Corrective action UUID" },
+          title: { type: "string", description: "Item title/description" },
+          assigned_to: { type: "string", description: "Employee UUID to assign to (optional)" },
+          assigned_name: { type: "string", description: "Employee name to assign to (partial match, optional)" },
+          due_date: { type: "string", description: "Due date YYYY-MM-DD (optional)" },
+        },
+        required: ["ca_id", "title"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "execute_add_ca_item",
+      description: "Execute adding a CA item after user approves the draft.",
+      parameters: {
+        type: "object",
+        properties: {
+          pending_action_id: { type: "string", description: "Pending action UUID from add_ca_item_draft" },
+        },
+        required: ["pending_action_id"],
+      },
+    },
+  },
+  // --- READ: Payroll ---
+  {
+    type: "function",
+    function: {
+      name: "list_payroll_periods",
+      description: "List payroll periods for this company. Filter by status or date range.",
+      parameters: {
+        type: "object",
+        properties: {
+          status: { type: "string", description: "Filter by status: draft, calculated, approved, paid, closed" },
+          from: { type: "string", description: "Start date YYYY-MM-DD" },
+          to: { type: "string", description: "End date YYYY-MM-DD" },
+          limit: { type: "number", description: "Max results (default 20)" },
+        },
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "get_payroll_summary",
+      description: "Get detailed payroll summary for a specific period, including totals by location and top earners.",
+      parameters: {
+        type: "object",
+        properties: {
+          period_id: { type: "string", description: "Payroll period UUID" },
+          period_name: { type: "string", description: "Period name (partial match) if ID unknown. Omit for most recent period." },
+        },
+      },
+    },
+  },
+  // --- READ: Employee Performance ---
+  {
+    type: "function",
+    function: {
+      name: "get_employee_performance_report",
+      description: "Get monthly performance scores for employees. Filter by location, employee name, or month.",
+      parameters: {
+        type: "object",
+        properties: {
+          location_name: { type: "string", description: "Location name filter (partial match)" },
+          employee_name: { type: "string", description: "Employee name filter (partial match)" },
+          month: { type: "string", description: "Month filter YYYY-MM (e.g. 2026-03)" },
+        },
+      },
+    },
+  },
   // --- META: Capability discovery ---
   {
     type: "function",

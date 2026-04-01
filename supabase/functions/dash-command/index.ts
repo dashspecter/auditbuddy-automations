@@ -20,10 +20,12 @@ import {
 
 // ─── Domain Capability Imports ───
 import { getAuditResults, compareLocationPerformance, createAuditTemplateDraft, executeAuditTemplateCreation, listScheduledAudits, scheduleAuditDraft, executeAuditScheduling, cancelScheduledAuditDraft, executeCancelScheduledAudit } from "./capabilities/audits.ts";
-import { getOpenCorrectiveActions, reassignCorrectiveAction, executeCaReassignment, createCaDraft, executeCaCreation, updateCaStatusDraft, executeCaStatusUpdate } from "./capabilities/corrective-actions.ts";
+import { getOpenCorrectiveActions, reassignCorrectiveAction, executeCaReassignment, createCaDraft, executeCaCreation, updateCaStatusDraft, executeCaStatusUpdate, listCaItems, updateCaItemStatusDraft, executeUpdateCaItemStatus, addCaItemDraft, executeAddCaItem } from "./capabilities/corrective-actions.ts";
+import { listScoutJobs, getScoutJobDetails, listScoutSubmissions, reviewScoutSubmissionDraft, executeScoutSubmissionReview } from "./capabilities/scouts.ts";
+import { getWasteReport, listWasteEntries, listWasteProducts, logWasteDraft, executeWasteEntry } from "./capabilities/waste.ts";
 import { searchEmployees, getEmployeeShifts, getAttendanceExceptions, getAttendanceSummary, createEmployeeDraft, createShiftDraft, executeEmployeeCreation, executeShiftCreation, updateShiftDraft, executeShiftUpdate, deleteShiftDraft, executeShiftDeletion, swapShiftDraft, executeShiftSwap, listEmployeeWarnings, issueWarningDraft, executeWarningIssuance, getEmployeeDossier, publishShiftsDraft, executePublishShifts, manualClockInDraft, executeManualClockIn } from "./capabilities/workforce.ts";
 import { listTests, getTestResults, listTestAssignments, assignTestDraft, executeTestAssignment } from "./capabilities/tests.ts";
-import { getTaskCompletionSummary, getWorkOrderStatus, getDocumentExpiries, getTrainingGaps, updateEmployeeDraft, executeEmployeeUpdate, deactivateEmployeeDraft, executeEmployeeDeactivation, correctAttendanceDraft, executeAttendanceCorrection, excuseLateDraft, executeExcuseLate, createWorkOrderDraft, executeWorkOrderCreation, updateWoStatusDraft, executeWoStatusUpdate, createTaskDraft, executeTaskCreation, createTrainingAssignmentDraft, executeTrainingAssignment, updateTrainingStatusDraft, executeTrainingStatusUpdate, listDepartments, createDepartmentDraft, executeCreateDepartment, updateDepartmentDraft, executeUpdateDepartment, deleteDepartmentDraft, executeDeleteDepartment, listTasks, updateTaskDraft, executeTaskUpdate, deleteTaskDraft, executeTaskDeletion, completeTaskDraft, executeTaskCompletion, listDocuments, linkDocumentDraft, executeDocumentLink, createDocumentCategoryDraft, executeDocumentCategoryCreation, deleteDocumentDraft, executeDocumentDeletion, listAlerts, resolveAlertDraft, executeAlertResolution, listTrainingPrograms, createTrainingProgramDraft, executeTrainingProgramCreation, listAssets, getAssetDetails, getLaborCosts, listTrainingSessions, createTrainingSessionDraft, executeTrainingSessionCreation } from "./capabilities/operations.ts";
+import { getTaskCompletionSummary, getWorkOrderStatus, getDocumentExpiries, getTrainingGaps, updateEmployeeDraft, executeEmployeeUpdate, deactivateEmployeeDraft, executeEmployeeDeactivation, correctAttendanceDraft, executeAttendanceCorrection, excuseLateDraft, executeExcuseLate, createWorkOrderDraft, executeWorkOrderCreation, updateWoStatusDraft, executeWoStatusUpdate, createTaskDraft, executeTaskCreation, createTrainingAssignmentDraft, executeTrainingAssignment, updateTrainingStatusDraft, executeTrainingStatusUpdate, listDepartments, createDepartmentDraft, executeCreateDepartment, updateDepartmentDraft, executeUpdateDepartment, deleteDepartmentDraft, executeDeleteDepartment, listTasks, updateTaskDraft, executeTaskUpdate, deleteTaskDraft, executeTaskDeletion, completeTaskDraft, executeTaskCompletion, listDocuments, linkDocumentDraft, executeDocumentLink, createDocumentCategoryDraft, executeDocumentCategoryCreation, deleteDocumentDraft, executeDocumentDeletion, listAlerts, resolveAlertDraft, executeAlertResolution, listTrainingPrograms, createTrainingProgramDraft, executeTrainingProgramCreation, listAssets, getAssetDetails, getLaborCosts, listTrainingSessions, createTrainingSessionDraft, executeTrainingSessionCreation, listPayrollPeriods, getPayrollSummary, getEmployeePerformanceReport } from "./capabilities/operations.ts";
 import { searchLocations, getLocationOverview, getCrossModuleSummary } from "./capabilities/overview.ts";
 import { listLocations, getLocationDetails, createLocationDraft, executeLocationCreation, updateLocationDraft, executeLocationUpdate, deactivateLocationDraft, executeLocationDeactivation } from "./capabilities/locations.ts";
 import { listNotifications, sendNotificationDraft, executeNotificationSend } from "./capabilities/notifications.ts";
@@ -180,6 +182,29 @@ const TOOL_MODULE_MAP: Record<string, string> = {
   list_training_sessions: "workforce",
   create_training_session_draft: "workforce",
   execute_training_session_creation: "workforce",
+  // Scout jobs
+  list_scout_jobs: "scouts",
+  get_scout_job_details: "scouts",
+  list_scout_submissions: "scouts",
+  review_scout_submission_draft: "scouts",
+  execute_scout_submission_review: "scouts",
+  // Waste management
+  get_waste_report: "waste",
+  list_waste_entries: "waste",
+  list_waste_products: "waste",
+  log_waste_draft: "waste",
+  execute_waste_entry: "waste",
+  // CA items
+  list_ca_items: "corrective_actions",
+  update_ca_item_status_draft: "corrective_actions",
+  execute_update_ca_item_status: "corrective_actions",
+  add_ca_item_draft: "corrective_actions",
+  execute_add_ca_item: "corrective_actions",
+  // Payroll
+  list_payroll_periods: "payroll",
+  get_payroll_summary: "payroll",
+  // Employee performance
+  get_employee_performance_report: "workforce",
 };
 
 // ─── Action-name to execute-tool resolver (server-authoritative) ───
@@ -242,6 +267,13 @@ const ACTION_EXECUTE_MAP: Record<string, string> = {
   manual_clock_in: "execute_manual_clock_in",
   // Training sessions
   create_training_session: "execute_training_session_creation",
+  // Scouts
+  review_scout_submission: "execute_scout_submission_review",
+  // Waste
+  log_waste: "execute_waste_entry",
+  // CA items
+  update_ca_item_status: "execute_update_ca_item_status",
+  add_ca_item: "execute_add_ca_item",
 };
 
 /** Hydrate execution args from pending action's preview_json based on action_name.
@@ -1304,6 +1336,68 @@ async function executeToolInner(
       return resultToToolResponse(await executeTrainingSessionCreation(sbService, companyId, userId, args, structuredEvents, ctx));
     }
 
+    // ────────── SCOUT JOBS ──────────
+    case "list_scout_jobs":
+      return resultToToolResponse(await listScoutJobs(sb, companyId, args));
+    case "get_scout_job_details":
+      return resultToToolResponse(await getScoutJobDetails(sb, companyId, args));
+    case "list_scout_submissions":
+      return resultToToolResponse(await listScoutSubmissions(sb, companyId, args));
+    case "review_scout_submission_draft": {
+      const ctx = buildPermCtx(companyId, userId, platformRoles, companyRole, activeModules);
+      return resultToToolResponse(await reviewScoutSubmissionDraft(sb, sbService, companyId, userId, args, structuredEvents, ctx));
+    }
+    case "execute_scout_submission_review": {
+      const ctx = buildPermCtx(companyId, userId, platformRoles, companyRole, activeModules);
+      return resultToToolResponse(await executeScoutSubmissionReview(sbService, companyId, userId, args, structuredEvents, ctx));
+    }
+
+    // ────────── WASTE MANAGEMENT ──────────
+    case "get_waste_report":
+      return resultToToolResponse(await getWasteReport(sb, companyId, args));
+    case "list_waste_entries":
+      return resultToToolResponse(await listWasteEntries(sb, companyId, args));
+    case "list_waste_products":
+      return resultToToolResponse(await listWasteProducts(sb, companyId, args));
+    case "log_waste_draft": {
+      const ctx = buildPermCtx(companyId, userId, platformRoles, companyRole, activeModules);
+      return resultToToolResponse(await logWasteDraft(sb, sbService, companyId, userId, args, structuredEvents, ctx));
+    }
+    case "execute_waste_entry": {
+      const ctx = buildPermCtx(companyId, userId, platformRoles, companyRole, activeModules);
+      return resultToToolResponse(await executeWasteEntry(sbService, companyId, userId, args, structuredEvents, ctx));
+    }
+
+    // ────────── CA ITEMS ──────────
+    case "list_ca_items":
+      return resultToToolResponse(await listCaItems(sb, companyId, args));
+    case "update_ca_item_status_draft": {
+      const ctx = buildPermCtx(companyId, userId, platformRoles, companyRole, activeModules);
+      return resultToToolResponse(await updateCaItemStatusDraft(sb, sbService, companyId, userId, args, structuredEvents, ctx));
+    }
+    case "execute_update_ca_item_status": {
+      const ctx = buildPermCtx(companyId, userId, platformRoles, companyRole, activeModules);
+      return resultToToolResponse(await executeUpdateCaItemStatus(sbService, companyId, userId, args, structuredEvents, ctx));
+    }
+    case "add_ca_item_draft": {
+      const ctx = buildPermCtx(companyId, userId, platformRoles, companyRole, activeModules);
+      return resultToToolResponse(await addCaItemDraft(sb, sbService, companyId, userId, args, structuredEvents, ctx));
+    }
+    case "execute_add_ca_item": {
+      const ctx = buildPermCtx(companyId, userId, platformRoles, companyRole, activeModules);
+      return resultToToolResponse(await executeAddCaItem(sbService, companyId, userId, args, structuredEvents, ctx));
+    }
+
+    // ────────── PAYROLL ──────────
+    case "list_payroll_periods":
+      return resultToToolResponse(await listPayrollPeriods(sb, companyId, args));
+    case "get_payroll_summary":
+      return resultToToolResponse(await getPayrollSummary(sb, companyId, args));
+
+    // ────────── EMPLOYEE PERFORMANCE ──────────
+    case "get_employee_performance_report":
+      return resultToToolResponse(await getEmployeePerformanceReport(sb, companyId, args));
+
     case "get_capabilities": {
       // Build a human-readable summary of active capabilities for this company
       const lines: string[] = [];
@@ -1376,7 +1470,7 @@ ${generateCapabilityDocs()}
 ### Draft & Execute (APPROVAL-GATED WRITES)
 You can now create AND execute records in the platform:
 
-**CRITICAL — STOP AFTER DRAFT**: After calling ANY draft tool (create_employee_draft, create_audit_template_draft, create_shift_draft, update_shift_draft, delete_shift_draft, swap_shift_draft, reassign_corrective_action, create_ca_draft, update_ca_status_draft, update_employee_draft, deactivate_employee_draft, correct_attendance_draft, excuse_late_draft, create_work_order_draft, update_wo_status_draft, create_task_draft, update_task_draft, delete_task_draft, complete_task_draft, create_training_assignment_draft, update_training_status_draft, create_training_program_draft, schedule_audit_draft, cancel_scheduled_audit_draft, create_location_draft, update_location_draft, deactivate_location_draft, create_department_draft, update_department_draft, delete_department_draft, link_document_draft, create_document_category_draft, delete_document_draft, send_notification_draft, resolve_alert_draft, create_time_off_request_draft, approve_time_off_request_draft, issue_warning_draft, assign_test_draft, publish_shifts_draft, manual_clock_in_draft, create_training_session_draft), you MUST immediately STOP making tool calls and present the draft preview to the user. Do NOT call any execute tool in the same response. The approval card UI will handle the approval flow. You must wait for the NEXT user message containing explicit approval before executing.
+**CRITICAL — STOP AFTER DRAFT**: After calling ANY draft tool (create_employee_draft, create_audit_template_draft, create_shift_draft, update_shift_draft, delete_shift_draft, swap_shift_draft, reassign_corrective_action, create_ca_draft, update_ca_status_draft, update_employee_draft, deactivate_employee_draft, correct_attendance_draft, excuse_late_draft, create_work_order_draft, update_wo_status_draft, create_task_draft, update_task_draft, delete_task_draft, complete_task_draft, create_training_assignment_draft, update_training_status_draft, create_training_program_draft, schedule_audit_draft, cancel_scheduled_audit_draft, create_location_draft, update_location_draft, deactivate_location_draft, create_department_draft, update_department_draft, delete_department_draft, link_document_draft, create_document_category_draft, delete_document_draft, send_notification_draft, resolve_alert_draft, create_time_off_request_draft, approve_time_off_request_draft, issue_warning_draft, assign_test_draft, publish_shifts_draft, manual_clock_in_draft, create_training_session_draft, review_scout_submission_draft, log_waste_draft, update_ca_item_status_draft, add_ca_item_draft), you MUST immediately STOP making tool calls and present the draft preview to the user. Do NOT call any execute tool in the same response. The approval card UI will handle the approval flow. You must wait for the NEXT user message containing explicit approval before executing.
 
 **Employee Creation Flow:**
 1. Use \`create_employee_draft\` to prepare the draft and show preview
@@ -1449,6 +1543,31 @@ You can now create AND execute records in the platform:
 2. STOP — present the session preview.
 3. Wait for user approval
 4. ONLY THEN call \`execute_training_session_creation\` with the pending_action_id
+
+**Scout Submission Review Flow:**
+1. Use \`list_scout_submissions\` (filter status: pending_review) to find submissions awaiting review, or \`get_scout_job_details\` for a specific job.
+2. Use \`review_scout_submission_draft\` with submission_id, action (approve/reject/request_resubmit), and optional reviewer_notes.
+3. STOP — this is HIGH RISK. Show the submission and the action clearly.
+4. Wait for user approval
+5. ONLY THEN call \`execute_scout_submission_review\` with the pending_action_id
+
+**Log Waste Flow:**
+1. Use \`log_waste_draft\` with product_name, location_name, and weight_kg (or weight_g). Optionally include reason_name and notes.
+2. STOP — present the waste entry preview with estimated cost.
+3. Wait for user approval
+4. ONLY THEN call \`execute_waste_entry\` with the pending_action_id
+
+**CA Item Management Flow:**
+- To view items: use \`list_ca_items\` with ca_id
+- To update an item status: use \`update_ca_item_status_draft\` with item_id and new_status (open/in_progress/done/verified/rejected), then execute_update_ca_item_status
+- To add a new item: use \`add_ca_item_draft\` with ca_id, title, and optionally assigned_name and due_date, then execute_add_ca_item
+
+**Payroll Reads:**
+- List periods: \`list_payroll_periods\` — optionally filter by status (draft/calculated/approved/paid/closed)
+- Period details: \`get_payroll_summary\` — omit period_name for most recent period; shows totals by location and top earners
+
+**Employee Performance:**
+- Use \`get_employee_performance_report\` to view monthly performance scores. Filter by location_name, employee_name, or month (YYYY-MM). Shows effective_score, attendance_score, punctuality_score, task_score, test_score, warning_penalty, and rank_in_location.
 
 ### Approval Rules
 - MEDIUM risk: User must confirm with clear affirmative response
