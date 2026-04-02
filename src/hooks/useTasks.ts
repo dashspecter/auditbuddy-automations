@@ -172,26 +172,26 @@ export const useTasks = (filters?: { status?: string; assignedTo?: string; locat
       }
 
       // Fetch assigned and completed employees separately
-      const tasksWithAssignees = await Promise.all(
+      const settledTasks = await Promise.allSettled(
         (tasks || []).map(async (task: any) => {
           let assigned_employee = null;
           let completed_employee = null;
-          
+
           if (task.assigned_to) {
             const { data: emp } = await supabase
               .from("employees")
               .select("id, full_name, avatar_url")
               .eq("id", task.assigned_to)
-              .single();
+              .maybeSingle();
             assigned_employee = emp;
           }
-          
+
           if (task.completed_by) {
             const { data: emp } = await supabase
               .from("employees")
               .select("id, full_name, avatar_url")
               .eq("id", task.completed_by)
-              .single();
+              .maybeSingle();
             completed_employee = emp;
           }
 
@@ -202,10 +202,10 @@ export const useTasks = (filters?: { status?: string; assignedTo?: string; locat
           // Enrich with junction-table role data
           const rIds = taskRolesMap[task.id] || (task.assigned_role_id ? [task.assigned_role_id] : []);
           const rNames = rIds.map((id: string) => roleNamesMap[id]).filter(Boolean);
-          
-          return { 
-            ...task, 
-            assigned_employee, 
+
+          return {
+            ...task,
+            assigned_employee,
             completed_employee,
             task_location_ids: locIds,
             task_location_names: locNames,
@@ -214,6 +214,9 @@ export const useTasks = (filters?: { status?: string; assignedTo?: string; locat
           } as Task;
         })
       );
+      const tasksWithAssignees = settledTasks
+        .filter((r): r is PromiseFulfilledResult<Task> => r.status === "fulfilled")
+        .map(r => r.value);
 
       // Client-side location filter using junction data
       let result = tasksWithAssignees;

@@ -81,6 +81,7 @@ export const useLocationAudits = () => {
       .subscribe();
 
     return () => {
+      channel.unsubscribe();
       supabase.removeChannel(channel);
     };
   }, [user, company?.id, queryClient]);

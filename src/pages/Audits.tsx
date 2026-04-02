@@ -35,6 +35,7 @@ const Audits = () => {
   // Default to showing only completed audits
   const [statusFilter, setStatusFilter] = useState("completed");
   const [showDrafts, setShowDrafts] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const { audit, audits: auditsTerm, employee, location } = useTerminology();
@@ -369,6 +370,7 @@ const Audits = () => {
                     key={audit.id}
                     onDelete={async () => {
                       try {
+                        setDeletingId(audit.id);
                         const { error } = await supabase
                           .from('location_audits')
                           .delete()
@@ -380,7 +382,7 @@ const Audits = () => {
                           title: "Audit deleted",
                           description: "The audit has been successfully deleted.",
                         });
-                        
+
                         // Invalidate queries to refresh the list
                         await queryClient.invalidateQueries({ queryKey: ['location_audits'] });
                       } catch (error) {
@@ -390,6 +392,8 @@ const Audits = () => {
                           description: "Failed to delete audit. Please try again.",
                           variant: "destructive",
                         });
+                      } finally {
+                        setDeletingId(null);
                       }
                     }}
                     className="rounded-lg"
@@ -451,9 +455,11 @@ const Audits = () => {
                               variant="ghost"
                               size="icon"
                               className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                              disabled={deletingId === audit.id}
                               onClick={async (e) => {
                                 e.stopPropagation();
                                 try {
+                                  setDeletingId(audit.id);
                                   const { error } = await supabase
                                     .from('location_audits')
                                     .delete()
@@ -465,7 +471,7 @@ const Audits = () => {
                                     title: "Draft deleted",
                                     description: "The draft audit has been deleted.",
                                   });
-                                  
+
                                   await queryClient.invalidateQueries({ queryKey: ['location_audits'] });
                                 } catch (error) {
                                   console.error('Error deleting draft:', error);
@@ -474,6 +480,8 @@ const Audits = () => {
                                     description: "Failed to delete draft.",
                                     variant: "destructive",
                                   });
+                                } finally {
+                                  setDeletingId(null);
                                 }
                               }}
                             >

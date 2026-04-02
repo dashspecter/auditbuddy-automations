@@ -24,6 +24,7 @@ export default function QrFormEntry() {
 
   const [user, setUser] = useState<any>(null);
   const [authChecked, setAuthChecked] = useState(false);
+  const [authError, setAuthError] = useState(false);
 
   // For monthly grid - locked to current month
   const today = new Date();
@@ -42,6 +43,7 @@ export default function QrFormEntry() {
       setUser(data.user);
       setAuthChecked(true);
     }).catch(() => {
+      setAuthError(true);
       setAuthChecked(true);
     });
   }, []);
@@ -230,6 +232,25 @@ export default function QrFormEntry() {
     );
   }
 
+  if (authChecked && authError) {
+    return (
+      <div className="flex items-center justify-center min-h-screen p-4">
+        <Card className="w-full max-w-md">
+          <CardContent className="flex flex-col items-center py-8 space-y-4">
+            <AlertTriangle className="h-12 w-12 text-destructive" />
+            <h2 className="text-xl font-bold">Authentication Error</h2>
+            <p className="text-muted-foreground text-center text-sm">
+              Could not verify your session. Please refresh the page and try again.
+            </p>
+            <Button variant="outline" onClick={() => window.location.reload()}>
+              Refresh Page
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   if (!user) {
     return (
       <div className="flex items-center justify-center min-h-screen p-4">
@@ -280,6 +301,22 @@ export default function QrFormEntry() {
             <Button variant="outline" onClick={() => navigate(-1)}>
               Go Back
             </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  if (!assignment.form_template_versions?.schema) {
+    return (
+      <div className="flex items-center justify-center min-h-screen p-4">
+        <Card className="w-full max-w-md">
+          <CardContent className="flex flex-col items-center py-8 space-y-4">
+            <AlertTriangle className="h-12 w-12 text-destructive" />
+            <h2 className="text-xl font-bold">Form Template Error</h2>
+            <p className="text-muted-foreground text-center text-sm">
+              This form template is missing its configuration. Please contact your administrator.
+            </p>
           </CardContent>
         </Card>
       </div>

@@ -150,6 +150,18 @@ Deno.serve(async (req) => {
 
   const caIds: string[] = [];
 
+  // Hoist employee lookups for test_fail — same employee_id across all rules
+  let _cachedEmployeeLocation: string | null = null;
+  let _cachedEmployeeUserId: string | null = null;
+  if (trigger_type === "test_fail" && context.employee_id) {
+    const [empLocResult, empUserResult] = await Promise.all([
+      supabase.from("employees").select("location_id").eq("id", context.employee_id).maybeSingle(),
+      supabase.from("employees").select("user_id").eq("id", context.employee_id).maybeSingle(),
+    ]);
+    _cachedEmployeeLocation = empLocResult.data?.location_id ?? null;
+    _cachedEmployeeUserId = empUserResult.data?.user_id ?? null;
+  }
+
   for (const rule of rules) {
     const cfg = rule.trigger_config as Record<string, any>;
 
@@ -262,12 +274,7 @@ Deno.serve(async (req) => {
     // Resolve location_id
     let locationId = context.location_id ?? null;
     if (!locationId && trigger_type === "test_fail" && context.employee_id) {
-      const { data: empLoc } = await supabase
-        .from("employees")
-        .select("location_id")
-        .eq("id", context.employee_id)
-        .maybeSingle();
-      locationId = empLoc?.location_id ?? null;
+      locationId = _cachedEmployeeLocation;
     }
 
     // Create CA
@@ -294,12 +301,7 @@ Deno.serve(async (req) => {
     // For test_fail: assign bundle items to the failing employee's user_id if available
     let employeeUserId: string | null = null;
     if (trigger_type === "test_fail" && context.employee_id) {
-      const { data: emp } = await supabase
-        .from("employees")
-        .select("user_id")
-        .eq("id", context.employee_id)
-        .maybeSingle();
-      employeeUserId = emp?.user_id ?? null;
+      employeeUserId = _cachedEmployeeUserId;
     }
 
     // Build bundle — for test_fail with empty bundle, auto-create a "Retake" item

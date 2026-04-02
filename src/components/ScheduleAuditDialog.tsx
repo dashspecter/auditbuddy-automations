@@ -40,8 +40,10 @@ import { Card } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { useTerminology } from '@/hooks/useTerminology';
+import { useCompany } from '@/hooks/useCompany';
 
-const DRAFT_KEY = 'schedule-audit-dialog-draft';
+const getDraftKey = (companyId: string | undefined) =>
+  `dashspect_schedule_audit_draft_${companyId || 'default'}`;
 
 const auditEntrySchema = z.object({
   template_id: z.string().min(1, 'Template is required'),
@@ -72,7 +74,7 @@ interface ScheduleAuditDialogProps {
 }
 
 // Draft persistence hook for ScheduleAuditDialog
-const useScheduleAuditDraft = (open: boolean, form: ReturnType<typeof useForm<ScheduleAuditFormValues>>) => {
+const useScheduleAuditDraft = (open: boolean, form: ReturnType<typeof useForm<ScheduleAuditFormValues>>, companyId?: string) => {
   const isHydrating = useRef(true);
   const lastSavedData = useRef<string>('');
 
@@ -81,14 +83,14 @@ const useScheduleAuditDraft = (open: boolean, form: ReturnType<typeof useForm<Sc
     const values = form.getValues();
     const dataStr = JSON.stringify(values);
     if (dataStr !== lastSavedData.current) {
-      localStorage.setItem(DRAFT_KEY, dataStr);
+      localStorage.setItem(getDraftKey(companyId), dataStr);
       lastSavedData.current = dataStr;
     }
-  }, [form, open]);
+  }, [form, open, companyId]);
 
   const restoreDraft = useCallback(() => {
     try {
-      const saved = localStorage.getItem(DRAFT_KEY);
+      const saved = localStorage.getItem(getDraftKey(companyId));
       if (saved) {
         const parsed = JSON.parse(saved) as ScheduleAuditFormValues;
         if (parsed.location_id || parsed.audits?.some(a => a.template_id || a.assigned_user_id || a.scheduled_start)) {
@@ -103,9 +105,9 @@ const useScheduleAuditDraft = (open: boolean, form: ReturnType<typeof useForm<Sc
   }, [form]);
 
   const clearDraft = useCallback(() => {
-    localStorage.removeItem(DRAFT_KEY);
+    localStorage.removeItem(getDraftKey(companyId));
     lastSavedData.current = '';
-  }, []);
+  }, [companyId]);
 
   useEffect(() => {
     if (open) {
@@ -149,6 +151,8 @@ export const ScheduleAuditDialog = ({ open, onOpenChange }: ScheduleAuditDialogP
   const scheduleAudit = useScheduleAudit();
   const createScheduledAudit = useCreateScheduledAudit();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const { data: company } = useCompany();
+  const companyId = company?.id;
   const { employee, employees: employeesTerm, location, audit, audits } = useTerminology();
   const employeeLabel = employee();
   const employeesLabel = employeesTerm();
@@ -204,7 +208,7 @@ export const ScheduleAuditDialog = ({ open, onOpenChange }: ScheduleAuditDialogP
     },
   });
 
-  const { clearDraft } = useScheduleAuditDraft(open, form);
+  const { clearDraft } = useScheduleAuditDraft(open, form, companyId);
 
   const { fields, append, remove } = useFieldArray({
     control: form.control,
