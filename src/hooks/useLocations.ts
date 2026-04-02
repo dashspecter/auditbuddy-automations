@@ -14,6 +14,10 @@ export interface Location {
   created_at: string;
   updated_at: string;
   created_by: string;
+  /** Government Phase 1: zone assignment */
+  zone_id?: string | null;
+  /** Government Phase 2: geofenced check-in radius in metres */
+  geofence_radius_meters?: number | null;
 }
 
 export const useLocations = (includeInactive = false) => {

@@ -1,11 +1,11 @@
-import { 
-  Home, Users, MapPin, ClipboardCheck, ListTodo, 
-  Wrench, Package, FileText, Lightbulb, Plug, QrCode, 
+import {
+  Home, Users, MapPin, ClipboardCheck, ListTodo,
+  Wrench, Package, FileText, Lightbulb, Plug, QrCode,
   CreditCard, Building2, ChevronDown, Bell, BarChart, Activity,
   GraduationCap, UserCog, Bug, Shield,
   PanelLeftClose, PanelLeft, ChevronRight, Store, Bot, Settings2,
   Cog, Trash2, History, ShieldCheck, ShieldAlert,
-  MessageSquare, Languages, Landmark
+  MessageSquare, Languages, Landmark, FolderOpen, Truck
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation, useNavigate } from "react-router-dom";
@@ -398,6 +398,22 @@ const navigationItems = [
     subItems: [
       { titleKey: "nav.approvalQueue", url: "/approvals" },
       { titleKey: "nav.approvalWorkflows", url: "/settings/approval-workflows", allowedRoles: ['admin'] },
+    ],
+  },
+  // 18. Government Ops (Projects + Fleet + Zones) — government accounts only
+  {
+    titleKey: "nav.govProjects",
+    labelKey: null,
+    url: "/gov/dashboard",
+    icon: FolderOpen,
+    module: "gov_projects",
+    allowedRoles: ['admin', 'manager'],
+    description: "Projects, work orders, fleet and zone management for public works",
+    subItems: [
+      { titleKey: "nav.govCommandCenter", url: "/gov/dashboard" },
+      { titleKey: "nav.govProjects", url: "/gov/projects" },
+      { titleKey: "nav.govFleet", url: "/gov/fleet", module: "gov_fleet" },
+      { titleKey: "nav.govZones", url: "/gov/zones", allowedRoles: ['admin', 'manager'] },
     ],
   },
 ];

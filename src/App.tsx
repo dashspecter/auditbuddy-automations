@@ -76,6 +76,14 @@ const TerminologySettings = lazy(() => import("./pages/settings/TerminologySetti
 const ApprovalQueue = lazy(() => import("./pages/ApprovalQueue"));
 const ApprovalWorkflowsPage = lazy(() => import("./pages/settings/ApprovalWorkflows"));
 
+// Government Ops (Phase 1) — government accounts only, gated by gov_projects module
+const GovDashboard = lazy(() => import("./pages/gov/GovDashboard"));
+const GovProjects = lazy(() => import("./pages/gov/Projects"));
+const GovProjectNew = lazy(() => import("./pages/gov/ProjectNew"));
+const GovProjectDetail = lazy(() => import("./pages/gov/ProjectDetail"));
+const GovZones = lazy(() => import("./pages/gov/Zones"));
+const GovFleet = lazy(() => import("./pages/gov/Fleet"));
+
 // Audits
 const Audits = lazy(() => import("./pages/Audits"));
 const AuditDetail = lazy(() => import("./pages/AuditDetail"));
@@ -387,6 +395,14 @@ const App = () => {
                         <Route path="/settings/terminology" element={<CompanyAdminRoute><RouteErrorBoundary><TerminologySettings /></RouteErrorBoundary></CompanyAdminRoute>} />
                         <Route path="/approvals" element={<ProtectedRoute><ModuleGate module="government_ops"><RouteErrorBoundary><ApprovalQueue /></RouteErrorBoundary></ModuleGate></ProtectedRoute>} />
                         <Route path="/settings/approval-workflows" element={<CompanyAdminRoute><RouteErrorBoundary><ApprovalWorkflowsPage /></RouteErrorBoundary></CompanyAdminRoute>} />
+
+                        {/* Government Ops Phase 1 */}
+                        <Route path="/gov/dashboard" element={<ProtectedRoute><ModuleGate module="gov_projects"><RouteErrorBoundary><GovDashboard /></RouteErrorBoundary></ModuleGate></ProtectedRoute>} />
+                        <Route path="/gov/projects" element={<ProtectedRoute><ModuleGate module="gov_projects"><RouteErrorBoundary><GovProjects /></RouteErrorBoundary></ModuleGate></ProtectedRoute>} />
+                        <Route path="/gov/projects/new" element={<ProtectedRoute><ModuleGate module="gov_projects"><RouteErrorBoundary><GovProjectNew /></RouteErrorBoundary></ModuleGate></ProtectedRoute>} />
+                        <Route path="/gov/projects/:id" element={<ProtectedRoute><ModuleGate module="gov_projects"><RouteErrorBoundary><GovProjectDetail /></RouteErrorBoundary></ModuleGate></ProtectedRoute>} />
+                        <Route path="/gov/zones" element={<ProtectedRoute><ModuleGate module="gov_projects"><RouteErrorBoundary><GovZones /></RouteErrorBoundary></ModuleGate></ProtectedRoute>} />
+                        <Route path="/gov/fleet" element={<ProtectedRoute><ModuleGate module="gov_fleet"><RouteErrorBoundary><GovFleet /></RouteErrorBoundary></ModuleGate></ProtectedRoute>} />
                         <Route path="/pricing" element={<CompanyOwnerRoute><RouteErrorBoundary><PricingPlans /></RouteErrorBoundary></CompanyOwnerRoute>} />
                         
                         {/* Dash */}

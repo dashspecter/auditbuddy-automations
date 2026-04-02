@@ -222,7 +222,11 @@
     "approvals": "Approvals",
     "approvalQueue": "Approval Queue",
     "approvalWorkflows": "Workflows",
-    "terminology": "Terminology"
+    "terminology": "Terminology",
+    "govCommandCenter": "Command Center",
+    "govProjects": "Government Projects",
+    "govFleet": "Fleet Availability",
+    "govZones": "Zones & Districts"
   },
   "auth": {
     "signIn": "Sign In",
