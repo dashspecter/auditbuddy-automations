@@ -101,32 +101,26 @@ export const useEmployeePerformance = (
       queryClient.invalidateQueries({ queryKey: ['employee-performance'], exact: false });
     };
 
-    const channels = [
-      supabase
-        .channel(`attendance_logs_performance_${companyId}`)
-        .on('postgres_changes', {
-          event: '*', schema: 'public', table: 'attendance_logs',
-          filter: `company_id=eq.${companyId}`,
-        }, invalidate)
-        .subscribe(),
-      supabase
-        .channel(`tasks_performance_${companyId}`)
-        .on('postgres_changes', {
-          event: '*', schema: 'public', table: 'tasks',
-          filter: `company_id=eq.${companyId}`,
-        }, invalidate)
-        .subscribe(),
-      supabase
-        .channel(`test_submissions_performance_${companyId}`)
-        .on('postgres_changes', {
-          event: '*', schema: 'public', table: 'test_submissions',
-          filter: `company_id=eq.${companyId}`,
-        }, invalidate)
-        .subscribe(),
-    ];
+    // Single channel with multiple table listeners — saves 2 WebSocket connections per user
+    const channel = supabase
+      .channel(`employee_performance_${companyId}`)
+      .on('postgres_changes', {
+        event: '*', schema: 'public', table: 'attendance_logs',
+        filter: `company_id=eq.${companyId}`,
+      }, invalidate)
+      .on('postgres_changes', {
+        event: '*', schema: 'public', table: 'tasks',
+        filter: `company_id=eq.${companyId}`,
+      }, invalidate)
+      .on('postgres_changes', {
+        event: '*', schema: 'public', table: 'test_submissions',
+        filter: `company_id=eq.${companyId}`,
+      }, invalidate)
+      .subscribe();
 
     return () => {
-      channels.forEach(channel => supabase.removeChannel(channel));
+      channel.unsubscribe();
+      supabase.removeChannel(channel);
     };
   }, [startDate, endDate, company?.id, queryClient]);
 

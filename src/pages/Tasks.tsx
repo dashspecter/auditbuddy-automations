@@ -329,6 +329,7 @@ const Tasks = () => {
   const [selectedRoleId, setSelectedRoleId] = useState<string>("all");
   const [selectedEmployeeId, setSelectedEmployeeId] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState("");
+  const [visibleTaskCount, setVisibleTaskCount] = useState(50);
   const term = useTerminology();
   const employeeLabel = term.employee();
   const employeesLabel = term.employees();
@@ -1000,7 +1001,7 @@ const Tasks = () => {
                   </div>
                 ) : (
                   <div className="space-y-3">
-                    {filteredTasks.map((task) => (
+                    {filteredTasks.slice(0, visibleTaskCount).map((task) => (
                       <TaskItem
                         key={task.id}
                         task={task}
@@ -1013,6 +1014,16 @@ const Tasks = () => {
                         reviewTaskIds={reviewTaskIds}
                       />
                     ))}
+                    {filteredTasks.length > visibleTaskCount && (
+                      <div className="flex justify-center pt-2">
+                        <Button
+                          variant="outline"
+                          onClick={() => setVisibleTaskCount(c => c + 50)}
+                        >
+                          Load More ({filteredTasks.length - visibleTaskCount} remaining)
+                        </Button>
+                      </div>
+                    )}
                   </div>
                 )}
               </CardContent>

@@ -88,7 +88,8 @@ export const useTasks = (filters?: { status?: string; assignedTo?: string; locat
           assigned_role:employee_roles(id, name)
         `)
         .eq("company_id", company.id)
-        .order("created_at", { ascending: false });
+        .order("created_at", { ascending: false })
+        .limit(500);
 
       if (filters?.status && filters.status !== "all") {
         query = query.eq("status", filters.status);
@@ -171,52 +172,37 @@ export const useTasks = (filters?: { status?: string; assignedTo?: string; locat
         }
       }
 
-      // Fetch assigned and completed employees separately
-      const settledTasks = await Promise.allSettled(
-        (tasks || []).map(async (task: any) => {
-          let assigned_employee = null;
-          let completed_employee = null;
+      // Batch-fetch all employees needed (assigned_to + completed_by) in one query
+      const allEmpIds = Array.from(new Set([
+        ...(tasks || []).filter((t: any) => t.assigned_to).map((t: any) => t.assigned_to as string),
+        ...(tasks || []).filter((t: any) => t.completed_by).map((t: any) => t.completed_by as string),
+      ]));
+      const empMap: Record<string, any> = {};
+      if (allEmpIds.length > 0) {
+        const { data: empRows } = await supabase
+          .from("employees")
+          .select("id, full_name, avatar_url")
+          .in("id", allEmpIds);
+        for (const e of empRows || []) empMap[e.id] = e;
+      }
 
-          if (task.assigned_to) {
-            const { data: emp } = await supabase
-              .from("employees")
-              .select("id, full_name, avatar_url")
-              .eq("id", task.assigned_to)
-              .maybeSingle();
-            assigned_employee = emp;
-          }
+      // Enrich tasks with employee data and junction-table data
+      const tasksWithAssignees = (tasks || []).map((task: any) => {
+        const locIds = taskLocationsMap[task.id] || (task.location_id ? [task.location_id] : []);
+        const locNames = locIds.map((id: string) => locationNamesMap[id]).filter(Boolean);
+        const rIds = taskRolesMap[task.id] || (task.assigned_role_id ? [task.assigned_role_id] : []);
+        const rNames = rIds.map((id: string) => roleNamesMap[id]).filter(Boolean);
 
-          if (task.completed_by) {
-            const { data: emp } = await supabase
-              .from("employees")
-              .select("id, full_name, avatar_url")
-              .eq("id", task.completed_by)
-              .maybeSingle();
-            completed_employee = emp;
-          }
-
-          // Enrich with junction-table location data
-          const locIds = taskLocationsMap[task.id] || (task.location_id ? [task.location_id] : []);
-          const locNames = locIds.map((id: string) => locationNamesMap[id]).filter(Boolean);
-
-          // Enrich with junction-table role data
-          const rIds = taskRolesMap[task.id] || (task.assigned_role_id ? [task.assigned_role_id] : []);
-          const rNames = rIds.map((id: string) => roleNamesMap[id]).filter(Boolean);
-
-          return {
-            ...task,
-            assigned_employee,
-            completed_employee,
-            task_location_ids: locIds,
-            task_location_names: locNames,
-            task_role_ids: rIds,
-            task_role_names: rNames,
-          } as Task;
-        })
-      );
-      const tasksWithAssignees = settledTasks
-        .filter((r): r is PromiseFulfilledResult<Task> => r.status === "fulfilled")
-        .map(r => r.value);
+        return {
+          ...task,
+          assigned_employee: task.assigned_to ? empMap[task.assigned_to] ?? null : null,
+          completed_employee: task.completed_by ? empMap[task.completed_by] ?? null : null,
+          task_location_ids: locIds,
+          task_location_names: locNames,
+          task_role_ids: rIds,
+          task_role_names: rNames,
+        } as Task;
+      });
 
       // Client-side location filter using junction data
       let result = tasksWithAssignees;

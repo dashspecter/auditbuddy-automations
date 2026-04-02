@@ -36,6 +36,7 @@ const Audits = () => {
   const [statusFilter, setStatusFilter] = useState("completed");
   const [showDrafts, setShowDrafts] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [visibleCount, setVisibleCount] = useState(50);
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const { audit, audits: auditsTerm, employee, location } = useTerminology();
@@ -222,6 +223,9 @@ const Audits = () => {
       });
   }, [audits, searchQuery, typeFilter, statusFilter, showDrafts, profiles, templates]);
 
+  // Reset visible count when filters change
+  const visibleAudits = filteredAudits.slice(0, visibleCount);
+  const hasMoreAudits = filteredAudits.length > visibleCount;
 
   const handleRefresh = async () => {
     await refetch();
@@ -365,7 +369,7 @@ const Audits = () => {
               />
             ) : (
               <div className="space-y-3">
-                {filteredAudits.map((audit) => (
+                {visibleAudits.map((audit) => (
                   <SwipeableListItem
                     key={audit.id}
                     onDelete={async () => {
@@ -494,6 +498,16 @@ const Audits = () => {
                     </div>
                   </SwipeableListItem>
                 ))}
+                {hasMoreAudits && (
+                  <div className="flex justify-center pt-2">
+                    <Button
+                      variant="outline"
+                      onClick={() => setVisibleCount(c => c + 50)}
+                    >
+                      Load More ({filteredAudits.length - visibleCount} remaining)
+                    </Button>
+                  </div>
+                )}
               </div>
             )}
             </Card>
