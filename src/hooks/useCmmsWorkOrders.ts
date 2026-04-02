@@ -31,6 +31,8 @@ export interface CmmsWorkOrder {
   updated_at: string;
   created_by: string;
   is_archived: boolean;
+  /** Government: linked project (nullable, Phase 1 addition) */
+  project_id?: string | null;
   // Joined data
   asset?: {
     id: string;
@@ -57,6 +59,8 @@ export interface WorkOrderFilters {
   due_from?: string;
   due_to?: string;
   search?: string;
+  /** Government: filter by linked project */
+  project_id?: string;
 }
 
 export function useCmmsWorkOrders(filters?: WorkOrderFilters) {
@@ -106,6 +110,9 @@ export function useCmmsWorkOrders(filters?: WorkOrderFilters) {
       }
       if (filters?.search) {
         query = query.or(`title.ilike.%${filters.search}%,description.ilike.%${filters.search}%`);
+      }
+      if (filters?.project_id) {
+        query = query.eq('project_id', filters.project_id);
       }
 
       const { data, error } = await query;

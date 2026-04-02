@@ -219,7 +219,11 @@
     "approvals": "Aprobări",
     "approvalQueue": "Coadă de aprobări",
     "approvalWorkflows": "Fluxuri de lucru",
-    "terminology": "Terminologie"
+    "terminology": "Terminologie",
+    "govCommandCenter": "Centru de comandă",
+    "govProjects": "Proiecte guvernamentale",
+    "govFleet": "Disponibilitate flotă",
+    "govZones": "Zone și districte"
   },
   "auth": {
     "signIn": "Autentificare",

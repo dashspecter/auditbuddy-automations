@@ -2,7 +2,7 @@ import {
   MapPin, Users, Settings, Bell, BarChart3, Briefcase,
   FileText, Package, Lightbulb, Link, Trash2, QrCode,
   MessageSquare, DollarSign, Wrench, AlertTriangle,
-  ClipboardList, Search, Landmark, LucideIcon,
+  ClipboardList, Search, Landmark, FolderOpen, Truck, LucideIcon,
 } from 'lucide-react';
 
 export interface ModuleDefinition {
@@ -207,6 +207,26 @@ export const MODULE_REGISTRY: ModuleDefinition[] = [
     icon: Landmark,
     color: 'text-stone-600',
     category: 'operations',
+  },
+  {
+    code: 'gov_projects',
+    displayName: 'Government Projects',
+    description: 'Project and work order management for public works and field operations',
+    features: ['Project portfolio', 'Work order linking', 'Milestone tracking', 'Evidence per milestone'],
+    icon: FolderOpen,
+    color: 'text-blue-600',
+    category: 'operations',
+    governmentDefault: true,
+  },
+  {
+    code: 'gov_fleet',
+    displayName: 'Fleet Availability',
+    description: 'Fleet and machinery availability calendar with conflict detection',
+    features: ['Asset availability calendar', 'Work order conflict detection', 'Cross-project visibility'],
+    icon: Truck,
+    color: 'text-amber-600',
+    category: 'operations',
+    governmentDefault: true,
   },
 ];
 

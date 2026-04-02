@@ -11,7 +11,9 @@ export type EvidenceSubjectType =
   | "work_order"
   | "incident"
   | "training_signoff"
-  | "corrective_action_item";
+  | "corrective_action_item"
+  /** Government Phase 1: milestone completion proof */
+  | "project_milestone";
 
 export type EvidenceStatus = "draft" | "submitted" | "approved" | "rejected";
 
