@@ -82,6 +82,7 @@ export const EditAuditDialog = ({ open, onOpenChange, audit, onSuccess }: EditAu
       }
     } catch (error) {
       console.error('Error loading template sections:', error);
+      toast.error('Failed to load template. Please try again.');
     }
   };
 

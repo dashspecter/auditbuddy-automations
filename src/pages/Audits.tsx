@@ -35,6 +35,8 @@ const Audits = () => {
   // Default to showing only completed audits
   const [statusFilter, setStatusFilter] = useState("completed");
   const [showDrafts, setShowDrafts] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [visibleCount, setVisibleCount] = useState(50);
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const { audit, audits: auditsTerm, employee, location } = useTerminology();
@@ -221,6 +223,9 @@ const Audits = () => {
       });
   }, [audits, searchQuery, typeFilter, statusFilter, showDrafts, profiles, templates]);
 
+  // Reset visible count when filters change
+  const visibleAudits = filteredAudits.slice(0, visibleCount);
+  const hasMoreAudits = filteredAudits.length > visibleCount;
 
   const handleRefresh = async () => {
     await refetch();
@@ -364,11 +369,12 @@ const Audits = () => {
               />
             ) : (
               <div className="space-y-3">
-                {filteredAudits.map((audit) => (
+                {visibleAudits.map((audit) => (
                   <SwipeableListItem
                     key={audit.id}
                     onDelete={async () => {
                       try {
+                        setDeletingId(audit.id);
                         const { error } = await supabase
                           .from('location_audits')
                           .delete()
@@ -380,7 +386,7 @@ const Audits = () => {
                           title: "Audit deleted",
                           description: "The audit has been successfully deleted.",
                         });
-                        
+
                         // Invalidate queries to refresh the list
                         await queryClient.invalidateQueries({ queryKey: ['location_audits'] });
                       } catch (error) {
@@ -390,6 +396,8 @@ const Audits = () => {
                           description: "Failed to delete audit. Please try again.",
                           variant: "destructive",
                         });
+                      } finally {
+                        setDeletingId(null);
                       }
                     }}
                     className="rounded-lg"
@@ -451,9 +459,11 @@ const Audits = () => {
                               variant="ghost"
                               size="icon"
                               className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                              disabled={deletingId === audit.id}
                               onClick={async (e) => {
                                 e.stopPropagation();
                                 try {
+                                  setDeletingId(audit.id);
                                   const { error } = await supabase
                                     .from('location_audits')
                                     .delete()
@@ -465,7 +475,7 @@ const Audits = () => {
                                     title: "Draft deleted",
                                     description: "The draft audit has been deleted.",
                                   });
-                                  
+
                                   await queryClient.invalidateQueries({ queryKey: ['location_audits'] });
                                 } catch (error) {
                                   console.error('Error deleting draft:', error);
@@ -474,6 +484,8 @@ const Audits = () => {
                                     description: "Failed to delete draft.",
                                     variant: "destructive",
                                   });
+                                } finally {
+                                  setDeletingId(null);
                                 }
                               }}
                             >
@@ -486,6 +498,16 @@ const Audits = () => {
                     </div>
                   </SwipeableListItem>
                 ))}
+                {hasMoreAudits && (
+                  <div className="flex justify-center pt-2">
+                    <Button
+                      variant="outline"
+                      onClick={() => setVisibleCount(c => c + 50)}
+                    >
+                      Load More ({filteredAudits.length - visibleCount} remaining)
+                    </Button>
+                  </div>
+                )}
               </div>
             )}
             </Card>

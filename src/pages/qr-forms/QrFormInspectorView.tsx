@@ -112,8 +112,10 @@ export default function QrFormInspectorView() {
 }
 
 function GridView({ schema, data }: { schema: any; data: any }) {
-  const checkpoints = schema.gridConfig.checkpoints || [];
-  const cellFields = schema.gridConfig.cellFields || [];
+  const checkpoints = schema?.gridConfig?.checkpoints || [];
+  const cellFields = schema?.gridConfig?.cellFields || [];
+
+  if (!data?.grid || !checkpoints.length) return null;
 
   return (
     <div className="overflow-x-auto">

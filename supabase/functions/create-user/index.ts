@@ -81,8 +81,8 @@ serve(async (req) => {
       }
 
       // Check if user already exists
-      const { data: existingUsers } = await supabaseAdmin.auth.admin.listUsers();
-      const existingUser = existingUsers?.users.find(u => u.email === email);
+      const { data: existingUserData } = await supabaseAdmin.auth.admin.getUserByEmail(email);
+      const existingUser = existingUserData?.user ?? null;
 
       let targetUserId: string;
 
@@ -180,8 +180,8 @@ serve(async (req) => {
       // User invites are no longer limited by employee count — that limit applies to workforce employees only
 
       // Check if user already exists
-      const { data: existingUsers } = await supabaseAdmin.auth.admin.listUsers();
-      const existingUser = existingUsers?.users.find(u => u.email === email);
+      const { data: existingUserData } = await supabaseAdmin.auth.admin.getUserByEmail(email);
+      const existingUser = existingUserData?.user ?? null;
 
       let targetUserId: string;
 

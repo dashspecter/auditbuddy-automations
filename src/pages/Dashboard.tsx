@@ -30,7 +30,10 @@ const Dashboard = () => {
 
   useEffect(() => {
     // Check if user has completed onboarding
-    const hasCompletedOnboarding = localStorage.getItem('dashspect_onboarding_completed');
+    let hasCompletedOnboarding: string | null = null;
+    try {
+      hasCompletedOnboarding = localStorage.getItem('dashspect_onboarding_completed');
+    } catch {}
     if (!hasCompletedOnboarding) {
       // Show onboarding after a short delay for better UX
       const timer = setTimeout(() => {

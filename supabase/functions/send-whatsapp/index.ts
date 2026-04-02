@@ -5,6 +5,17 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+function timingSafeEqual(a: string, b: string): boolean {
+  const aLen = a.length;
+  const bLen = b.length;
+  const len = Math.max(aLen, bLen);
+  let diff = aLen ^ bLen;
+  for (let i = 0; i < len; i++) {
+    diff |= a.charCodeAt(i % aLen) ^ b.charCodeAt(i % bLen);
+  }
+  return diff === 0;
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -17,11 +28,14 @@ Deno.serve(async (req) => {
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     
     // Allow service-role key or anon key for internal/cron calls
-    const isServiceCall = authHeader === `Bearer ${serviceRoleKey}` || authHeader === `Bearer ${supabaseAnonKey}`;
-    
+    const isServiceCall = authHeader !== null && (
+      timingSafeEqual(authHeader, `Bearer ${serviceRoleKey}`) ||
+      timingSafeEqual(authHeader, `Bearer ${supabaseAnonKey}`)
+    );
+
     let userId: string | null = null;
-    
-    if (isServiceCall || !authHeader) {
+
+    if (isServiceCall) {
       // Internal call - no user auth needed (function is behind verify_jwt=false)
       userId = "system";
     } else if (authHeader?.startsWith("Bearer ")) {
@@ -34,6 +48,8 @@ Deno.serve(async (req) => {
         return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: corsHeaders });
       }
       userId = user.id;
+    } else {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: corsHeaders });
     }
 
     const body = await req.json();

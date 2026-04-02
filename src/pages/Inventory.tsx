@@ -3,16 +3,12 @@ import { Button } from "@/components/ui/button";
 import { Package, Upload, FileBarChart, TruckIcon } from "lucide-react";
 import { Link } from "react-router-dom";
 import { ModuleGate } from "@/components/ModuleGate";
-import { EmptyState } from "@/components/EmptyState";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 
 const Inventory = () => {
   const navigate = useNavigate();
   const { t } = useTranslation();
-
-  // TODO: Add actual inventory data hook when available
-  const hasInventoryData = false;
 
   const modules = [
     {
@@ -61,90 +57,29 @@ const Inventory = () => {
           </Button>
         </div>
 
-        {!hasInventoryData ? (
-          <EmptyState
-            icon={Package}
-            title={t('inventory.empty.title')}
-            description={t('inventory.empty.description')}
-            action={{
-              label: t('inventory.empty.addFirst'),
-              onClick: () => navigate("/inventory/items/new")
-            }}
-            secondaryAction={{
-              label: t('inventory.empty.takeInventoryCount'),
-              onClick: () => navigate("/inventory/items/new")
-            }}
-          />
-        ) : (
-          <>
-            <div className="grid gap-6 md:grid-cols-2">
-              {modules.map((module) => (
-                <Card key={module.title} className="hover:shadow-lg transition-shadow">
-                  <CardHeader>
-                    <div className="flex items-center gap-3 mb-2">
-                      <div className="p-2 bg-primary/10 rounded-lg">
-                        <module.icon className="h-6 w-6 text-primary" />
-                      </div>
-                      <CardTitle className="text-lg">{module.title}</CardTitle>
-                    </div>
-                    <CardDescription>{module.description}</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <Link to={module.link}>
-                      <Button variant="outline" className="w-full">
-                        {module.action}
-                      </Button>
-                    </Link>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-
-            {/* Quick Stats */}
-            <div className="grid gap-4 md:grid-cols-4">
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium text-muted-foreground">
-                    {t('inventory.stats.totalItems')}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">0</div>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium text-muted-foreground">
-                    {t('inventory.stats.lastCount')}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">-</div>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium text-muted-foreground">
-                    {t('inventory.stats.activeSuppliers')}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">0</div>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium text-muted-foreground">
-                    {t('inventory.stats.thisMonthInvoices')}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">0</div>
-                </CardContent>
-              </Card>
-            </div>
-          </>
-        )}
+        {/* Module Navigation — always visible */}
+        <div className="grid gap-6 md:grid-cols-2">
+          {modules.map((module) => (
+            <Card key={module.title} className="hover:shadow-lg transition-shadow">
+              <CardHeader>
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="p-2 bg-primary/10 rounded-lg">
+                    <module.icon className="h-6 w-6 text-primary" />
+                  </div>
+                  <CardTitle className="text-lg">{module.title}</CardTitle>
+                </div>
+                <CardDescription>{module.description}</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Link to={module.link}>
+                  <Button variant="outline" className="w-full">
+                    {module.action}
+                  </Button>
+                </Link>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
       </div>
     </ModuleGate>
   );

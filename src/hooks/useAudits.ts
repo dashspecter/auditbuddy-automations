@@ -81,6 +81,7 @@ export const useLocationAudits = () => {
       .subscribe();
 
     return () => {
+      channel.unsubscribe();
       supabase.removeChannel(channel);
     };
   }, [user, company?.id, queryClient]);
@@ -96,7 +97,8 @@ export const useLocationAudits = () => {
           profiles(full_name, email, avatar_url),
           audit_templates(name)
         `)
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })
+        .limit(500);
 
       if (error) throw error;
       return data as LocationAudit[];
