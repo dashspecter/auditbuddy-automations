@@ -414,6 +414,7 @@ const navigationItems = [
       { titleKey: "nav.govProjects", url: "/gov/projects" },
       { titleKey: "nav.govFleet", url: "/gov/fleet", module: "gov_fleet" },
       { titleKey: "nav.govZones", url: "/gov/zones", allowedRoles: ['admin', 'manager'] },
+      { titleKey: "nav.govFieldOps", url: "/staff/gov" },
     ],
   },
 ];

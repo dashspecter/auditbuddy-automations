@@ -226,7 +226,8 @@
     "govCommandCenter": "Command Center",
     "govProjects": "Government Projects",
     "govFleet": "Fleet Availability",
-    "govZones": "Zones & Districts"
+    "govZones": "Zones & Districts",
+    "govFieldOps": "Field Portal"
   },
   "auth": {
     "signIn": "Sign In",

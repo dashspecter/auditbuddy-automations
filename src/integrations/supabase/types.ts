@@ -2832,6 +2832,7 @@ export type Database = {
           parts_cost: number | null
           priority: string
           procedure_id: string | null
+          project_id: string | null
           started_at: string | null
           status: string
           title: string
@@ -2861,6 +2862,7 @@ export type Database = {
           parts_cost?: number | null
           priority?: string
           procedure_id?: string | null
+          project_id?: string | null
           started_at?: string | null
           status?: string
           title: string
@@ -2890,6 +2892,7 @@ export type Database = {
           parts_cost?: number | null
           priority?: string
           procedure_id?: string | null
+          project_id?: string | null
           started_at?: string | null
           status?: string
           title?: string
@@ -2932,6 +2935,331 @@ export type Database = {
             columns: ["procedure_id"]
             isOneToOne: false
             referencedRelation: "cmms_procedures"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      gov_asset_reservations: {
+        Row: {
+          id: string
+          company_id: string
+          asset_id: string
+          project_id: string | null
+          reserved_by: string
+          start_date: string
+          end_date: string
+          status: string
+          notes: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          company_id: string
+          asset_id: string
+          project_id?: string | null
+          reserved_by: string
+          start_date: string
+          end_date: string
+          status?: string
+          notes?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          company_id?: string
+          asset_id?: string
+          project_id?: string | null
+          reserved_by?: string
+          start_date?: string
+          end_date?: string
+          status?: string
+          notes?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gov_asset_reservations_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gov_asset_reservations_asset_id_fkey"
+            columns: ["asset_id"]
+            isOneToOne: false
+            referencedRelation: "cmms_assets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gov_asset_reservations_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "gov_projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      gov_site_checkins: {
+        Row: {
+          id: string
+          company_id: string
+          employee_id: string
+          project_id: string | null
+          location_id: string
+          work_order_id: string | null
+          check_in_at: string
+          check_out_at: string | null
+          checkin_lat: number | null
+          checkin_lon: number | null
+          checkout_lat: number | null
+          checkout_lon: number | null
+          geofence_validated: boolean | null
+          geofence_distance_m: number | null
+          notes: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          company_id: string
+          employee_id: string
+          project_id?: string | null
+          location_id: string
+          work_order_id?: string | null
+          check_in_at?: string
+          check_out_at?: string | null
+          checkin_lat?: number | null
+          checkin_lon?: number | null
+          checkout_lat?: number | null
+          checkout_lon?: number | null
+          geofence_validated?: boolean | null
+          geofence_distance_m?: number | null
+          notes?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          company_id?: string
+          employee_id?: string
+          project_id?: string | null
+          location_id?: string
+          work_order_id?: string | null
+          check_in_at?: string
+          check_out_at?: string | null
+          checkin_lat?: number | null
+          checkin_lon?: number | null
+          checkout_lat?: number | null
+          checkout_lon?: number | null
+          geofence_validated?: boolean | null
+          geofence_distance_m?: number | null
+          notes?: string | null
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gov_site_checkins_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gov_site_checkins_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gov_site_checkins_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "gov_projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      gov_zones: {
+        Row: {
+          id: string
+          company_id: string
+          name: string
+          code: string | null
+          description: string | null
+          parent_zone_id: string | null
+          zone_type: string
+          created_by: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          company_id: string
+          name: string
+          code?: string | null
+          description?: string | null
+          parent_zone_id?: string | null
+          zone_type?: string
+          created_by?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          company_id?: string
+          name?: string
+          code?: string | null
+          description?: string | null
+          parent_zone_id?: string | null
+          zone_type?: string
+          created_by?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gov_zones_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gov_zones_parent_zone_id_fkey"
+            columns: ["parent_zone_id"]
+            isOneToOne: false
+            referencedRelation: "gov_zones"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      gov_projects: {
+        Row: {
+          id: string
+          company_id: string
+          zone_id: string | null
+          location_id: string | null
+          title: string
+          description: string | null
+          project_number: string | null
+          status: string
+          priority: string
+          project_type: string
+          start_date: string | null
+          end_date: string | null
+          budget: number | null
+          actual_cost: number
+          project_manager_id: string | null
+          created_by: string
+          created_at: string
+          updated_at: string
+          is_archived: boolean
+        }
+        Insert: {
+          id?: string
+          company_id: string
+          zone_id?: string | null
+          location_id?: string | null
+          title: string
+          description?: string | null
+          project_number?: string | null
+          status?: string
+          priority?: string
+          project_type?: string
+          start_date?: string | null
+          end_date?: string | null
+          budget?: number | null
+          actual_cost?: number
+          project_manager_id?: string | null
+          created_by: string
+          created_at?: string
+          updated_at?: string
+          is_archived?: boolean
+        }
+        Update: {
+          id?: string
+          company_id?: string
+          zone_id?: string | null
+          location_id?: string | null
+          title?: string
+          description?: string | null
+          project_number?: string | null
+          status?: string
+          priority?: string
+          project_type?: string
+          start_date?: string | null
+          end_date?: string | null
+          budget?: number | null
+          actual_cost?: number
+          project_manager_id?: string | null
+          created_by?: string
+          created_at?: string
+          updated_at?: string
+          is_archived?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gov_projects_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gov_projects_zone_id_fkey"
+            columns: ["zone_id"]
+            isOneToOne: false
+            referencedRelation: "gov_zones"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      gov_project_milestones: {
+        Row: {
+          id: string
+          company_id: string
+          project_id: string
+          title: string
+          description: string | null
+          due_date: string | null
+          status: string
+          completed_at: string | null
+          evidence_packet_id: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          company_id: string
+          project_id: string
+          title: string
+          description?: string | null
+          due_date?: string | null
+          status?: string
+          completed_at?: string | null
+          evidence_packet_id?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          company_id?: string
+          project_id?: string
+          title?: string
+          description?: string | null
+          due_date?: string | null
+          status?: string
+          completed_at?: string | null
+          evidence_packet_id?: string | null
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gov_project_milestones_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "gov_projects"
             referencedColumns: ["id"]
           },
         ]
@@ -6006,6 +6334,9 @@ export type Database = {
           company_id: string
           created_at: string
           created_by: string
+          geofence_lat: number | null
+          geofence_lon: number | null
+          geofence_radius_meters: number | null
           id: string
           latitude: number | null
           longitude: number | null
@@ -6015,6 +6346,7 @@ export type Database = {
           status: string
           type: string | null
           updated_at: string
+          zone_id: string | null
         }
         Insert: {
           address?: string | null
@@ -6022,6 +6354,9 @@ export type Database = {
           company_id: string
           created_at?: string
           created_by: string
+          geofence_lat?: number | null
+          geofence_lon?: number | null
+          geofence_radius_meters?: number | null
           id?: string
           latitude?: number | null
           longitude?: number | null
@@ -6031,6 +6366,7 @@ export type Database = {
           status?: string
           type?: string | null
           updated_at?: string
+          zone_id?: string | null
         }
         Update: {
           address?: string | null
@@ -6038,6 +6374,9 @@ export type Database = {
           company_id?: string
           created_at?: string
           created_by?: string
+          geofence_lat?: number | null
+          geofence_lon?: number | null
+          geofence_radius_meters?: number | null
           id?: string
           latitude?: number | null
           longitude?: number | null
@@ -6047,6 +6386,7 @@ export type Database = {
           status?: string
           type?: string | null
           updated_at?: string
+          zone_id?: string | null
         }
         Relationships: [
           {
@@ -6054,6 +6394,13 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "locations_zone_id_fkey"
+            columns: ["zone_id"]
+            isOneToOne: false
+            referencedRelation: "gov_zones"
             referencedColumns: ["id"]
           },
         ]

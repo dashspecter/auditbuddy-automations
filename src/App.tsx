@@ -85,6 +85,11 @@ const GovProjectDetail = lazy(() => import("./pages/gov/ProjectDetail"));
 const GovZones = lazy(() => import("./pages/gov/Zones"));
 const GovFleet = lazy(() => import("./pages/gov/Fleet"));
 
+// Government Ops (Phase 2) — staff mobile field screens
+const StaffGovHome = lazy(() => import("./pages/staff/gov/StaffGovHome"));
+const StaffGovCheckin = lazy(() => import("./pages/staff/gov/StaffGovCheckin"));
+const StaffGovWorkOrderDetail = lazy(() => import("./pages/staff/gov/StaffGovWorkOrderDetail"));
+
 // Audits
 const Audits = lazyWithRetry(() => import("./pages/Audits"));
 const AuditDetail = lazyWithRetry(() => import("./pages/AuditDetail"));
@@ -380,6 +385,12 @@ const App = () => {
                         <Route path="/staff/documents" element={<ProtectedRoute><RouteErrorBoundary><StaffDocuments /></RouteErrorBoundary></ProtectedRoute>} />
                         <Route path="/staff/waste" element={<ProtectedRoute><RouteErrorBoundary><MyWasteEntries /></RouteErrorBoundary></ProtectedRoute>} />
                         <Route path="/staff/waste/new" element={<ProtectedRoute><RouteErrorBoundary><AddWasteEntry /></RouteErrorBoundary></ProtectedRoute>} />
+
+                        {/* Government Ops Phase 2 — staff field screens */}
+                        <Route path="/staff/gov" element={<ProtectedRoute><ModuleGate module="gov_projects"><RouteErrorBoundary><StaffGovHome /></RouteErrorBoundary></ModuleGate></ProtectedRoute>} />
+                        <Route path="/staff/gov/checkin" element={<ProtectedRoute><ModuleGate module="gov_projects"><RouteErrorBoundary><StaffGovCheckin /></RouteErrorBoundary></ModuleGate></ProtectedRoute>} />
+                        <Route path="/staff/gov/work-orders/:id" element={<ProtectedRoute><ModuleGate module="gov_projects"><RouteErrorBoundary><StaffGovWorkOrderDetail /></RouteErrorBoundary></ModuleGate></ProtectedRoute>} />
+
                         <Route path="/staff/tests/:testId" element={<ProtectedRoute><RouteErrorBoundary><TakeTest /></RouteErrorBoundary></ProtectedRoute>} />
                         
                         {/* Legacy waste routes */}

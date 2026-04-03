@@ -223,7 +223,8 @@
     "govCommandCenter": "Centru de comandă",
     "govProjects": "Proiecte guvernamentale",
     "govFleet": "Disponibilitate flotă",
-    "govZones": "Zone și districte"
+    "govZones": "Zone și districte",
+    "govFieldOps": "Portal teren"
   },
   "auth": {
     "signIn": "Autentificare",
