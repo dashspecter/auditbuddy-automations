@@ -2484,8 +2484,8 @@ export async function createPurchaseOrderDraft(
   sb: any, sbService: any, companyId: string, userId: string,
   args: any, structuredEvents: string[], ctx: PermissionContext
 ): Promise<CapabilityResult<any>> {
-  const permCheck = checkCapabilityPermission(ctx, "create", "cmms");
-  if (!permCheck.allowed) return capabilityError(permCheck.reason ?? "Permission denied.");
+  const permCheck = checkCapabilityPermission({ action: "create", module: "cmms", ctx });
+  if (!permCheck.ok) return permCheck;
 
   if (!args.items || args.items.length === 0) return capabilityError("items array is required (at minimum one item with part_name and quantity).");
 
