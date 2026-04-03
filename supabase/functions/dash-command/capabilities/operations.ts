@@ -2671,8 +2671,8 @@ export async function makeApprovalDecisionDraft(
   sb: any, sbService: any, companyId: string, userId: string,
   args: any, structuredEvents: string[], ctx: PermissionContext
 ): Promise<CapabilityResult<any>> {
-  const permCheck = checkCapabilityPermission(ctx, "update", "government_ops");
-  if (!permCheck.allowed) return capabilityError(permCheck.reason ?? "Permission denied.");
+  const permCheck = checkCapabilityPermission({ action: "update", module: "government_ops", ctx });
+  if (!permCheck.ok) return permCheck;
 
   if (!args.request_id) return capabilityError("request_id is required.");
   if (!["approve", "reject"].includes(args.decision)) return capabilityError("decision must be 'approve' or 'reject'.");
