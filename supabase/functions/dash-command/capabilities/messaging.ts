@@ -202,8 +202,8 @@ export async function executeeSendWhatsappMessage(
   sbService: any, companyId: string, userId: string,
   args: any, structuredEvents: string[], ctx: PermissionContext
 ): Promise<CapabilityResult<any>> {
-  const permCheck = checkCapabilityPermission(ctx, "create", "whatsapp_messaging");
-  if (!permCheck.allowed) return capabilityError(permCheck.reason ?? "Permission denied.");
+  const permCheck = checkCapabilityPermission({ action: "create", module: "whatsapp_messaging", ctx });
+  if (!permCheck.ok) return permCheck;
 
   const { data: pa } = await sbService.from("dash_pending_actions")
     .select("id, status, company_id, preview_json").eq("id", args.pending_action_id).maybeSingle();
