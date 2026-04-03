@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo } from "react";
-import { useLocationPerformanceScores } from "@/hooks/useLocationPerformanceScores";
 import { computeEffectiveScores, sortByEffectiveScore } from "@/lib/effectiveScore";
+import type { EmployeePerformanceScore } from "@/hooks/useEmployeePerformance";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { format, startOfWeek, endOfWeek, startOfDay, endOfDay, startOfMonth, differenceInMinutes, differenceInSeconds, isPast } from "date-fns";
