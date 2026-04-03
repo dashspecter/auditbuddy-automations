@@ -110,8 +110,8 @@ export async function sendWhatsappMessageDraft(
   sb: any, sbService: any, companyId: string, userId: string,
   args: any, structuredEvents: string[], ctx: PermissionContext
 ): Promise<CapabilityResult<any>> {
-  const permCheck = checkCapabilityPermission(ctx, "create", "whatsapp_messaging");
-  if (!permCheck.allowed) return capabilityError(permCheck.reason ?? "Permission denied.");
+  const permCheck = checkCapabilityPermission({ action: "create", module: "whatsapp_messaging", ctx });
+  if (!permCheck.ok) return permCheck;
 
   if (!args.template_name && !args.template_id) return capabilityError("Provide template_name or template_id.");
 
@@ -202,8 +202,8 @@ export async function executeeSendWhatsappMessage(
   sbService: any, companyId: string, userId: string,
   args: any, structuredEvents: string[], ctx: PermissionContext
 ): Promise<CapabilityResult<any>> {
-  const permCheck = checkCapabilityPermission(ctx, "create", "whatsapp_messaging");
-  if (!permCheck.allowed) return capabilityError(permCheck.reason ?? "Permission denied.");
+  const permCheck = checkCapabilityPermission({ action: "create", module: "whatsapp_messaging", ctx });
+  if (!permCheck.ok) return permCheck;
 
   const { data: pa } = await sbService.from("dash_pending_actions")
     .select("id, status, company_id, preview_json").eq("id", args.pending_action_id).maybeSingle();
@@ -254,8 +254,8 @@ export async function createNotificationRuleDraft(
   sb: any, sbService: any, companyId: string, userId: string,
   args: any, structuredEvents: string[], ctx: PermissionContext
 ): Promise<CapabilityResult<any>> {
-  const permCheck = checkCapabilityPermission(ctx, "create", "notifications");
-  if (!permCheck.allowed) return capabilityError(permCheck.reason ?? "Permission denied.");
+  const permCheck = checkCapabilityPermission({ action: "create", module: "notifications", ctx });
+  if (!permCheck.ok) return permCheck;
 
   if (!args.event_type) return capabilityError("event_type is required.");
   if (!args.channel) return capabilityError("channel is required (e.g. whatsapp, push, email).");
@@ -303,8 +303,8 @@ export async function executeCreateNotificationRule(
   sbService: any, companyId: string, userId: string,
   args: any, structuredEvents: string[], ctx: PermissionContext
 ): Promise<CapabilityResult<any>> {
-  const permCheck = checkCapabilityPermission(ctx, "create", "notifications");
-  if (!permCheck.allowed) return capabilityError(permCheck.reason ?? "Permission denied.");
+  const permCheck = checkCapabilityPermission({ action: "create", module: "notifications", ctx });
+  if (!permCheck.ok) return permCheck;
 
   const { data: pa } = await sbService.from("dash_pending_actions")
     .select("id, status, company_id, preview_json").eq("id", args.pending_action_id).maybeSingle();

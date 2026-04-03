@@ -336,8 +336,8 @@ export async function processScoutPayoutDraft(
   sb: any, sbService: any, companyId: string, userId: string,
   args: any, structuredEvents: string[], ctx: PermissionContext
 ): Promise<CapabilityResult<any>> {
-  const permCheck = checkCapabilityPermission(ctx, "update", "scouts");
-  if (!permCheck.allowed) return capabilityError(permCheck.reason ?? "Permission denied.");
+  const permCheck = checkCapabilityPermission({ action: "update", module: "scouts", ctx });
+  if (!permCheck.ok) return permCheck;
 
   if (!args.payout_id) return capabilityError("payout_id is required.");
 
@@ -401,8 +401,8 @@ export async function executeProcessScoutPayout(
   sbService: any, companyId: string, userId: string,
   args: any, structuredEvents: string[], ctx: PermissionContext
 ): Promise<CapabilityResult<any>> {
-  const permCheck = checkCapabilityPermission(ctx, "update", "scouts");
-  if (!permCheck.allowed) return capabilityError(permCheck.reason ?? "Permission denied.");
+  const permCheck = checkCapabilityPermission({ action: "update", module: "scouts", ctx });
+  if (!permCheck.ok) return permCheck;
 
   const { data: pa } = await sbService.from("dash_pending_actions")
     .select("id, status, company_id, preview_json").eq("id", args.pending_action_id).maybeSingle();
