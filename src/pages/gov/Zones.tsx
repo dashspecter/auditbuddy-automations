@@ -1,5 +1,8 @@
 import { useState, useMemo } from "react";
 import { useGovZones, GovZone, useCreateGovZone, useUpdateGovZone, useDeleteGovZone, ZoneType } from "@/hooks/useGovZones";
+import { useLocations } from "@/hooks/useLocations";
+import type { Location } from "@/hooks/useLocations";
+import { GeofenceConfigDialog } from "@/components/gov/GeofenceConfigDialog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,7 +12,7 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { Plus, Pencil, Trash2, ChevronDown, ChevronRight, MapPin } from "lucide-react";
+import { Plus, Pencil, Trash2, ChevronDown, ChevronRight, MapPin, SlidersHorizontal } from "lucide-react";
 import { toast } from "sonner";
 
 const ZONE_TYPE_LABELS: Record<ZoneType, string> = {
@@ -79,6 +82,7 @@ function ZoneRow({ zone, depth, allZones, onEdit, onDelete }: {
 
 export default function Zones() {
   const { data: zones = [], isLoading } = useGovZones();
+  const { data: locations = [] } = useLocations();
   const createZone = useCreateGovZone();
   const updateZone = useUpdateGovZone();
   const deleteZone = useDeleteGovZone();
@@ -86,6 +90,7 @@ export default function Zones() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingZone, setEditingZone] = useState<GovZone | null>(null);
   const [form, setForm] = useState<ZoneFormState>(DEFAULT_FORM);
+  const [geofenceLocation, setGeofenceLocation] = useState<Location | null>(null);
 
   const rootZones = useMemo(() => zones.filter(z => !z.parent_zone_id), [zones]);
 
@@ -221,6 +226,62 @@ export default function Zones() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Geofence configuration section */}
+      {locations.length > 0 && (
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base flex items-center gap-2">
+              <SlidersHorizontal className="h-4 w-4 text-blue-500" />
+              Location Geofences
+            </CardTitle>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Set GPS coordinates and check-in radius for each location. Used for field check-in validation and the operations map.
+            </p>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-0.5">
+              {locations.map(loc => {
+                const hasGeofence = (loc as any).geofence_radius_meters != null;
+                return (
+                  <div
+                    key={loc.id}
+                    className="flex items-center gap-3 py-2.5 px-3 rounded-lg hover:bg-muted/50 group transition-colors"
+                  >
+                    <MapPin className={`h-3.5 w-3.5 shrink-0 ${hasGeofence ? "text-blue-500" : "text-muted-foreground"}`} />
+                    <span className="flex-1 text-sm font-medium">{loc.name}</span>
+                    {hasGeofence ? (
+                      <span className="text-xs text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full">
+                        {(loc as any).geofence_radius_meters}m radius
+                      </span>
+                    ) : (
+                      <span className="text-xs text-muted-foreground">No geofence</span>
+                    )}
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="h-7 px-2 opacity-0 group-hover:opacity-100 transition-opacity"
+                      onClick={() => setGeofenceLocation(loc)}
+                    >
+                      <SlidersHorizontal className="h-3.5 w-3.5 mr-1" />
+                      Configure
+                    </Button>
+                  </div>
+                );
+              })}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Geofence config dialog */}
+      {geofenceLocation && (
+        <GeofenceConfigDialog
+          location={geofenceLocation}
+          open={!!geofenceLocation}
+          onOpenChange={open => { if (!open) setGeofenceLocation(null); }}
+        />
+      )}
     </div>
   );
 }

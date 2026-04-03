@@ -3091,6 +3091,7 @@ export type Database = {
           description: string | null
           parent_zone_id: string | null
           zone_type: string
+          boundary_geojson: Json | null
           created_by: string | null
           created_at: string
           updated_at: string
@@ -3103,6 +3104,7 @@ export type Database = {
           description?: string | null
           parent_zone_id?: string | null
           zone_type?: string
+          boundary_geojson?: Json | null
           created_by?: string | null
           created_at?: string
           updated_at?: string
@@ -3115,6 +3117,7 @@ export type Database = {
           description?: string | null
           parent_zone_id?: string | null
           zone_type?: string
+          boundary_geojson?: Json | null
           created_by?: string | null
           created_at?: string
           updated_at?: string
