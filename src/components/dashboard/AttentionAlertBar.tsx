@@ -50,7 +50,6 @@ export const AttentionAlertBar = ({ dateFrom, dateTo }: AttentionAlertBarProps) 
     tasks: { title: t("dashboard.attention.overdueTasks", "Overdue Tasks"), navigateTo: "/tasks", navigateLabel: t("dashboard.popup.goToTasks", "Go to Tasks") },
     cas: { title: t("dashboard.attention.openCAs", "Open CAs"), navigateTo: "/corrective-actions", navigateLabel: t("dashboard.popup.goToCAs", "Go to Corrective Actions") },
     maintenance: { title: t("dashboard.attention.overdueMaintenance", "Overdue Maintenance"), navigateTo: "/maintenance", navigateLabel: t("dashboard.popup.goToMaintenance", "Go to Maintenance") },
-    workforce: { title: t("dashboard.attention.atRiskEmployees", "At-Risk Employees"), navigateTo: "/workforce", navigateLabel: t("dashboard.popup.goToWorkforce", "Go to Workforce") },
   };
 
   return (
