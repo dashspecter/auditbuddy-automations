@@ -158,7 +158,7 @@ export default function StaffGovWorkOrderDetail() {
               <div className="flex items-center gap-2 mb-1">
                 <Wrench className="h-4 w-4 text-muted-foreground" />
                 <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                  Checklist ({checklistResponses.filter(r => r.response_json?.completed).length}/{checklist.length})
+                  Checklist ({checklistResponses.filter(r => (r.response_json as any)?.completed).length}/{checklist.length})
                 </span>
               </div>
               {checklist.map((step) => {
