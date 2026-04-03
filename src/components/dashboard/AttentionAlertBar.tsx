@@ -1,22 +1,19 @@
-import { AlertTriangle, ClipboardCheck, ListTodo, Wrench, Shield, Users } from "lucide-react";
+import { AlertTriangle, ClipboardCheck, ListTodo, Wrench, Shield } from "lucide-react";
 import { CA_OPEN_STATUSES } from "@/lib/constants";
 import { Badge } from "@/components/ui/badge";
 import { useDashboardStats } from "@/hooks/useDashboardStats";
 import { useTaskStats } from "@/hooks/useTasks";
 import { useCorrectiveActions } from "@/hooks/useCorrectiveActions";
 import { useEquipmentInterventions } from "@/hooks/useEquipmentInterventions";
-import { usePerformanceLeaderboard } from "@/hooks/useEmployeePerformance";
 import { format, subDays } from "date-fns";
 import { useTranslation } from "react-i18next";
-import { useMemo } from "react";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { DashboardPreviewDialog } from "./DashboardPreviewDialog";
 import { AuditScorePopup } from "./popups/AuditScorePopup";
 import { TaskCompletionPopup } from "./popups/TaskCompletionPopup";
 import { OpenCAsPopup } from "./popups/OpenCAsPopup";
-import { WorkforceScorePopup } from "./popups/WorkforceScorePopup";
 
-type AlertType = "audits" | "tasks" | "cas" | "maintenance" | "workforce" | null;
+type AlertType = "audits" | "tasks" | "cas" | "maintenance" | null;
 
 interface AttentionAlertBarProps {
   dateFrom?: Date;
