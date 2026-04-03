@@ -146,8 +146,8 @@ export async function logEquipmentInterventionDraft(
   sb: any, sbService: any, companyId: string, userId: string,
   args: any, structuredEvents: string[], ctx: PermissionContext
 ): Promise<CapabilityResult<any>> {
-  const permCheck = checkCapabilityPermission(ctx, "create", "equipment_management");
-  if (!permCheck.allowed) return capabilityError(permCheck.reason ?? "Permission denied.");
+  const permCheck = checkCapabilityPermission({ action: "create", module: "equipment_management", ctx });
+  if (!permCheck.ok) return permCheck;
 
   // Resolve equipment
   let equipId = args.equipment_id || null;
