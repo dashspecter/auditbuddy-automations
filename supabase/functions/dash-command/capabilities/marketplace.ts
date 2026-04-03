@@ -53,8 +53,8 @@ export async function installMarketplaceTemplateDraft(
   sb: any, sbService: any, companyId: string, userId: string,
   args: any, structuredEvents: string[], ctx: PermissionContext
 ): Promise<CapabilityResult<any>> {
-  const permCheck = checkCapabilityPermission(ctx, "create", "location_audits");
-  if (!permCheck.allowed) return capabilityError(permCheck.reason ?? "Permission denied.");
+  const permCheck = checkCapabilityPermission({ action: "create", module: "location_audits", ctx });
+  if (!permCheck.ok) return permCheck;
 
   if (!args.template_id && !args.template_name) return capabilityError("Provide template_id or template_name.");
 
