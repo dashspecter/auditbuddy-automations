@@ -34,7 +34,7 @@ export function useGovZones() {
         .eq('company_id', company.id)
         .order('name');
       if (error) throw error;
-      return data as GovZone[];
+      return data as unknown as GovZone[];
     },
     enabled: !!company?.id,
     staleTime: 15 * 60 * 1000,
@@ -56,7 +56,7 @@ export function useCreateGovZone() {
         .select()
         .single();
       if (error) throw error;
-      return data as GovZone;
+      return data as unknown as GovZone;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['gov-zones'] });
@@ -78,7 +78,7 @@ export function useUpdateGovZone() {
         .select()
         .single();
       if (error) throw error;
-      return data as GovZone;
+      return data as unknown as GovZone;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['gov-zones'] });

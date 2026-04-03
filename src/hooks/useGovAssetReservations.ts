@@ -56,7 +56,7 @@ export function useGovAssetReservations(filters?: ReservationFilters) {
 
       const { data, error } = await query;
       if (error) throw error;
-      return data as GovAssetReservation[];
+      return data as unknown as GovAssetReservation[];
     },
     enabled: !!company?.id,
     staleTime: 2 * 60_000,
@@ -95,7 +95,7 @@ export function useCreateGovAssetReservation() {
         .single();
 
       if (error) throw error;
-      return data as GovAssetReservation;
+      return data as unknown as GovAssetReservation;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['gov-asset-reservations'] });
@@ -118,7 +118,7 @@ export function useUpdateGovAssetReservation() {
         .select()
         .single();
       if (error) throw error;
-      return data as GovAssetReservation;
+      return data as unknown as GovAssetReservation;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['gov-asset-reservations'] });

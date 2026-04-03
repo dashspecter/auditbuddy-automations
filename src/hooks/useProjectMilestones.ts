@@ -31,7 +31,7 @@ export function useProjectMilestones(projectId: string | undefined) {
         .eq('project_id', projectId)
         .order('due_date', { ascending: true, nullsFirst: false });
       if (error) throw error;
-      return data as ProjectMilestone[];
+      return data as unknown as ProjectMilestone[];
     },
     enabled: !!projectId && !!company?.id,
   });
@@ -50,7 +50,7 @@ export function useCreateMilestone() {
         .select()
         .single();
       if (error) throw error;
-      return data as ProjectMilestone;
+      return data as unknown as ProjectMilestone;
     },
     onSuccess: (_, { project_id }) => {
       queryClient.invalidateQueries({ queryKey: ['project-milestones', project_id] });
@@ -76,7 +76,7 @@ export function useUpdateMilestone() {
         .select()
         .single();
       if (error) throw error;
-      return { ...data, project_id } as ProjectMilestone;
+      return { ...data, project_id } as unknown as ProjectMilestone;
     },
     onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ['project-milestones', result.project_id] });

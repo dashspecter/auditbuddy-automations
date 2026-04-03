@@ -80,7 +80,7 @@ export function useGovProjects(filters?: GovProjectFilters) {
 
       const { data, error } = await query;
       if (error) throw error;
-      return data as GovProject[];
+      return data as unknown as GovProject[];
     },
     enabled: !!company?.id,
   });
@@ -102,7 +102,7 @@ export function useGovProjectById(id: string | undefined) {
         .eq('id', id)
         .single();
       if (error) throw error;
-      return data as GovProject;
+      return data as unknown as GovProject;
     },
     enabled: !!id,
   });
@@ -123,7 +123,7 @@ export function useCreateGovProject() {
         .select()
         .single();
       if (error) throw error;
-      return data as GovProject;
+      return data as unknown as GovProject;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['gov-projects'] });
@@ -145,7 +145,7 @@ export function useUpdateGovProject() {
         .select()
         .single();
       if (error) throw error;
-      return data as GovProject;
+      return data as unknown as GovProject;
     },
     onSuccess: (_, { id }) => {
       queryClient.invalidateQueries({ queryKey: ['gov-projects'] });

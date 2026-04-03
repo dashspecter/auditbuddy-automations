@@ -54,7 +54,7 @@ export function useMyGovSiteCheckins(employeeId: string | undefined) {
         .order('check_in_at', { ascending: false })
         .limit(50);
       if (error) throw error;
-      return data as GovSiteCheckin[];
+      return data as unknown as GovSiteCheckin[];
     },
     enabled: !!employeeId && !!company?.id,
     staleTime: 60_000,
@@ -81,7 +81,7 @@ export function useGovSiteCheckinsByProject(projectId: string | undefined) {
         .eq('project_id', projectId)
         .order('check_in_at', { ascending: false });
       if (error) throw error;
-      return data as GovSiteCheckin[];
+      return data as unknown as GovSiteCheckin[];
     },
     enabled: !!projectId && !!company?.id,
   });
