@@ -232,7 +232,7 @@ export const WorkforceAnalytics = ({ locationId, period = "month", showDateFilte
             </p>
           </CardContent>
         </Card>
-      </div>
+      </div>}
 
       {/* Score Breakdown */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
