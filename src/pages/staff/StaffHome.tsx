@@ -7,7 +7,7 @@ import { toast } from "sonner";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Clock, Calendar, Wallet, MessageSquare, ArrowRight, ListTodo, Gift, Trophy, FileText, ClipboardCheck, Trash2, QrCode } from "lucide-react";
+import { Clock, Calendar, Wallet, MessageSquare, ArrowRight, ListTodo, Gift, Trophy, FileText, ClipboardCheck, Trash2, QrCode, HardHat } from "lucide-react";
 import { StaffBottomNav } from "@/components/staff/StaffBottomNav";
 import { format, startOfMonth, endOfMonth } from "date-fns";
 import { useUserRole } from "@/hooks/useUserRole";
@@ -533,6 +533,16 @@ const StaffHome = () => {
         <div>
           <h2 className="font-semibold mb-3">{t('staffHome.quickActions')}</h2>
           <div className="grid grid-cols-2 gap-3">
+            {hasModule('gov_projects') && (
+              <Button
+                variant="outline"
+                className="h-auto py-4 flex-col touch-target border-primary/30 bg-primary/5"
+                onClick={() => navigate("/staff/gov")}
+              >
+                <HardHat className="h-6 w-6 mb-2 text-primary" />
+                <span className="text-xs">Site Work</span>
+              </Button>
+            )}
             {isChecker && (
               <Button
                 variant="outline"
