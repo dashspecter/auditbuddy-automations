@@ -30,16 +30,11 @@ export const AttentionAlertBar = ({ dateFrom, dateTo }: AttentionAlertBarProps) 
   const { data: cas } = useCorrectiveActions();
   const { data: interventions } = useEquipmentInterventions();
 
-  const now = new Date();
-  const startDate = dateFrom ? format(dateFrom, "yyyy-MM-dd") : format(subDays(now, 30), "yyyy-MM-dd");
-  const endDate = dateTo ? format(dateTo, "yyyy-MM-dd") : format(now, "yyyy-MM-dd");
-  const { allScores } = usePerformanceLeaderboard(startDate, endDate);
 
   const overdueAudits = dashboardStats.overdueAudits || 0;
   const recentlyOverdueTasks = taskStats?.recentlyOverdue || 0;
   const openCAs = cas?.filter(ca => CA_OPEN_STATUSES.includes(ca.status as any)).length || 0;
   const overdueInterventions = interventions?.filter(i => i.status === "overdue").length || 0;
-  const atRiskEmployees = allScores?.filter(e => e.overall_score < 50).length || 0;
 
   const items = [
     { count: overdueAudits, label: t("dashboard.attention.overdueAudits", "Overdue Audits"), icon: ClipboardCheck, alertType: "audits", color: "bg-destructive/10 text-destructive border-destructive/20" },
