@@ -155,7 +155,7 @@ export const WorkforceAnalytics = ({ locationId, period = "month", showDateFilte
       )}
       
       {/* Key Metrics */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
+      {showTopCards && <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
         <Card className="cursor-pointer hover:bg-accent/50 transition-colors" onClick={() => setActiveMetric("activeStaff")}>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
