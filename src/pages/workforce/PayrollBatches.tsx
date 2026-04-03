@@ -13,7 +13,7 @@ import { usePayrollBatches, useUpdatePayrollBatch, usePreparePayroll, PayrollBat
 import { usePayrollBatchDetails } from "@/hooks/usePayrollBatchDetails";
 import { useCompanyContext } from "@/contexts/CompanyContext";
 import { useTerminology } from "@/hooks/useTerminology";
-import { Plus, Eye, Receipt, Clock, CheckCircle2, Bot, Users, Wallet, MapPin, Calendar, Stethoscope, Palmtree, AlertTriangle, Building2, Download, UserX } from "lucide-react";
+import { Plus, Eye, Receipt, Clock, CheckCircle2, Bot, Users, Wallet, MapPin, Calendar, Stethoscope, Palmtree, AlertTriangle, Building2, Download, UserX, LogOut, Timer, TrendingUp, Umbrella } from "lucide-react";
 import { generatePayrollReportPDF } from "@/lib/payrollReportPdf";
 import { LocationSelector } from "@/components/LocationSelector";
 import { useNavigate } from "react-router-dom";
@@ -279,7 +279,7 @@ export default function PayrollBatches() {
 
       {/* Batch Detail Dialog */}
       <Dialog open={!!selectedBatch} onOpenChange={() => setSelectedBatch(null)}>
-        <DialogContent className="max-w-5xl max-h-[85vh]">
+        <DialogContent className="max-w-[92vw] max-h-[90vh]">
           <DialogHeader>
             <div className="flex items-center justify-between">
               <div>
@@ -309,7 +309,7 @@ export default function PayrollBatches() {
             </div>
           </DialogHeader>
           {selectedBatch && (
-            <div className="space-y-4 py-4 overflow-y-auto max-h-[calc(85vh-120px)]">
+            <div className="space-y-4 py-2 overflow-y-auto max-h-[calc(90vh-130px)]">
               {/* Summary cards */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 <Card>
@@ -340,17 +340,25 @@ export default function PayrollBatches() {
                 </Card>
                 <Card>
                   <CardContent className="pt-4 pb-3">
-                    <p className="text-2xl font-bold">
+                    <p className="text-2xl font-bold text-red-600">
                       {enhancedDetails.length > 0
-                        ? enhancedDetails.reduce((s, e) => s + e.anomalies.length, 0)
-                        : selectedBatch.summary_json.total_anomalies || 0}
+                        ? enhancedDetails.reduce((s, e) => s + e.missing_no_reason + e.absent_days, 0)
+                        : 0}
                     </p>
-                    <p className="text-xs text-muted-foreground">{t('workforce.payrollBatches.anomalies')}</p>
+                    <p className="text-xs text-muted-foreground">Absences to review</p>
                   </CardContent>
                 </Card>
               </div>
 
-              <h4 className="font-medium mt-4">{`${employeesLabel} Breakdown`}</h4>
+              {/* Legend */}
+              <div className="flex flex-wrap gap-3 text-xs text-muted-foreground border rounded-md p-2.5 bg-muted/30">
+                <span className="flex items-center gap-1"><span className="inline-block w-2 h-2 rounded-full bg-green-500" />OK — pay agreed salary</span>
+                <span className="flex items-center gap-1"><span className="inline-block w-2 h-2 rounded-full bg-blue-500" />Extra — additional payment</span>
+                <span className="flex items-center gap-1"><span className="inline-block w-2 h-2 rounded-full bg-amber-500" />Review — late/partial/early flags</span>
+                <span className="flex items-center gap-1"><span className="inline-block w-2 h-2 rounded-full bg-red-500" />Adjust — missing or absent shifts</span>
+              </div>
+
+              <h4 className="font-medium">{`${employeesLabel} Breakdown`}</h4>
 
               {detailsLoading ? (
                 <div className="space-y-2">
@@ -363,13 +371,13 @@ export default function PayrollBatches() {
                   <div className="overflow-x-auto">
                     <Table>
                       <TableHeader>
-                        <TableRow>
-                          <TableHead className="min-w-[140px]">{employeeLabel}</TableHead>
+                        <TableRow className="text-xs">
+                          <TableHead className="min-w-[150px]">{employeeLabel}</TableHead>
+                          <TableHead className="text-center w-20">Pay Status</TableHead>
                           <TableHead className="text-center">
                             <Tooltip>
                               <TooltipTrigger className="flex items-center gap-1 mx-auto">
-                                <Calendar className="h-3 w-3" />
-                                <span>Worked</span>
+                                <Calendar className="h-3 w-3" /><span>Days</span>
                               </TooltipTrigger>
                               <TooltipContent>Total days worked</TooltipContent>
                             </Tooltip>
@@ -377,26 +385,55 @@ export default function PayrollBatches() {
                           <TableHead className="text-center">
                             <Tooltip>
                               <TooltipTrigger className="flex items-center gap-1 mx-auto">
-                                <CheckCircle2 className="h-3 w-3" />
-                                <span>Confirmed</span>
+                                <Clock className="h-3 w-3" /><span>Partial</span>
                               </TooltipTrigger>
-                              <TooltipContent>Days backed by check-in &amp; check-out</TooltipContent>
+                              <TooltipContent>Shifts worked &lt;75% of scheduled hours</TooltipContent>
                             </Tooltip>
                           </TableHead>
                           <TableHead className="text-center">
                             <Tooltip>
                               <TooltipTrigger className="flex items-center gap-1 mx-auto">
-                                <Clock className="h-3 w-3" />
-                                <span>Extra</span>
+                                <Timer className="h-3 w-3" /><span>Late</span>
                               </TooltipTrigger>
-                              <TooltipContent>Unscheduled check-ins (not on roster)</TooltipContent>
+                              <TooltipContent>Late arrivals (unexcused)</TooltipContent>
                             </Tooltip>
                           </TableHead>
                           <TableHead className="text-center">
                             <Tooltip>
                               <TooltipTrigger className="flex items-center gap-1 mx-auto">
-                                <Palmtree className="h-3 w-3" />
-                                <span>Vacation</span>
+                                <LogOut className="h-3 w-3" /><span>Early Dep.</span>
+                              </TooltipTrigger>
+                              <TooltipContent>Early departures with recorded reason</TooltipContent>
+                            </Tooltip>
+                          </TableHead>
+                          <TableHead className="text-center">
+                            <Tooltip>
+                              <TooltipTrigger className="flex items-center gap-1 mx-auto">
+                                <AlertTriangle className="h-3 w-3" /><span>Missing</span>
+                              </TooltipTrigger>
+                              <TooltipContent>Scheduled but absent — no explanation recorded</TooltipContent>
+                            </Tooltip>
+                          </TableHead>
+                          <TableHead className="text-center">
+                            <Tooltip>
+                              <TooltipTrigger className="flex items-center gap-1 mx-auto">
+                                <UserX className="h-3 w-3" /><span>Absent</span>
+                              </TooltipTrigger>
+                              <TooltipContent>Recorded absence with reason code</TooltipContent>
+                            </Tooltip>
+                          </TableHead>
+                          <TableHead className="text-center">
+                            <Tooltip>
+                              <TooltipTrigger className="flex items-center gap-1 mx-auto">
+                                <TrendingUp className="h-3 w-3" /><span>Extra</span>
+                              </TooltipTrigger>
+                              <TooltipContent>Shifts worked not on original schedule</TooltipContent>
+                            </Tooltip>
+                          </TableHead>
+                          <TableHead className="text-center">
+                            <Tooltip>
+                              <TooltipTrigger className="flex items-center gap-1 mx-auto">
+                                <Palmtree className="h-3 w-3" /><span>Vacation</span>
                               </TooltipTrigger>
                               <TooltipContent>Approved vacation days</TooltipContent>
                             </Tooltip>
@@ -404,35 +441,23 @@ export default function PayrollBatches() {
                           <TableHead className="text-center">
                             <Tooltip>
                               <TooltipTrigger className="flex items-center gap-1 mx-auto">
-                                <Stethoscope className="h-3 w-3" />
-                                <span>Medical</span>
+                                <Stethoscope className="h-3 w-3" /><span>Medical</span>
                               </TooltipTrigger>
-                              <TooltipContent>Approved medical/sick leave days</TooltipContent>
+                              <TooltipContent>Approved medical / sick leave</TooltipContent>
                             </Tooltip>
                           </TableHead>
                           <TableHead className="text-center">
                             <Tooltip>
                               <TooltipTrigger className="flex items-center gap-1 mx-auto">
-                                <AlertTriangle className="h-3 w-3" />
-                                <span>Missing</span>
+                                <Umbrella className="h-3 w-3" /><span>Other Leave</span>
                               </TooltipTrigger>
-                              <TooltipContent>Absent with no reason (no time-off, no recorded absence)</TooltipContent>
+                              <TooltipContent>Other approved leave (personal, unpaid, etc.)</TooltipContent>
                             </Tooltip>
                           </TableHead>
                           <TableHead className="text-center">
                             <Tooltip>
                               <TooltipTrigger className="flex items-center gap-1 mx-auto">
-                                <UserX className="h-3 w-3" />
-                                <span>Absent</span>
-                              </TooltipTrigger>
-                              <TooltipContent>Recorded absences (sick, personal, etc.)</TooltipContent>
-                            </Tooltip>
-                          </TableHead>
-                          <TableHead className="text-center">
-                            <Tooltip>
-                              <TooltipTrigger className="flex items-center gap-1 mx-auto">
-                                <Building2 className="h-3 w-3" />
-                                <span>{`Other ${locationLabel}`}</span>
+                                <Building2 className="h-3 w-3" /><span>Cross-Loc.</span>
                               </TooltipTrigger>
                               <TooltipContent>{`Shifts worked at a different ${locationLabelLower}`}</TooltipContent>
                             </Tooltip>
@@ -442,61 +467,94 @@ export default function PayrollBatches() {
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {enhancedDetails.map((emp) => (
+                        {enhancedDetails.map((emp) => {
+                          // Compute pay status
+                          const hasAdjust = emp.missing_no_reason > 0 || emp.absent_days > 0;
+                          const hasExtra = !hasAdjust && (emp.extra_schedule_days > 0 || emp.overtime_hours > 0);
+                          const hasReview = !hasAdjust && !hasExtra && (emp.partial_count > 0 || emp.late_count > 0 || emp.early_departure_days > 0);
+                          const statusBadge = hasAdjust
+                            ? <Badge variant="destructive" className="text-[10px] px-1.5 py-0">Adjust</Badge>
+                            : hasExtra
+                              ? <Badge variant="outline" className="text-[10px] px-1.5 py-0 bg-blue-500/10 text-blue-700 border-blue-300">Extra</Badge>
+                              : hasReview
+                                ? <Badge variant="outline" className="text-[10px] px-1.5 py-0 bg-amber-500/10 text-amber-700 border-amber-300">Review</Badge>
+                                : <Badge variant="outline" className="text-[10px] px-1.5 py-0 bg-green-500/10 text-green-700 border-green-300">OK</Badge>;
+
+                          return (
                           <TableRow key={emp.employee_id}>
                             <TableCell>
                               <div>
-                                <span className="font-medium">{emp.employee_name}</span>
+                                <span className="font-medium text-sm">{emp.employee_name}</span>
                                 <span className="text-xs text-muted-foreground block">{emp.role}</span>
                               </div>
                             </TableCell>
+                            <TableCell className="text-center">{statusBadge}</TableCell>
                             <TableCell className="text-center font-medium">{emp.days_worked}</TableCell>
+
+                            {/* Partial Shifts */}
                             <TableCell className="text-center">
-                              {emp.days_confirmed > 0 ? (
-                                <Badge variant="outline" className="bg-green-500/10 text-green-700 dark:text-green-400">
-                                  {emp.days_confirmed}
-                                </Badge>
-                              ) : (
-                                <span className="text-muted-foreground">-</span>
-                              )}
-                            </TableCell>
-                            <TableCell className="text-center">
-                              {emp.extra_schedule_days > 0 ? (
+                              {emp.partial_count > 0 ? (
                                 <Tooltip>
                                   <TooltipTrigger>
-                                    <Badge variant="outline" className="bg-blue-500/10 text-blue-700 dark:text-blue-400">
-                                      {emp.extra_schedule_days}
+                                    <Badge variant="outline" className="bg-amber-500/10 text-amber-700 border-amber-300">
+                                      {emp.partial_count}
                                     </Badge>
                                   </TooltipTrigger>
                                   <TooltipContent>
-                                    <p className="font-medium">Extra check-ins:</p>
-                                    {emp.extra_schedule_dates.map(d => (
-                                      <p key={d} className="text-xs">{format(new Date(d), "MMM d")}</p>
+                                    <p className="font-medium mb-1">Partial shifts:</p>
+                                    {emp.partial_details.map((p, i) => (
+                                      <p key={i} className="text-xs">{format(new Date(p.date), "MMM d")}: {p.actual_hours}h / {p.scheduled_hours}h sched.</p>
                                     ))}
                                   </TooltipContent>
                                 </Tooltip>
-                              ) : (
-                                <span className="text-muted-foreground">-</span>
-                              )}
+                              ) : <span className="text-muted-foreground text-xs">—</span>}
                             </TableCell>
+
+                            {/* Late */}
                             <TableCell className="text-center">
-                              {emp.vacation_days > 0 ? (
-                                <Badge variant="outline" className="bg-amber-500/10 text-amber-700 dark:text-amber-400">
-                                  {emp.vacation_days}
-                                </Badge>
-                              ) : (
-                                <span className="text-muted-foreground">-</span>
-                              )}
+                              {emp.late_count > 0 ? (
+                                <Tooltip>
+                                  <TooltipTrigger>
+                                    <Badge variant="outline" className="bg-orange-500/10 text-orange-700 border-orange-300">
+                                      {emp.late_count} <span className="text-[10px] ml-0.5">({emp.total_late_minutes}min)</span>
+                                    </Badge>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p className="font-medium mb-1">Late arrivals:</p>
+                                    {emp.late_dates.map(d => (
+                                      <p key={d} className="text-xs">{format(new Date(d), "MMM d")}</p>
+                                    ))}
+                                    <p className="text-xs mt-1 font-medium">Total: {emp.total_late_minutes} min</p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              ) : <span className="text-muted-foreground text-xs">—</span>}
                             </TableCell>
+
+                            {/* Early Departure */}
                             <TableCell className="text-center">
-                              {emp.medical_days > 0 ? (
-                                <Badge variant="outline" className="bg-purple-500/10 text-purple-700 dark:text-purple-400">
-                                  {emp.medical_days}
-                                </Badge>
-                              ) : (
-                                <span className="text-muted-foreground">-</span>
-                              )}
+                              {emp.early_departure_days > 0 ? (
+                                <Tooltip>
+                                  <TooltipTrigger>
+                                    <Badge variant="outline" className="bg-amber-500/10 text-amber-700 border-amber-300">
+                                      {emp.early_departure_days}
+                                    </Badge>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p className="font-medium mb-1">Early departures:</p>
+                                    {emp.early_departure_details.map((d, i) => {
+                                      const hrs = Math.floor(d.minutes_early / 60);
+                                      const mins = d.minutes_early % 60;
+                                      const timeStr = hrs > 0 ? `${hrs}h${mins > 0 ? `${mins}m` : ''}` : `${mins}m`;
+                                      return (
+                                        <p key={i} className="text-xs">{format(new Date(d.date), "MMM d")}: {timeStr} early — {d.reason}</p>
+                                      );
+                                    })}
+                                  </TooltipContent>
+                                </Tooltip>
+                              ) : <span className="text-muted-foreground text-xs">—</span>}
                             </TableCell>
+
+                            {/* Missing */}
                             <TableCell className="text-center">
                               {emp.missing_no_reason > 0 ? (
                                 <Tooltip>
@@ -504,62 +562,118 @@ export default function PayrollBatches() {
                                     <Badge variant="destructive">{emp.missing_no_reason}</Badge>
                                   </TooltipTrigger>
                                   <TooltipContent>
-                                    <p className="font-medium">Missing dates:</p>
+                                    <p className="font-medium mb-1">Missing (no reason):</p>
                                     {emp.missing_no_reason_dates.map(d => (
                                       <p key={d} className="text-xs">{format(new Date(d), "MMM d")}</p>
                                     ))}
                                   </TooltipContent>
                                 </Tooltip>
-                              ) : (
-                                <CheckCircle2 className="h-4 w-4 text-green-500 mx-auto" />
-                              )}
+                              ) : <CheckCircle2 className="h-4 w-4 text-green-500 mx-auto" />}
                             </TableCell>
+
+                            {/* Absent */}
                             <TableCell className="text-center">
                               {emp.absent_days > 0 ? (
                                 <Tooltip>
                                   <TooltipTrigger>
-                                    <Badge variant="secondary" className="bg-orange-500/10 text-orange-700 dark:text-orange-400">
+                                    <Badge variant="outline" className="bg-orange-500/10 text-orange-700 border-orange-300">
                                       {emp.absent_days}
                                     </Badge>
                                   </TooltipTrigger>
                                   <TooltipContent>
-                                    <p className="font-medium">Recorded absences:</p>
+                                    <p className="font-medium mb-1">Recorded absences:</p>
                                     {emp.absent_details.map((d, i) => (
                                       <p key={i} className="text-xs">{format(new Date(d.date), "MMM d")} — {d.reason_code}</p>
                                     ))}
                                   </TooltipContent>
                                 </Tooltip>
-                              ) : (
-                                <span className="text-muted-foreground">-</span>
-                              )}
+                              ) : <span className="text-muted-foreground text-xs">—</span>}
                             </TableCell>
+
+                            {/* Extra Schedule */}
+                            <TableCell className="text-center">
+                              {emp.extra_schedule_days > 0 ? (
+                                <Tooltip>
+                                  <TooltipTrigger>
+                                    <Badge variant="outline" className="bg-blue-500/10 text-blue-700 border-blue-300">
+                                      {emp.extra_schedule_days}
+                                    </Badge>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p className="font-medium mb-1">Extra shifts worked:</p>
+                                    {emp.extra_schedule_dates.map(d => (
+                                      <p key={d} className="text-xs">{format(new Date(d), "MMM d")}</p>
+                                    ))}
+                                  </TooltipContent>
+                                </Tooltip>
+                              ) : <span className="text-muted-foreground text-xs">—</span>}
+                            </TableCell>
+
+                            {/* Vacation */}
+                            <TableCell className="text-center">
+                              {emp.vacation_days > 0 ? (
+                                <Badge variant="outline" className="bg-amber-500/10 text-amber-700 border-amber-300">
+                                  {emp.vacation_days}
+                                </Badge>
+                              ) : <span className="text-muted-foreground text-xs">—</span>}
+                            </TableCell>
+
+                            {/* Medical */}
+                            <TableCell className="text-center">
+                              {emp.medical_days > 0 ? (
+                                <Badge variant="outline" className="bg-purple-500/10 text-purple-700 border-purple-300">
+                                  {emp.medical_days}
+                                </Badge>
+                              ) : <span className="text-muted-foreground text-xs">—</span>}
+                            </TableCell>
+
+                            {/* Other Leave */}
+                            <TableCell className="text-center">
+                              {(emp.other_leave_days ?? 0) > 0 ? (
+                                <Tooltip>
+                                  <TooltipTrigger>
+                                    <Badge variant="outline" className="bg-slate-500/10 text-slate-700 border-slate-300">
+                                      {emp.other_leave_days}
+                                    </Badge>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p className="font-medium mb-1">Other approved leave:</p>
+                                    {(emp.other_leave_dates ?? []).map(d => (
+                                      <p key={d} className="text-xs">{format(new Date(d), "MMM d")}</p>
+                                    ))}
+                                  </TooltipContent>
+                                </Tooltip>
+                              ) : <span className="text-muted-foreground text-xs">—</span>}
+                            </TableCell>
+
+                            {/* Cross-Location */}
                             <TableCell className="text-center">
                               {emp.extra_location_days > 0 ? (
                                 <Tooltip>
                                   <TooltipTrigger>
-                                    <Badge variant="outline" className="bg-indigo-500/10 text-indigo-700 dark:text-indigo-400">
+                                    <Badge variant="outline" className="bg-indigo-500/10 text-indigo-700 border-indigo-300">
                                       {emp.extra_location_days}
                                     </Badge>
                                   </TooltipTrigger>
                                   <TooltipContent>
-                                    <p className="font-medium">{`Other ${locationsLabelLower}:`}</p>
+                                    <p className="font-medium mb-1">{`Other ${locationsLabelLower}:`}</p>
                                     {emp.extra_location_details.map((d, i) => (
                                       <p key={i} className="text-xs">{format(new Date(d.date), "MMM d")} — {d.location_name}</p>
                                     ))}
                                   </TooltipContent>
                                 </Tooltip>
-                              ) : (
-                                <span className="text-muted-foreground">-</span>
-                              )}
+                              ) : <span className="text-muted-foreground text-xs">—</span>}
                             </TableCell>
-                            <TableCell className="text-center">{emp.regular_hours}h</TableCell>
+
+                            <TableCell className="text-center text-sm">{emp.regular_hours}h</TableCell>
                             <TableCell className="text-center">
                               {emp.overtime_hours > 0 ? (
-                                <Badge variant="outline">{emp.overtime_hours}h</Badge>
-                              ) : "-"}
+                                <Badge variant="outline" className="bg-blue-500/10 text-blue-700 border-blue-300">{emp.overtime_hours}h</Badge>
+                              ) : <span className="text-muted-foreground text-xs">—</span>}
                             </TableCell>
                           </TableRow>
-                        ))}
+                          );
+                        })}
                       </TableBody>
                     </Table>
                   </div>

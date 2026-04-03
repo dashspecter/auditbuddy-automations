@@ -44,6 +44,9 @@ export interface PayrollEmployeeDetail {
   // Early departures
   early_departure_days: number;
   early_departure_details: Array<{ date: string; reason: string; minutes_early: number }>;
+  // Other approved leave (not vacation/medical — e.g. personal, unpaid, compassionate)
+  other_leave_days: number;
+  other_leave_dates: string[];
   // Anomalies count (for existing badge)
   anomalies: string[];
 }
@@ -376,6 +379,7 @@ export function usePayrollBatchDetails(
         // Time-off days — use actual selected dates from child table
         const vacationDateSet = new Set<string>();
         const medicalDateSet = new Set<string>();
+        const otherLeaveDateSet = new Set<string>();
         for (const dateRow of timeOffDateRows || []) {
           const empId = requestEmployeeMap.get(dateRow.request_id);
           if (empId !== emp.id) continue;
@@ -384,10 +388,14 @@ export function usePayrollBatchDetails(
             vacationDateSet.add(dateRow.date);
           } else if (reqType === "medical" || reqType === "sick_leave" || reqType === "sick") {
             medicalDateSet.add(dateRow.date);
+          } else if (reqType) {
+            // personal, unpaid, compassionate, etc.
+            otherLeaveDateSet.add(dateRow.date);
           }
         }
         const vacationDays = vacationDateSet.size;
         const medicalDays = medicalDateSet.size;
+        const otherLeaveDays = otherLeaveDateSet.size;
 
         const hasActivity = empShifts.length > 0 || empAttendance.length > 0 || empTimeOff.length > 0;
         if (!hasActivity) continue;
@@ -423,6 +431,8 @@ export function usePayrollBatchDetails(
           extra_location_details: extraLocationDetails.sort((a, b) => a.date.localeCompare(b.date)),
           early_departure_days: earlyDepartureDetails.length,
           early_departure_details: earlyDepartureDetails.sort((a, b) => a.date.localeCompare(b.date)),
+          other_leave_days: otherLeaveDays,
+          other_leave_dates: Array.from(otherLeaveDateSet).sort(),
           anomalies,
         });
       }
