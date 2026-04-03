@@ -26,7 +26,7 @@ export function useProjectMilestones(projectId: string | undefined) {
     queryFn: async () => {
       if (!projectId) return [];
       const { data, error } = await supabase
-        .from('gov_project_milestones')
+        .from('gov_project_milestones' as any)
         .select('*')
         .eq('project_id', projectId)
         .order('due_date', { ascending: true, nullsFirst: false });
@@ -45,7 +45,7 @@ export function useCreateMilestone() {
     mutationFn: async (payload: Pick<ProjectMilestone, 'project_id' | 'title'> & Partial<Pick<ProjectMilestone, 'description' | 'due_date'>>) => {
       if (!company?.id) throw new Error('No company');
       const { data, error } = await supabase
-        .from('gov_project_milestones')
+        .from('gov_project_milestones' as any)
         .insert({ ...payload, company_id: company.id })
         .select()
         .single();
@@ -70,7 +70,7 @@ export function useUpdateMilestone() {
         updates.completed_at = new Date().toISOString();
       }
       const { data, error } = await supabase
-        .from('gov_project_milestones')
+        .from('gov_project_milestones' as any)
         .update(updates)
         .eq('id', id)
         .select()
@@ -90,7 +90,7 @@ export function useDeleteMilestone() {
 
   return useMutation({
     mutationFn: async ({ id, project_id }: { id: string; project_id: string }) => {
-      const { error } = await supabase.from('gov_project_milestones').delete().eq('id', id);
+      const { error } = await supabase.from('gov_project_milestones' as any).delete().eq('id', id);
       if (error) throw error;
       return project_id;
     },

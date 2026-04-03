@@ -58,7 +58,7 @@ export function useGovProjects(filters?: GovProjectFilters) {
       if (!company?.id) return [];
 
       let query = supabase
-        .from('gov_projects')
+        .from('gov_projects' as any)
         .select(`
           *,
           zone:gov_zones(id, name),
@@ -92,7 +92,7 @@ export function useGovProjectById(id: string | undefined) {
     queryFn: async () => {
       if (!id) return null;
       const { data, error } = await supabase
-        .from('gov_projects')
+        .from('gov_projects' as any)
         .select(`
           *,
           zone:gov_zones(id, name),
@@ -118,7 +118,7 @@ export function useCreateGovProject() {
       if (!user || !company?.id) throw new Error('Not authenticated');
 
       const { data, error } = await supabase
-        .from('gov_projects')
+        .from('gov_projects' as any)
         .insert({ ...payload, company_id: company.id, created_by: user.id })
         .select()
         .single();
@@ -139,7 +139,7 @@ export function useUpdateGovProject() {
   return useMutation({
     mutationFn: async ({ id, ...payload }: Partial<GovProject> & { id: string }) => {
       const { data, error } = await supabase
-        .from('gov_projects')
+        .from('gov_projects' as any)
         .update(payload as any)
         .eq('id', id)
         .select()
@@ -162,7 +162,7 @@ export function useDeleteGovProject() {
   return useMutation({
     mutationFn: async (id: string) => {
       const { error } = await supabase
-        .from('gov_projects')
+        .from('gov_projects' as any)
         .update({ is_archived: true })
         .eq('id', id);
       if (error) throw error;

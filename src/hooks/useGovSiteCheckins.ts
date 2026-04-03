@@ -42,7 +42,7 @@ export function useMyGovSiteCheckins(employeeId: string | undefined) {
     queryFn: async () => {
       if (!employeeId || !company?.id) return [];
       const { data, error } = await supabase
-        .from('gov_site_checkins')
+        .from('gov_site_checkins' as any)
         .select(`
           *,
           location:locations(id, name, geofence_radius_meters, geofence_lat, geofence_lon),
@@ -70,7 +70,7 @@ export function useGovSiteCheckinsByProject(projectId: string | undefined) {
     queryFn: async () => {
       if (!projectId || !company?.id) return [];
       const { data, error } = await supabase
-        .from('gov_site_checkins')
+        .from('gov_site_checkins' as any)
         .select(`
           *,
           location:locations(id, name),
@@ -155,7 +155,7 @@ export function useGovSiteCheckin() {
       }
 
       const { data, error } = await supabase
-        .from('gov_site_checkins')
+        .from('gov_site_checkins' as any)
         .insert({
           company_id: company.id,
           employee_id: payload.employee_id,
@@ -211,7 +211,7 @@ export function useGovSiteCheckout() {
       }
 
       const { error } = await supabase
-        .from('gov_site_checkins')
+        .from('gov_site_checkins' as any)
         .update({
           check_out_at: new Date().toISOString(),
           checkout_lat: checkoutLat,
