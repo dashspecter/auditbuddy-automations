@@ -29,12 +29,12 @@ export function useGovZones() {
     queryFn: async () => {
       if (!company?.id) return [];
       const { data, error } = await supabase
-        .from('gov_zones')
+        .from('gov_zones' as any)
         .select('*')
         .eq('company_id', company.id)
         .order('name');
       if (error) throw error;
-      return data as GovZone[];
+      return data as unknown as GovZone[];
     },
     enabled: !!company?.id,
     staleTime: 15 * 60 * 1000,
@@ -51,12 +51,12 @@ export function useCreateGovZone() {
       if (!user || !company?.id) throw new Error('Not authenticated');
 
       const { data, error } = await supabase
-        .from('gov_zones')
+        .from('gov_zones' as any)
         .insert({ ...payload, company_id: company.id, created_by: user.id })
         .select()
         .single();
       if (error) throw error;
-      return data as GovZone;
+      return data as unknown as GovZone;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['gov-zones'] });
@@ -72,13 +72,13 @@ export function useUpdateGovZone() {
   return useMutation({
     mutationFn: async ({ id, ...payload }: Partial<GovZone> & { id: string }) => {
       const { data, error } = await supabase
-        .from('gov_zones')
+        .from('gov_zones' as any)
         .update(payload)
         .eq('id', id)
         .select()
         .single();
       if (error) throw error;
-      return data as GovZone;
+      return data as unknown as GovZone;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['gov-zones'] });
@@ -93,7 +93,7 @@ export function useDeleteGovZone() {
 
   return useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from('gov_zones').delete().eq('id', id);
+      const { error } = await supabase.from('gov_zones' as any).delete().eq('id', id);
       if (error) throw error;
     },
     onSuccess: () => {

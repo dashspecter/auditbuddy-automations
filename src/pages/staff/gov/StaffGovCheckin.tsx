@@ -92,7 +92,7 @@ export default function StaffGovCheckin() {
     });
 
     if (!result.success) {
-      setGeofenceResult(result.geofenceResult);
+      setGeofenceResult((result as any).geofenceResult);
       setStep("geofence_warn");
       return;
     }

@@ -114,8 +114,8 @@ export async function logMetricDraft(
   sb: any, sbService: any, companyId: string, userId: string,
   args: any, structuredEvents: string[], ctx: PermissionContext
 ): Promise<CapabilityResult<any>> {
-  const permCheck = checkCapabilityPermission(ctx, "create", "workforce");
-  if (!permCheck.allowed) return capabilityError(permCheck.reason ?? "Permission denied.");
+  const permCheck = checkCapabilityPermission({ action: "create", module: "workforce", ctx });
+  if (!permCheck.ok) return permCheck;
 
   if (!args.metric_name) return capabilityError("metric_name is required.");
   if (args.metric_value == null) return capabilityError("metric_value is required.");
@@ -168,8 +168,8 @@ export async function executeLogMetric(
   sbService: any, companyId: string, userId: string,
   args: any, structuredEvents: string[], ctx: PermissionContext
 ): Promise<CapabilityResult<any>> {
-  const permCheck = checkCapabilityPermission(ctx, "create", "workforce");
-  if (!permCheck.allowed) return capabilityError(permCheck.reason ?? "Permission denied.");
+  const permCheck = checkCapabilityPermission({ action: "create", module: "workforce", ctx });
+  if (!permCheck.ok) return permCheck;
 
   const { data: pa } = await sbService.from("dash_pending_actions")
     .select("id, status, company_id, preview_json").eq("id", args.pending_action_id).maybeSingle();

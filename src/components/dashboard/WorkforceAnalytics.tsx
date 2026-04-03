@@ -47,9 +47,10 @@ interface WorkforceAnalyticsProps {
   locationId?: string;
   period?: "week" | "month" | "quarter";
   showDateFilter?: boolean;
+  showTopCards?: boolean;
 }
 
-export const WorkforceAnalytics = ({ locationId, period = "month", showDateFilter = true }: WorkforceAnalyticsProps) => {
+export const WorkforceAnalytics = ({ locationId, period = "month", showDateFilter = true, showTopCards = true }: WorkforceAnalyticsProps) => {
   // Initialize date range based on period prop
   const getInitialDateRange = () => {
     const now = new Date();
@@ -154,7 +155,7 @@ export const WorkforceAnalytics = ({ locationId, period = "month", showDateFilte
       )}
       
       {/* Key Metrics */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
+      {showTopCards && <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
         <Card className="cursor-pointer hover:bg-accent/50 transition-colors" onClick={() => setActiveMetric("activeStaff")}>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
@@ -231,7 +232,7 @@ export const WorkforceAnalytics = ({ locationId, period = "month", showDateFilte
             </p>
           </CardContent>
         </Card>
-      </div>
+      </div>}
 
       {/* Score Breakdown */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">

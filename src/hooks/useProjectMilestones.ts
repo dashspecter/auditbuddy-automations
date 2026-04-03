@@ -26,12 +26,12 @@ export function useProjectMilestones(projectId: string | undefined) {
     queryFn: async () => {
       if (!projectId) return [];
       const { data, error } = await supabase
-        .from('gov_project_milestones')
+        .from('gov_project_milestones' as any)
         .select('*')
         .eq('project_id', projectId)
         .order('due_date', { ascending: true, nullsFirst: false });
       if (error) throw error;
-      return data as ProjectMilestone[];
+      return data as unknown as ProjectMilestone[];
     },
     enabled: !!projectId && !!company?.id,
   });
@@ -45,12 +45,12 @@ export function useCreateMilestone() {
     mutationFn: async (payload: Pick<ProjectMilestone, 'project_id' | 'title'> & Partial<Pick<ProjectMilestone, 'description' | 'due_date'>>) => {
       if (!company?.id) throw new Error('No company');
       const { data, error } = await supabase
-        .from('gov_project_milestones')
+        .from('gov_project_milestones' as any)
         .insert({ ...payload, company_id: company.id })
         .select()
         .single();
       if (error) throw error;
-      return data as ProjectMilestone;
+      return data as unknown as ProjectMilestone;
     },
     onSuccess: (_, { project_id }) => {
       queryClient.invalidateQueries({ queryKey: ['project-milestones', project_id] });
@@ -70,13 +70,13 @@ export function useUpdateMilestone() {
         updates.completed_at = new Date().toISOString();
       }
       const { data, error } = await supabase
-        .from('gov_project_milestones')
+        .from('gov_project_milestones' as any)
         .update(updates)
         .eq('id', id)
         .select()
         .single();
       if (error) throw error;
-      return { ...data, project_id } as ProjectMilestone;
+      return { ...(data as any), project_id } as unknown as ProjectMilestone;
     },
     onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ['project-milestones', result.project_id] });
@@ -90,7 +90,7 @@ export function useDeleteMilestone() {
 
   return useMutation({
     mutationFn: async ({ id, project_id }: { id: string; project_id: string }) => {
-      const { error } = await supabase.from('gov_project_milestones').delete().eq('id', id);
+      const { error } = await supabase.from('gov_project_milestones' as any).delete().eq('id', id);
       if (error) throw error;
       return project_id;
     },

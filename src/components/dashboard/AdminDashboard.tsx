@@ -9,13 +9,13 @@ import { CrossModuleStatsRow } from "./CrossModuleStatsRow";
 import { DecliningLocationsCard } from "./DecliningLocationsCard";
 import { WeakestSectionsCard } from "./WeakestSectionsCard";
 import { OpenCorrectiveActionsWidget } from "./OpenCorrectiveActionsWidget";
-import { WhatsAppStatsWidget } from "./WhatsAppStatsWidget";
 import { TasksWidget } from "./TasksWidget";
 import { WorkforceAnalytics } from "./WorkforceAnalytics";
 import { DraftAudits } from "./DraftAudits";
-import { DateRangeFilter } from "@/components/filters/DateRangeFilter";
+import { YesterdayResultsRow } from "./YesterdayResultsRow";
+import { TodaySnapshotRow } from "./TodaySnapshotRow";
 import { useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { subWeeks } from "date-fns";
 import { useTranslation } from "react-i18next";
@@ -25,10 +25,11 @@ import { ExecutiveDashboard } from "./ExecutiveDashboard";
 export const AdminDashboard = () => {
   const { t } = useTranslation();
   const { data: industry } = useCompanyIndustry();
-  const [dateFrom, setDateFrom] = useState<Date | undefined>(subWeeks(new Date(), 1));
-  const [dateTo, setDateTo] = useState<Date | undefined>(new Date());
   const queryClient = useQueryClient();
   const [isRefreshing, setIsRefreshing] = useState(false);
+
+  const now = useMemo(() => new Date(), []);
+  const sevenDaysAgo = useMemo(() => subWeeks(now, 1), [now]);
 
   // Government companies get the Executive (Mayor) Dashboard
   if (industry?.slug === "government") {
@@ -70,14 +71,6 @@ export const AdminDashboard = () => {
         </div>
       </div>
 
-      {/* Date Filter */}
-      <DateRangeFilter
-        dateFrom={dateFrom}
-        dateTo={dateTo}
-        onDateFromChange={setDateFrom}
-        onDateToChange={setDateTo}
-      />
-
       {/* Greeting */}
       <DashboardGreeting />
 
@@ -87,31 +80,39 @@ export const AdminDashboard = () => {
       {/* Company Setup Checklist */}
       <CompanySetupChecklist />
 
-      {/* 1. Attention Alert Bar */}
-      <AttentionAlertBar dateFrom={dateFrom} dateTo={dateTo} />
+      {/* Attention Alert Bar */}
+      <AttentionAlertBar dateFrom={sevenDaysAgo} dateTo={now} />
 
-      {/* 2. Cross-Module KPI Stats */}
-      <CrossModuleStatsRow dateFrom={dateFrom} dateTo={dateTo} />
+      {/* Yesterday's Results */}
+      <YesterdayResultsRow />
 
-      {/* 3. Declining Locations + Weakest Sections */}
-      <div className="grid gap-6 lg:grid-cols-2">
-        <DecliningLocationsCard dateFrom={dateFrom} dateTo={dateTo} />
-        <WeakestSectionsCard dateFrom={dateFrom} dateTo={dateTo} />
+      {/* Today */}
+      <TodaySnapshotRow />
+
+      {/* Past 7 Days */}
+      <div className="space-y-3">
+        <h3 className="text-lg font-semibold text-foreground">
+          {t("dashboard.past7Days", "Past 7 Days")}
+        </h3>
+        <CrossModuleStatsRow dateFrom={sevenDaysAgo} dateTo={now} />
       </div>
 
-      {/* 4. Workforce Health Summary */}
-      <WorkforceAnalytics period="month" showDateFilter={false} />
+      {/* Declining Locations + Weakest Sections */}
+      <div className="grid gap-6 lg:grid-cols-2">
+        <DecliningLocationsCard dateFrom={sevenDaysAgo} dateTo={now} />
+        <WeakestSectionsCard dateFrom={sevenDaysAgo} dateTo={now} />
+      </div>
 
-      {/* 5. Tasks + Corrective Actions Side-by-Side */}
+      {/* Workforce Health Summary (without top 5 cards) */}
+      <WorkforceAnalytics period="month" showDateFilter={false} showTopCards={false} />
+
+      {/* Tasks + Corrective Actions Side-by-Side */}
       <div className="grid gap-6 lg:grid-cols-2">
         <TasksWidget />
         <OpenCorrectiveActionsWidget />
       </div>
 
-      {/* 6. WhatsApp Stats */}
-      <WhatsAppStatsWidget />
-
-      {/* 7. Maintenance Schedule */}
+      {/* Maintenance Schedule */}
       <MaintenanceInterventions />
     </div>
   );
