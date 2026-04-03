@@ -1,39 +1,87 @@
 
 
-# Fix: "removeChild" Error on Homepage
+# Redesign Admin Dashboard + Fix Build Errors
 
-## Root Cause
+## Overview
+Two workstreams in one implementation: (1) redesign the dashboard top section with Yesterday/Today/7-Day layout and remove unwanted widgets, (2) fix the build-blocking TypeScript errors in edge functions.
 
-The recent refactor in App.tsx split routes into "lightweight public" (no providers) and "auth-aware" groups. The `/go` and `/landing` routes now render `LandingNFX` **without** `AuthProvider`:
+## Part 1: Dashboard Redesign
 
+### New Layout Order
 ```text
-App.tsx line 328: <Route path="/go" element={<LandingNFX />} />   ← NO AuthProvider
-App.tsx line 329: <Route path="/landing" element={<LandingNFX />} /> ← NO AuthProvider
+Header + Refresh + Badge
+DashboardGreeting
+DraftAudits
+CompanySetupChecklist
+AttentionAlertBar
+
+── YESTERDAY'S RESULTS (section label) ──────────
+5 cards in a row:
+  Audit Score | Task Completion | Workforce Score | Open CAs | Attendance
+  (all computed for yesterday only)
+
+── TODAY (section label) ─────────────────────────
+3 cards in a row:
+  Expected Audits | Expected Tasks | Employees at Work
+  (live counts for today)
+
+── PAST 7 DAYS (section label) ──────────────────
+Existing CrossModuleStatsRow (locked to last 7 days)
+
+Declining Locations + Weakest Sections
+WorkforceAnalytics (without top 5 cards)
+Tasks + Corrective Actions
+Maintenance
 ```
 
-But `LandingNFX.StickyNav` calls `useAuth()` (line 60) and `useCompany()` (which also calls `useAuth()` internally). Both throw when there's no `AuthProvider` ancestor. React crashes mid-render, can't clean up the partially-committed DOM (the navbar), and throws the secondary "removeChild" error.
+### Files to Create
 
-The same crash can occur on `/` during initial load if there's a timing edge case with the provider chain.
+**`src/components/dashboard/YesterdayResultsRow.tsx`** — New component
+- Computes yesterday = `subDays(now, 1)`
+- Reuses `useDashboardStats({ dateFrom: yesterday, dateTo: yesterday })` for audit score
+- Reuses `useTaskStats()` filtered client-side to yesterday
+- Reuses `usePerformanceLeaderboard(yesterdayStr, yesterdayStr)` for workforce score
+- Reuses `useCorrectiveActions()` filtered to open CAs
+- Reuses `useMvAttendanceStats(yesterdayStr, yesterdayStr)` for attendance
+- Renders 5 `StatsCard` components in a responsive grid
 
-## Fix — Two Changes
+**`src/components/dashboard/TodaySnapshotRow.tsx`** — New component
+- Uses `useQuery` with direct Supabase count queries:
+  - `location_audits` where `audit_date = today` → Expected Audits
+  - `tasks` where `due_date = today` → Expected Tasks  
+  - `attendance_logs` where `date = today` and `check_in is not null` → Employees at Work
+- Renders 3 `StatsCard` components
 
-### 1. Wrap `/go` and `/landing` routes with `AuthProvider`
+### Files to Modify
 
-In `App.tsx`, move the `/go`, `/landing`, `/full-presentation`, `/full`, and `/sales-offer` routes into the auth-aware section, OR wrap them individually with `AuthProvider`. Since `LandingNFX` needs auth context to show "Sign In" vs user avatar, it must have `AuthProvider`.
+**`src/components/dashboard/AdminDashboard.tsx`**
+- Remove `DateRangeFilter` (no longer needed; each section has its own fixed range)
+- Remove `WhatsAppStatsWidget` import and usage
+- Add `YesterdayResultsRow` and `TodaySnapshotRow` above `CrossModuleStatsRow`
+- Pass fixed 7-day range to `CrossModuleStatsRow`: `dateFrom={subWeeks(now,1)}` `dateTo={now}`
+- Add section labels ("Yesterday's Results", "Today", "Past 7 Days") as simple headings
+- Pass `showTopCards={false}` to `WorkforceAnalytics`
+- Remove `dateFrom`/`dateTo` state since sections use fixed ranges
 
-### 2. Make `LandingNFX.StickyNav` resilient to missing auth (defense in depth)
+**`src/components/dashboard/WorkforceAnalytics.tsx`**
+- Add `showTopCards?: boolean` prop (default `true`)
+- When `false`, skip rendering the first grid (lines 157-234) containing: Active Staff, Avg Performance, Late Arrivals, Active Warnings, At Risk
+- Keep Score Breakdown grid and Leaderboard intact
 
-Change `StickyNav` to use a try/catch or optional context pattern so it gracefully defaults to "anonymous" mode if `AuthProvider` is somehow missing. This prevents any future routing mistake from crashing the entire page.
+## Part 2: Fix Build Errors
 
-## Files
+**`supabase/functions/create-user/index.ts`** (lines 84, 183)
+- Replace `getUserByEmail(email)` with `listUsers({ filter: \`email=eq.\${email}\` })` and pick `users[0]`
+- This is the correct API for the Supabase admin client
 
-| File | Change |
-|------|--------|
-| `src/App.tsx` | Move `/go`, `/landing` routes inside `AuthProvider` wrapper (or add individual `AuthProvider` wrappers) |
-| `src/pages/LandingNFX.tsx` | Make `StickyNav` resilient to missing `AuthProvider` — catch the throw and default to anonymous state |
+**`supabase/functions/dash-command/capabilities/audits.ts`** (lines 611, 695)
+**`supabase/functions/dash-command/capabilities/equipment.ts`** (lines 149, 219)
+**`supabase/functions/dash-command/capabilities/inventory.ts`** (line 117)
+- Change `checkCapabilityPermission(ctx, "create", "table_name")` → `checkCapabilityPermission({ action: "create", module: "table_name", ctx })`
+- Update `.allowed` / `.reason` → check `.ok` property and use appropriate error fields from `CapabilityResult`
 
 ## Result
-- No more "removeChild" crash on any landing route
-- Landing page shows correctly for anonymous visitors
-- No other files or flows affected
+- Dashboard shows clear Yesterday / Today / 7-Day operational snapshots
+- Removed: WhatsApp widget, 5 workforce top cards (Active Staff, Avg Performance, Late Arrivals, Active Warnings, At Risk)
+- Build errors fixed, enabling successful deployment
 
