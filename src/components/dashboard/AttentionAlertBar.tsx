@@ -41,7 +41,6 @@ export const AttentionAlertBar = ({ dateFrom, dateTo }: AttentionAlertBarProps) 
     { count: recentlyOverdueTasks, label: t("dashboard.attention.newlyOverdueTasks", "Newly Overdue (7d)"), icon: ListTodo, alertType: "tasks", color: "bg-orange-100 text-orange-700 border-orange-200 dark:bg-orange-900/20 dark:text-orange-400" },
     { count: openCAs, label: t("dashboard.attention.openCAs", "Open CAs"), icon: Shield, alertType: "cas", color: "bg-purple-100 text-purple-700 border-purple-200 dark:bg-purple-900/20 dark:text-purple-400" },
     { count: overdueInterventions, label: t("dashboard.attention.overdueMaintenance", "Overdue Maintenance"), icon: Wrench, alertType: "maintenance", color: "bg-warning/15 text-warning border-warning/30" },
-    { count: atRiskEmployees, label: t("dashboard.attention.atRiskEmployees", "At-Risk Employees"), icon: Users, alertType: "workforce", color: "bg-red-100 text-red-700 border-red-200 dark:bg-red-900/20 dark:text-red-400" },
   ].filter(item => item.count > 0);
 
   if (items.length === 0) return null;
