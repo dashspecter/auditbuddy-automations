@@ -23,18 +23,15 @@ serve(async (req) => {
       }
     );
 
-    // Get the authorization header from the request
     const authHeader = req.headers.get('Authorization')!;
     const token = authHeader.replace('Bearer ', '');
     
-    // Verify the user making the request
     const { data: { user }, error: userError } = await supabaseAdmin.auth.getUser(token);
     
     if (userError || !user) {
       throw new Error('Unauthorized');
     }
 
-    // Check if user has admin or company_owner role
     const { data: roles } = await supabaseAdmin
       .from('user_roles')
       .select('role')
@@ -50,7 +47,6 @@ serve(async (req) => {
       r.company_role === 'company_owner' || r.company_role === 'company_admin'
     );
 
-    // Also check if user has manage_employees permission
     let hasManageEmployeesPermission = false;
     if (companyRoles && companyRoles.length > 0) {
       const { data: permissions } = await supabaseAdmin
@@ -64,34 +60,61 @@ serve(async (req) => {
     }
 
     if (!isAdmin && !isCompanyOwnerOrAdmin && !hasManageEmployeesPermission) {
-      console.error('Insufficient permissions for user:', user.id, 'roles:', roles, 'companyRoles:', companyRoles, 'hasManageEmployeesPermission:', hasManageEmployeesPermission);
-      throw new Error('Insufficient permissions');
-    }
-
-    console.log('User authorized:', user.id, 'isAdmin:', isAdmin, 'isCompanyOwnerOrAdmin:', isCompanyOwnerOrAdmin, 'hasManageEmployeesPermission:', hasManageEmployeesPermission);
-
-    const { userId, email, fullName, password } = await req.json();
-
-    if (!userId) {
-      throw new Error('User ID is required');
-    }
-
-    // Update auth user email if provided
-    if (email) {
-      const { error: emailError } = await supabaseAdmin.auth.admin.updateUserById(
-        userId,
-        { email }
+      console.error('Insufficient permissions for user:', user.id);
+      return new Response(
+        JSON.stringify({ error: 'Insufficient permissions' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 403 }
       );
-      if (emailError) throw emailError;
+    }
+
+    const body = await req.json();
+    const { userId, email, fullName, password } = body;
+
+    if (!userId || typeof userId !== 'string') {
+      return new Response(
+        JSON.stringify({ error: 'Valid userId is required' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+      );
+    }
+
+    // Verify the target auth user exists before attempting updates
+    const { data: targetUserData, error: targetUserError } = await supabaseAdmin.auth.admin.getUserById(userId);
+    if (targetUserError || !targetUserData?.user) {
+      console.error('Target user not found:', userId, targetUserError?.message);
+      return new Response(
+        JSON.stringify({ error: `User account not found. The employee may not have a login account yet. Please create one first.` }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 404 }
+      );
     }
 
     // Update password if provided
     if (password) {
-      const { error: passwordError } = await supabaseAdmin.auth.admin.updateUserById(
-        userId,
-        { password }
-      );
-      if (passwordError) throw passwordError;
+      if (typeof password !== 'string' || password.length < 6) {
+        return new Response(
+          JSON.stringify({ error: 'Password must be at least 6 characters' }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+        );
+      }
+      const { error: passwordError } = await supabaseAdmin.auth.admin.updateUserById(userId, { password });
+      if (passwordError) {
+        console.error('Password update failed:', passwordError.message);
+        return new Response(
+          JSON.stringify({ error: `Password update failed: ${passwordError.message}` }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+        );
+      }
+    }
+
+    // Update email if provided
+    if (email) {
+      const { error: emailError } = await supabaseAdmin.auth.admin.updateUserById(userId, { email });
+      if (emailError) {
+        console.error('Email update failed:', emailError.message);
+        return new Response(
+          JSON.stringify({ error: `Email update failed: ${emailError.message}` }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+        );
+      }
     }
 
     // Update profile
@@ -105,23 +128,21 @@ serve(async (req) => {
         .update(updates)
         .eq('id', userId);
 
-      if (profileError) throw profileError;
+      if (profileError) {
+        console.error('Profile update failed:', profileError.message);
+        // Non-fatal — auth update already succeeded
+      }
     }
 
     return new Response(
       JSON.stringify({ success: true, message: 'User updated successfully' }),
-      {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 200,
-      }
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
     );
-  } catch (error) {
+  } catch (error: any) {
+    console.error('update-user error:', error?.message || error);
     return new Response(
-      JSON.stringify({ error: error instanceof Error ? error.message : 'An error occurred' }),
-      {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 400,
-      }
+      JSON.stringify({ error: error?.message || 'An unexpected error occurred' }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
     );
   }
 });
