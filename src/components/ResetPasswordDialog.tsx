@@ -70,14 +70,18 @@ export function ResetPasswordDialog({ open, onOpenChange, employee }: ResetPassw
         return;
       }
 
-      const { error } = await supabase.functions.invoke('update-user', {
+      const { data, error } = await supabase.functions.invoke('update-user', {
         body: {
           userId: employee.user_id,
           password: password
         }
       });
 
-      if (error) throw error;
+      if (error) {
+        // Try to extract the real backend message
+        const backendMsg = data?.error || error.message || 'Failed to reset password';
+        throw new Error(backendMsg);
+      }
 
       toast.success(`Password reset for ${employee.full_name}`);
       handleReset();

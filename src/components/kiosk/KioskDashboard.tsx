@@ -589,12 +589,6 @@ export const KioskDashboard = ({ locationId, companyId, kioskToken, departmentId
       }
     });
 
-    // Remove role groups with no scheduled employees (stale/mismatched roles)
-    Object.keys(roleGroups).forEach(roleName => {
-      if (roleName !== "General" && roleGroups[roleName].employees.length === 0) {
-        delete roleGroups[roleName];
-      }
-    });
 
     // Sort tasks within each group: OVERDUE FIRST, then by start_at
     // Overdue = due_at past OR (no due_at AND start_at past)

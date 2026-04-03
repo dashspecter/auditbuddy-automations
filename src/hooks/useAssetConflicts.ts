@@ -45,7 +45,7 @@ export function useAssetConflicts(
 
       // ── 1. Overlapping reservations ──────────────────────────────────────
       // Overlap condition: existing.start_date <= new.end_date AND existing.end_date >= new.start_date
-      let resQuery = supabase
+      let resQuery = (supabase as any)
         .from('gov_asset_reservations')
         .select(`
           id, start_date, end_date, status, notes,
@@ -82,7 +82,7 @@ export function useAssetConflicts(
       // We treat a WO as conflicting if:
       //   - it's not Done/Cancelled
       //   - its due_at is within [startDate, endDate], OR it's InProgress (no end known)
-      const { data: workOrders } = await supabase
+      const { data: workOrders } = await (supabase as any)
         .from('cmms_work_orders')
         .select(`
           id, wo_number, title, status, due_at, started_at,
@@ -100,7 +100,7 @@ export function useAssetConflicts(
       const projectMap: Record<string, { title: string; project_number: string }> = {};
 
       if (projectIds.length > 0) {
-        const { data: projects } = await supabase
+        const { data: projects } = await (supabase as any)
           .from('gov_projects')
           .select('id, title, project_number')
           .in('id', projectIds);

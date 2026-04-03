@@ -73,36 +73,59 @@ serve(async (req) => {
         'isCompanyOwnerOrAdmin:', isCompanyOwnerOrAdmin,
         'hasManageEmployeesPermission:', hasManageEmployeesPermission
       );
-      throw new Error('Insufficient permissions');
+      return new Response(
+        JSON.stringify({ error: 'Insufficient permissions' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 403 }
+      );
     }
 
-    const { userId, email, fullName, password } = await req.json();
+    const body = await req.json();
+    const { userId, email, fullName, password } = body;
 
-    if (!userId) {
-      throw new Error('User ID is required');
+    if (!userId || typeof userId !== 'string') {
+      return new Response(
+        JSON.stringify({ error: 'Valid userId is required' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+      );
+    }
+
+    // Verify the target auth user exists before attempting updates
+    const { data: targetUserData, error: targetUserError } = await supabaseAdmin.auth.admin.getUserById(userId);
+    if (targetUserError || !targetUserData?.user) {
+      console.error('Target user not found:', userId, targetUserError?.message);
+      return new Response(
+        JSON.stringify({ error: 'User account not found. The employee may not have a login account yet. Please create one first.' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 404 }
+      );
     }
 
     // Update password if provided
     if (password) {
-      const { error: passwordError } = await supabaseAdmin.auth.admin.updateUserById(
-        userId,
-        { password }
-      );
+      if (typeof password !== 'string' || password.length < 6) {
+        return new Response(
+          JSON.stringify({ error: 'Password must be at least 6 characters' }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+        );
+      }
+      const { error: passwordError } = await supabaseAdmin.auth.admin.updateUserById(userId, { password });
       if (passwordError) {
-        console.error('Error updating password:', passwordError);
-        throw passwordError;
+        console.error('Password update failed:', passwordError.message);
+        return new Response(
+          JSON.stringify({ error: `Password update failed: ${passwordError.message}` }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+        );
       }
     }
 
     // Update email if provided
     if (email) {
-      const { error: emailError } = await supabaseAdmin.auth.admin.updateUserById(
-        userId,
-        { email }
-      );
+      const { error: emailError } = await supabaseAdmin.auth.admin.updateUserById(userId, { email });
       if (emailError) {
-        console.error('Error updating email:', emailError);
-        throw emailError;
+        console.error('Email update failed:', emailError.message);
+        return new Response(
+          JSON.stringify({ error: `Email update failed: ${emailError.message}` }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+        );
       }
     }
 
@@ -118,8 +141,8 @@ serve(async (req) => {
         .eq('id', userId);
 
       if (profileError) {
-        console.error('Error updating profile:', profileError);
-        throw profileError;
+        console.error('Profile update failed:', profileError.message);
+        // Non-fatal — auth update already succeeded
       }
     }
 
@@ -127,11 +150,10 @@ serve(async (req) => {
       JSON.stringify({ success: true, message: 'User updated successfully' }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
     );
-  } catch (error) {
-    const message = error instanceof Error ? error.message : 'An error occurred';
-    console.error('update-user error:', message);
+  } catch (error: any) {
+    console.error('update-user error:', error?.message || error);
     return new Response(
-      JSON.stringify({ error: message }),
+      JSON.stringify({ error: error?.message || 'An unexpected error occurred' }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
     );
   }

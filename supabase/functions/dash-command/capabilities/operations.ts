@@ -2248,8 +2248,8 @@ export async function createPmPlanDraft(
   sb: any, sbService: any, companyId: string, userId: string,
   args: any, structuredEvents: string[], ctx: PermissionContext
 ): Promise<CapabilityResult<any>> {
-  const permCheck = checkCapabilityPermission(ctx, "create", "cmms");
-  if (!permCheck.allowed) return capabilityError(permCheck.reason ?? "Permission denied.");
+  const permCheck = checkCapabilityPermission({ action: "create", module: "cmms", ctx });
+  if (!permCheck.ok) return permCheck;
 
   if (!args.name) return capabilityError("name is required.");
   if (!args.frequency_type) return capabilityError("frequency_type is required (daily/weekly/monthly/quarterly/yearly/cycles).");
@@ -2318,8 +2318,8 @@ export async function executeCreatePmPlan(
   sbService: any, companyId: string, userId: string,
   args: any, structuredEvents: string[], ctx: PermissionContext
 ): Promise<CapabilityResult<any>> {
-  const permCheck = checkCapabilityPermission(ctx, "create", "cmms");
-  if (!permCheck.allowed) return capabilityError(permCheck.reason ?? "Permission denied.");
+  const permCheck = checkCapabilityPermission({ action: "create", module: "cmms", ctx });
+  if (!permCheck.ok) return permCheck;
 
   const { data: pa } = await sbService.from("dash_pending_actions")
     .select("id, status, company_id, preview_json").eq("id", args.pending_action_id).maybeSingle();
@@ -2484,8 +2484,8 @@ export async function createPurchaseOrderDraft(
   sb: any, sbService: any, companyId: string, userId: string,
   args: any, structuredEvents: string[], ctx: PermissionContext
 ): Promise<CapabilityResult<any>> {
-  const permCheck = checkCapabilityPermission(ctx, "create", "cmms");
-  if (!permCheck.allowed) return capabilityError(permCheck.reason ?? "Permission denied.");
+  const permCheck = checkCapabilityPermission({ action: "create", module: "cmms", ctx });
+  if (!permCheck.ok) return permCheck;
 
   if (!args.items || args.items.length === 0) return capabilityError("items array is required (at minimum one item with part_name and quantity).");
 
@@ -2549,8 +2549,8 @@ export async function executeCreatePurchaseOrder(
   sbService: any, companyId: string, userId: string,
   args: any, structuredEvents: string[], ctx: PermissionContext
 ): Promise<CapabilityResult<any>> {
-  const permCheck = checkCapabilityPermission(ctx, "create", "cmms");
-  if (!permCheck.allowed) return capabilityError(permCheck.reason ?? "Permission denied.");
+  const permCheck = checkCapabilityPermission({ action: "create", module: "cmms", ctx });
+  if (!permCheck.ok) return permCheck;
 
   const { data: pa } = await sbService.from("dash_pending_actions")
     .select("id, status, company_id, preview_json").eq("id", args.pending_action_id).maybeSingle();
@@ -2671,8 +2671,8 @@ export async function makeApprovalDecisionDraft(
   sb: any, sbService: any, companyId: string, userId: string,
   args: any, structuredEvents: string[], ctx: PermissionContext
 ): Promise<CapabilityResult<any>> {
-  const permCheck = checkCapabilityPermission(ctx, "update", "government_ops");
-  if (!permCheck.allowed) return capabilityError(permCheck.reason ?? "Permission denied.");
+  const permCheck = checkCapabilityPermission({ action: "update", module: "government_ops", ctx });
+  if (!permCheck.ok) return permCheck;
 
   if (!args.request_id) return capabilityError("request_id is required.");
   if (!["approve", "reject"].includes(args.decision)) return capabilityError("decision must be 'approve' or 'reject'.");
@@ -2721,8 +2721,8 @@ export async function executeMakeApprovalDecision(
   sbService: any, companyId: string, userId: string,
   args: any, structuredEvents: string[], ctx: PermissionContext
 ): Promise<CapabilityResult<any>> {
-  const permCheck = checkCapabilityPermission(ctx, "update", "government_ops");
-  if (!permCheck.allowed) return capabilityError(permCheck.reason ?? "Permission denied.");
+  const permCheck = checkCapabilityPermission({ action: "update", module: "government_ops", ctx });
+  if (!permCheck.ok) return permCheck;
 
   const { data: pa } = await sbService.from("dash_pending_actions")
     .select("id, status, company_id, preview_json").eq("id", args.pending_action_id).maybeSingle();
