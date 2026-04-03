@@ -18,6 +18,12 @@ export interface Location {
   zone_id?: string | null;
   /** Government Phase 2: geofenced check-in radius in metres */
   geofence_radius_meters?: number | null;
+  /** Government Phase 3: geofence center (required for map circles) */
+  geofence_lat?: number | null;
+  geofence_lon?: number | null;
+  /** Standard lat/lon for the location pin */
+  latitude?: number | null;
+  longitude?: number | null;
 }
 
 export const useLocations = (includeInactive = false) => {

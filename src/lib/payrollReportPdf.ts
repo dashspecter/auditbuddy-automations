@@ -7,7 +7,6 @@ import {
   getBrandedTableStyles,
   addSectionTitle,
   BRAND_COLORS,
-  BRAND_FONT,
   loadLogoForPDF,
 } from './pdfBranding';
 import type { PayrollEmployeeDetail } from '@/hooks/usePayrollBatchDetails';
@@ -45,9 +44,15 @@ function formatAbsentCol(details: Array<{ date: string; reason_code: string }>):
   return `${details.length} (${items.join('; ')})`;
 }
 
-function formatLateCol(count: number, totalMinutes: number, dates: string[]): string {
+function formatLateCol(count: number, totalMinutes: number): string {
   if (count === 0) return '0';
   return `${count} (${totalMinutes}min)`;
+}
+
+function formatCrossLocCol(details: Array<{ date: string; location_name: string }>): string {
+  if (details.length === 0) return '0';
+  const items = details.map(d => `${format(parseISO(d.date), 'MMM d')}: ${d.location_name}`);
+  return `${details.length} (${items.join('; ')})`;
 }
 
 export async function generatePayrollReportPDF({ employees, periodStart, periodEnd }: PayrollReportOptions) {
@@ -70,6 +75,7 @@ export async function generatePayrollReportPDF({ employees, periodStart, periodE
       overtimeHours: acc.overtimeHours + e.overtime_hours,
       vacation: acc.vacation + e.vacation_days,
       medical: acc.medical + e.medical_days,
+      otherLeave: acc.otherLeave + (e.other_leave_days ?? 0),
       earlyDep: acc.earlyDep + e.early_departure_days,
       missing: acc.missing + e.missing_no_reason,
       extraSchedule: acc.extraSchedule + e.extra_schedule_days,
@@ -81,24 +87,29 @@ export async function generatePayrollReportPDF({ employees, periodStart, periodE
       halfShifts: acc.halfShifts + (e.half_shift_count || 0),
       extraHalf: acc.extraHalf + (e.extra_half_count || 0),
     }),
-    { regularHours: 0, overtimeHours: 0, vacation: 0, medical: 0, earlyDep: 0, missing: 0, extraSchedule: 0, crossLocation: 0, partial: 0, late: 0, lateMinutes: 0, absent: 0, halfShifts: 0, extraHalf: 0 }
+    { regularHours: 0, overtimeHours: 0, vacation: 0, medical: 0, otherLeave: 0, earlyDep: 0, missing: 0, extraSchedule: 0, crossLocation: 0, partial: 0, late: 0, lateMinutes: 0, absent: 0, halfShifts: 0, extraHalf: 0 }
   );
 
   const summaryData = [
     ['Employees', `${employees.length}`],
     ['Regular Hours', `${totals.regularHours.toFixed(1)}h`],
     ['Overtime Hours', `${totals.overtimeHours.toFixed(1)}h`],
-    ['Half Shifts', `${totals.halfShifts}`],
-    ['Extra Half Shifts', `${totals.extraHalf}`],
-    ['Partial Shifts', `${totals.partial}`],
-    ['Late Arrivals', `${totals.late} (${totals.lateMinutes}min total)`],
+    ['', ''],
     ['Extra Schedule Days', `${totals.extraSchedule}`],
+    ['Cross-Location Shifts', `${totals.crossLocation}`],
+    ['', ''],
+    ['Missing (No Reason)', `${totals.missing}`],
+    ['Absent (with reason)', `${totals.absent}`],
+    ['', ''],
     ['Vacation Days', `${totals.vacation}`],
     ['Medical Days', `${totals.medical}`],
-    ['Absent Days', `${totals.absent}`],
+    ['Other Leave Days', `${totals.otherLeave}`],
+    ['', ''],
+    ['Partial Shifts', `${totals.partial}`],
+    ['Half Shifts', `${totals.halfShifts}`],
+    ['Extra Half Shifts', `${totals.extraHalf}`],
+    ['Late Arrivals', `${totals.late} (${totals.lateMinutes}min total)`],
     ['Early Departures', `${totals.earlyDep}`],
-    ['Missing (No Reason)', `${totals.missing}`],
-    ['Cross-Location Shifts', `${totals.crossLocation}`],
   ];
 
   autoTable(doc, {
@@ -112,6 +123,13 @@ export async function generatePayrollReportPDF({ employees, periodStart, periodE
     columnStyles: {
       0: { fontStyle: 'bold', cellWidth: 70 },
       1: { halign: 'right', cellWidth: 50 },
+    },
+    didParseCell: (data) => {
+      // Make section separators (empty rows) visually lighter
+      if (data.row.raw[0] === '' && data.row.raw[1] === '') {
+        data.cell.styles.fillColor = [255, 255, 255];
+        data.cell.styles.lineWidth = 0;
+      }
     },
   });
 
@@ -136,10 +154,10 @@ export async function generatePayrollReportPDF({ employees, periodStart, periodE
     locY = addSectionTitle(doc, `${locName} — ${locEmployees.length} employee${locEmployees.length !== 1 ? 's' : ''}`, locY);
 
     const rows = locEmployees.map(emp => {
-      // Format partial shifts with hours breakdown
+      // Partial shifts with hours breakdown
       let partialStr = '0';
       if (emp.partial_count > 0 && emp.partial_details && emp.partial_details.length > 0) {
-        const items = emp.partial_details.map(p => 
+        const items = emp.partial_details.map(p =>
           `${format(parseISO(p.date), 'MMM d')}: ${p.actual_hours}h/${p.scheduled_hours}h`
         );
         partialStr = `${emp.partial_count} (${items.join('; ')})`;
@@ -148,33 +166,33 @@ export async function generatePayrollReportPDF({ employees, periodStart, periodE
       }
 
       return [
-      emp.employee_name,
-      emp.role,
-      emp.days_worked,
-      partialStr,
-      (emp.half_shift_count || 0) > 0
-        ? `${emp.half_shift_count} (${formatDateList(emp.half_shift_dates || [])})`
-        : '0',
-      (emp.extra_half_count || 0) > 0
-        ? `${emp.extra_half_count} (${formatDateList(emp.extra_half_dates || [])})`
-        : '0',
-      emp.days_confirmed,
-      emp.late_count > 0
-        ? `${emp.late_count} (${emp.total_late_minutes}min)`
-        : '0',
-      emp.absent_days > 0
-        ? formatAbsentCol(emp.absent_details)
-        : '0',
-      emp.extra_schedule_days > 0
-        ? `${emp.extra_schedule_days} (${formatDateList(emp.extra_schedule_dates)})`
-        : '0',
-      emp.vacation_days,
-      emp.medical_days,
-      formatEarlyDepCol(emp.early_departure_details),
-      formatMissingCol(emp.missing_no_reason, emp.missing_no_reason_dates),
-      `${emp.regular_hours}`,
-      `${emp.overtime_hours}`,
-    ]; });
+        emp.employee_name,
+        emp.role,
+        emp.days_worked,
+        partialStr,
+        (emp.half_shift_count || 0) > 0
+          ? `${emp.half_shift_count} (${formatDateList(emp.half_shift_dates || [])})`
+          : '0',
+        (emp.extra_half_count || 0) > 0
+          ? `${emp.extra_half_count} (${formatDateList(emp.extra_half_dates || [])})`
+          : '0',
+        formatLateCol(emp.late_count, emp.total_late_minutes),
+        formatEarlyDepCol(emp.early_departure_details),
+        formatMissingCol(emp.missing_no_reason, emp.missing_no_reason_dates),
+        emp.absent_days > 0 ? formatAbsentCol(emp.absent_details) : '0',
+        emp.extra_schedule_days > 0
+          ? `${emp.extra_schedule_days} (${formatDateList(emp.extra_schedule_dates)})`
+          : '0',
+        emp.vacation_days,
+        emp.medical_days,
+        (emp.other_leave_days ?? 0) > 0
+          ? `${emp.other_leave_days} (${formatDateList(emp.other_leave_dates ?? [])})`
+          : '0',
+        emp.extra_location_days > 0 ? formatCrossLocCol(emp.extra_location_details) : '0',
+        `${emp.regular_hours}`,
+        `${emp.overtime_hours}`,
+      ];
+    });
 
     // Location subtotals
     const sub = locEmployees.reduce(
@@ -183,64 +201,72 @@ export async function generatePayrollReportPDF({ employees, periodStart, periodE
         partial: a.partial + e.partial_count,
         half: a.half + (e.half_shift_count || 0),
         extraHalf: a.extraHalf + (e.extra_half_count || 0),
-        confirmed: a.confirmed + e.days_confirmed,
         late: a.late + e.late_count,
         lateMins: a.lateMins + e.total_late_minutes,
+        earlyDep: a.earlyDep + e.early_departure_days,
+        missing: a.missing + e.missing_no_reason,
         absent: a.absent + e.absent_days,
         extra: a.extra + e.extra_schedule_days,
         vacation: a.vacation + e.vacation_days,
         medical: a.medical + e.medical_days,
-        earlyDep: a.earlyDep + e.early_departure_days,
-        missing: a.missing + e.missing_no_reason,
+        otherLeave: a.otherLeave + (e.other_leave_days ?? 0),
+        crossLoc: a.crossLoc + e.extra_location_days,
         reg: a.reg + e.regular_hours,
         ot: a.ot + e.overtime_hours,
       }),
-      { worked: 0, partial: 0, half: 0, extraHalf: 0, confirmed: 0, late: 0, lateMins: 0, absent: 0, extra: 0, vacation: 0, medical: 0, earlyDep: 0, missing: 0, reg: 0, ot: 0 }
+      { worked: 0, partial: 0, half: 0, extraHalf: 0, late: 0, lateMins: 0, earlyDep: 0, missing: 0, absent: 0, extra: 0, vacation: 0, medical: 0, otherLeave: 0, crossLoc: 0, reg: 0, ot: 0 }
     );
 
     rows.push([
-      'TOTAL',
-      '',
+      'TOTAL', '',
       sub.worked,
       `${sub.partial}`,
       `${sub.half}`,
       `${sub.extraHalf}`,
-      sub.confirmed,
       `${sub.late} (${sub.lateMins}min)`,
+      `${sub.earlyDep}`,
+      `${sub.missing}`,
       `${sub.absent}`,
       `${sub.extra}`,
       sub.vacation,
       sub.medical,
-      `${sub.earlyDep}`,
-      `${sub.missing}`,
+      `${sub.otherLeave}`,
+      `${sub.crossLoc}`,
       `${sub.reg.toFixed(1)}`,
       `${sub.ot.toFixed(1)}`,
     ]);
 
     autoTable(doc, {
       startY: locY,
-      head: [['Employee', 'Role', 'Days\nWorked', 'Partial\nShifts', 'Half\nShifts', 'Extra\nHalf', 'Conf.\nDays', 'Late', 'Absent', 'Extra\nSchedule', 'Vacation', 'Medical', 'Early\nDep.', 'Missing\n(no reason)', 'Reg.\nHrs', 'OT\nHrs']],
+      head: [[
+        'Employee', 'Role',
+        'Days\nWorked', 'Partial\nShifts', 'Half\nShifts', 'Extra\nHalf',
+        'Late', 'Early\nDep.', 'Missing\n(no reason)', 'Absent',
+        'Extra\nSched.', 'Vacation', 'Medical', 'Other\nLeave', 'Cross-\nLoc.',
+        'Reg.\nHrs', 'OT\nHrs',
+      ]],
       body: rows,
       theme: 'grid',
       ...tableStyles,
       styles: { ...tableStyles.styles, fontSize: 6, cellPadding: 1.2 },
       columnStyles: {
-        0: { cellWidth: 28 },   // Employee
-        1: { cellWidth: 16 },   // Role
-        2: { halign: 'center', cellWidth: 12 }, // Days Worked
-        3: { cellWidth: 18 },   // Partial
-        4: { cellWidth: 16 },   // Half Shifts
-        5: { cellWidth: 16 },   // Extra Half
-        6: { halign: 'center', cellWidth: 12 }, // Confirmed
-        7: { cellWidth: 18 },   // Late
-        8: { cellWidth: 20 },   // Absent
-        9: { cellWidth: 18 },   // Extra Schedule
-        10: { halign: 'center', cellWidth: 12 }, // Vacation
-        11: { halign: 'center', cellWidth: 12 }, // Medical
-        12: { cellWidth: 20 },  // Early Dep
-        13: { cellWidth: 20 },  // Missing
-        14: { halign: 'center', cellWidth: 12 }, // Reg Hrs
-        15: { halign: 'center', cellWidth: 12 }, // OT Hrs
+        0: { cellWidth: 26 },   // Employee
+        1: { cellWidth: 14 },   // Role
+        2: { halign: 'center', cellWidth: 10 }, // Days Worked
+        3: { cellWidth: 16 },   // Partial
+        4: { cellWidth: 12 },   // Half Shifts
+        5: { cellWidth: 12 },   // Extra Half
+        6: { cellWidth: 16 },   // Late
+        7: { cellWidth: 18 },   // Early Dep
+        8: { cellWidth: 18 },   // Missing
+        9: { cellWidth: 16 },   // Absent
+        10: { cellWidth: 14 },  // Extra Sched
+        11: { halign: 'center', cellWidth: 10 }, // Vacation
+        12: { halign: 'center', cellWidth: 10 }, // Medical
+        13: { halign: 'center', cellWidth: 10 }, // Other Leave
+        14: { cellWidth: 14 },  // Cross-Loc
+        15: { halign: 'center', cellWidth: 10 }, // Reg Hrs
+        16: { halign: 'center', cellWidth: 10 }, // OT Hrs
       },
       didParseCell: (data) => {
         if (data.row.index === rows.length - 1) {

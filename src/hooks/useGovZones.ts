@@ -13,6 +13,8 @@ export interface GovZone {
   description: string | null;
   parent_zone_id: string | null;
   zone_type: ZoneType;
+  /** GeoJSON polygon/multipolygon for map boundary rendering (Phase 3) */
+  boundary_geojson: any | null;
   created_by: string | null;
   created_at: string;
   updated_at: string;

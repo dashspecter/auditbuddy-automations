@@ -3,6 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useGovProjectById, useUpdateGovProject } from "@/hooks/useGovProjects";
 import { useProjectWorkOrders } from "@/hooks/useProjectWorkOrders";
 import { useProjectMilestones, useCreateMilestone, useUpdateMilestone, useDeleteMilestone } from "@/hooks/useProjectMilestones";
+import { useGovSiteCheckinsByProject } from "@/hooks/useGovSiteCheckins";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -10,9 +11,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   ArrowLeft, ExternalLink, Plus, CheckCircle2, Circle,
-  Clock, AlertCircle, Trash2, Calendar, DollarSign, User, MapPin
+  Clock, AlertCircle, Trash2, Calendar, DollarSign, User, MapPin,
+  ShieldCheck, ShieldAlert, UserCheck,
 } from "lucide-react";
-import { format, isPast } from "date-fns";
+import { format, isPast, differenceInMinutes } from "date-fns";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
@@ -56,6 +58,7 @@ export default function ProjectDetail() {
   const { data: project, isLoading } = useGovProjectById(id);
   const { data: workOrders = [] } = useProjectWorkOrders(id);
   const { data: milestones = [] } = useProjectMilestones(id);
+  const { data: checkins = [] } = useGovSiteCheckinsByProject(id);
   const updateProject = useUpdateGovProject();
   const createMilestone = useCreateMilestone();
   const updateMilestone = useUpdateMilestone();
@@ -162,6 +165,10 @@ export default function ProjectDetail() {
         <TabsList>
           <TabsTrigger value="work_orders">Work Orders ({workOrders.length})</TabsTrigger>
           <TabsTrigger value="milestones">Milestones ({milestones.length})</TabsTrigger>
+          <TabsTrigger value="attendance">
+            <UserCheck className="h-3.5 w-3.5 mr-1.5" />
+            Field Attendance ({checkins.length})
+          </TabsTrigger>
         </TabsList>
 
         {/* Work Orders Tab */}
@@ -216,6 +223,81 @@ export default function ProjectDetail() {
                 </CardContent>
               </Card>
             ))
+          )}
+        </TabsContent>
+
+        {/* Field Attendance Tab */}
+        <TabsContent value="attendance" className="mt-4">
+          {checkins.length === 0 ? (
+            <Card>
+              <CardContent className="flex flex-col items-center py-10">
+                <p className="text-sm text-muted-foreground">No field check-ins recorded for this project yet.</p>
+              </CardContent>
+            </Card>
+          ) : (
+            <Card>
+              <CardContent className="p-0">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b bg-muted/40 text-left">
+                        <th className="px-4 py-3 font-medium text-muted-foreground">Worker</th>
+                        <th className="px-4 py-3 font-medium text-muted-foreground">Location</th>
+                        <th className="px-4 py-3 font-medium text-muted-foreground">Check-In</th>
+                        <th className="px-4 py-3 font-medium text-muted-foreground">Check-Out</th>
+                        <th className="px-4 py-3 font-medium text-muted-foreground">Duration</th>
+                        <th className="px-4 py-3 font-medium text-muted-foreground">Geofence</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {checkins.map((c: any) => {
+                        const checkinAt = new Date(c.check_in_at);
+                        const checkoutAt = c.check_out_at ? new Date(c.check_out_at) : null;
+                        const durationMins = checkoutAt ? differenceInMinutes(checkoutAt, checkinAt) : null;
+                        const durationLabel = durationMins != null
+                          ? durationMins < 60
+                            ? `${durationMins}m`
+                            : `${Math.floor(durationMins / 60)}h ${durationMins % 60}m`
+                          : "—";
+                        const workerName = c.employee?.full_name ?? c.employee?.email ?? "Unknown";
+                        const locationName = c.location?.name ?? "—";
+
+                        return (
+                          <tr key={c.id} className="border-b last:border-0 hover:bg-muted/20 transition-colors">
+                            <td className="px-4 py-3 font-medium">{workerName}</td>
+                            <td className="px-4 py-3 text-muted-foreground">
+                              <span className="flex items-center gap-1">
+                                <MapPin className="h-3 w-3 shrink-0" />{locationName}
+                              </span>
+                            </td>
+                            <td className="px-4 py-3 text-muted-foreground whitespace-nowrap">
+                              {format(checkinAt, "MMM d, HH:mm")}
+                            </td>
+                            <td className="px-4 py-3 text-muted-foreground whitespace-nowrap">
+                              {checkoutAt ? format(checkoutAt, "MMM d, HH:mm") : (
+                                <Badge variant="secondary" className="text-xs bg-blue-100 text-blue-700">On site</Badge>
+                              )}
+                            </td>
+                            <td className="px-4 py-3 text-muted-foreground">{durationLabel}</td>
+                            <td className="px-4 py-3">
+                              {c.geofence_validated ? (
+                                <span className="flex items-center gap-1 text-green-600 text-xs">
+                                  <ShieldCheck className="h-3.5 w-3.5" /> Valid
+                                </span>
+                              ) : (
+                                <span className="flex items-center gap-1 text-amber-600 text-xs">
+                                  <ShieldAlert className="h-3.5 w-3.5" /> Override
+                                </span>
+                              )}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </CardContent>
+            </Card>
           )}
         </TabsContent>
 

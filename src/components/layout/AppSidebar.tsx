@@ -5,7 +5,7 @@ import {
   GraduationCap, UserCog, Bug, Shield,
   PanelLeftClose, PanelLeft, ChevronRight, Store, Bot, Settings2,
   Cog, Trash2, History, ShieldCheck, ShieldAlert,
-  MessageSquare, Languages, Landmark, FolderOpen, Truck
+  MessageSquare, Languages, Landmark, FolderOpen, Truck, Map
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation, useNavigate } from "react-router-dom";
@@ -412,6 +412,7 @@ const navigationItems = [
     subItems: [
       { titleKey: "nav.govCommandCenter", url: "/gov/dashboard" },
       { titleKey: "nav.govProjects", url: "/gov/projects" },
+      { titleKey: "nav.govMap", url: "/gov/map" },
       { titleKey: "nav.govFleet", url: "/gov/fleet", module: "gov_fleet" },
       { titleKey: "nav.govZones", url: "/gov/zones", allowedRoles: ['admin', 'manager'] },
       { titleKey: "nav.govFieldOps", url: "/staff/gov" },

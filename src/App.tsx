@@ -77,8 +77,9 @@ const TerminologySettings = lazyWithRetry(() => import("./pages/settings/Termino
 const ApprovalQueue = lazyWithRetry(() => import("./pages/ApprovalQueue"));
 const ApprovalWorkflowsPage = lazyWithRetry(() => import("./pages/settings/ApprovalWorkflows"));
 
-// Government Ops (Phase 1) — government accounts only, gated by gov_projects module
+// Government Ops (Phase 1 + 3) — government accounts only, gated by gov_projects module
 const GovDashboard = lazy(() => import("./pages/gov/GovDashboard"));
+const GovMap = lazy(() => import("./pages/gov/GovMap"));
 const GovProjects = lazy(() => import("./pages/gov/Projects"));
 const GovProjectNew = lazy(() => import("./pages/gov/ProjectNew"));
 const GovProjectDetail = lazy(() => import("./pages/gov/ProjectDetail"));
@@ -417,6 +418,7 @@ const App = () => {
                         <Route path="/gov/projects/:id" element={<ProtectedRoute><ModuleGate module="gov_projects"><RouteErrorBoundary><GovProjectDetail /></RouteErrorBoundary></ModuleGate></ProtectedRoute>} />
                         <Route path="/gov/zones" element={<ProtectedRoute><ModuleGate module="gov_projects"><RouteErrorBoundary><GovZones /></RouteErrorBoundary></ModuleGate></ProtectedRoute>} />
                         <Route path="/gov/fleet" element={<ProtectedRoute><ModuleGate module="gov_fleet"><RouteErrorBoundary><GovFleet /></RouteErrorBoundary></ModuleGate></ProtectedRoute>} />
+                        <Route path="/gov/map" element={<ProtectedRoute><ModuleGate module="gov_projects"><RouteErrorBoundary><GovMap /></RouteErrorBoundary></ModuleGate></ProtectedRoute>} />
                         <Route path="/pricing" element={<CompanyOwnerRoute><RouteErrorBoundary><PricingPlans /></RouteErrorBoundary></CompanyOwnerRoute>} />
                         
                         {/* Dash */}

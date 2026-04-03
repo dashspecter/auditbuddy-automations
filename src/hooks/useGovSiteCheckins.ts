@@ -25,6 +25,7 @@ export interface GovSiteCheckin {
   location?: { id: string; name: string; geofence_radius_meters: number | null; geofence_lat: number | null; geofence_lon: number | null } | null;
   project?: { id: string; title: string; project_number: string | null } | null;
   work_order?: { id: string; title: string; wo_number: number } | null;
+  employee?: { id: string; full_name: string | null; email: string | null } | null;
 }
 
 export interface GeofenceResult {
@@ -75,7 +76,8 @@ export function useGovSiteCheckinsByProject(projectId: string | undefined) {
           *,
           location:locations(id, name),
           project:gov_projects(id, title, project_number),
-          work_order:cmms_work_orders(id, title, wo_number)
+          work_order:cmms_work_orders(id, title, wo_number),
+          employee:employees(id, full_name, email)
         `)
         .eq('company_id', company.id)
         .eq('project_id', projectId)

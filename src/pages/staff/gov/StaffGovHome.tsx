@@ -4,6 +4,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useCmmsWorkOrders } from "@/hooks/useCmmsWorkOrders";
 import { useMyGovSiteCheckins, useGovSiteCheckout } from "@/hooks/useGovSiteCheckins";
+import { SiteMap } from "@/components/gov/SiteMap";
 import { StaffBottomNav } from "@/components/staff/StaffBottomNav";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -119,6 +120,21 @@ export default function StaffGovHome() {
                 </Button>
               </div>
             </CardContent>
+            {/* Site map — show when location has coordinates */}
+            {openCheckin.location?.geofence_lat != null && openCheckin.location.geofence_lon != null && (
+              <div className="px-4 pb-4">
+                <SiteMap
+                  lat={openCheckin.location.geofence_lat}
+                  lon={openCheckin.location.geofence_lon}
+                  locationName={openCheckin.location.name}
+                  geofenceLat={openCheckin.location.geofence_lat}
+                  geofenceLon={openCheckin.location.geofence_lon}
+                  geofenceRadiusM={openCheckin.location.geofence_radius_meters}
+                  workerLat={openCheckin.checkin_lat}
+                  workerLon={openCheckin.checkin_lon}
+                />
+              </div>
+            )}
           </Card>
         ) : (
           <Card className="border-dashed border-2 border-muted-foreground/30">

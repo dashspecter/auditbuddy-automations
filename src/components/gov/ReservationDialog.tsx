@@ -1,8 +1,11 @@
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
+import { AlertTriangle, CalendarClock, Wrench } from "lucide-react";
 import { useCreateGovAssetReservation } from "@/hooks/useGovAssetReservations";
 import { useGovProjects } from "@/hooks/useGovProjects";
+import { useAssetConflicts } from "@/hooks/useAssetConflicts";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
@@ -15,6 +18,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
 
 const schema = z.object({
   project_id: z.string().optional(),
@@ -34,11 +38,13 @@ interface Props {
   assetName: string;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  excludeReservationId?: string;
 }
 
-export function ReservationDialog({ assetId, assetName, open, onOpenChange }: Props) {
+export function ReservationDialog({ assetId, assetName, open, onOpenChange, excludeReservationId }: Props) {
   const createReservation = useCreateGovAssetReservation();
   const { data: projects = [] } = useGovProjects({ status: ["active", "draft"] });
+  const [confirmedDespiteConflicts, setConfirmedDespiteConflicts] = useState(false);
 
   const today = new Date().toISOString().slice(0, 10);
 
@@ -53,6 +59,23 @@ export function ReservationDialog({ assetId, assetName, open, onOpenChange }: Pr
     },
   });
 
+  const watchedStart = form.watch("start_date");
+  const watchedEnd = form.watch("end_date");
+
+  const { data: conflicts = [], isFetching: conflictsFetching } = useAssetConflicts(
+    assetId,
+    watchedStart,
+    watchedEnd,
+    excludeReservationId,
+  );
+
+  const hasConflicts = conflicts.length > 0;
+
+  // Reset override whenever dates change
+  const handleDateChange = () => {
+    setConfirmedDespiteConflicts(false);
+  };
+
   const onSubmit = async (values: FormValues) => {
     await createReservation.mutateAsync({
       asset_id: assetId,
@@ -63,11 +86,12 @@ export function ReservationDialog({ assetId, assetName, open, onOpenChange }: Pr
       notes: values.notes || undefined,
     });
     form.reset();
+    setConfirmedDespiteConflicts(false);
     onOpenChange(false);
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={(v) => { if (!v) { form.reset(); setConfirmedDespiteConflicts(false); } onOpenChange(v); }}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Reserve Asset</DialogTitle>
@@ -102,18 +126,50 @@ export function ReservationDialog({ assetId, assetName, open, onOpenChange }: Pr
               <FormField control={form.control} name="start_date" render={({ field }) => (
                 <FormItem>
                   <FormLabel>Start Date *</FormLabel>
-                  <FormControl><Input type="date" {...field} /></FormControl>
+                  <FormControl>
+                    <Input type="date" {...field} onChange={e => { field.onChange(e); handleDateChange(); }} />
+                  </FormControl>
                   <FormMessage />
                 </FormItem>
               )} />
               <FormField control={form.control} name="end_date" render={({ field }) => (
                 <FormItem>
                   <FormLabel>End Date *</FormLabel>
-                  <FormControl><Input type="date" {...field} /></FormControl>
+                  <FormControl>
+                    <Input type="date" {...field} onChange={e => { field.onChange(e); handleDateChange(); }} />
+                  </FormControl>
                   <FormMessage />
                 </FormItem>
               )} />
             </div>
+
+            {/* ── Conflict warning panel ─────────────────────────────────── */}
+            {!conflictsFetching && hasConflicts && (
+              <div className="rounded-md border border-amber-300 bg-amber-50 p-3 space-y-2">
+                <div className="flex items-center gap-2 text-amber-800 font-medium text-sm">
+                  <AlertTriangle className="h-4 w-4 shrink-0" />
+                  Scheduling conflict detected
+                </div>
+                <ul className="space-y-1.5">
+                  {conflicts.map(c => (
+                    <li key={`${c.source}-${c.id}`} className="flex items-start gap-2 text-xs text-amber-700">
+                      {c.source === 'reservation'
+                        ? <CalendarClock className="h-3.5 w-3.5 shrink-0 mt-0.5" />
+                        : <Wrench className="h-3.5 w-3.5 shrink-0 mt-0.5" />}
+                      <span>
+                        <span className="font-medium">{c.title}</span>
+                        {c.project_title && <span className="text-amber-600"> · {c.project_title}</span>}
+                        <span className="ml-1 text-amber-500">{c.start_date} – {c.end_date}</span>
+                        {" "}
+                        <Badge variant="outline" className="text-[10px] py-0 h-4 border-amber-400 text-amber-700">
+                          {c.status}
+                        </Badge>
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
 
             <FormField control={form.control} name="status" render={({ field }) => (
               <FormItem>
@@ -150,9 +206,19 @@ export function ReservationDialog({ assetId, assetName, open, onOpenChange }: Pr
 
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-              <Button type="submit" disabled={createReservation.isPending}>
-                {createReservation.isPending ? "Reserving…" : "Reserve Asset"}
-              </Button>
+              {hasConflicts && !confirmedDespiteConflicts ? (
+                <Button
+                  type="button"
+                  variant="destructive"
+                  onClick={() => setConfirmedDespiteConflicts(true)}
+                >
+                  Save Anyway
+                </Button>
+              ) : (
+                <Button type="submit" disabled={createReservation.isPending}>
+                  {createReservation.isPending ? "Reserving…" : "Reserve Asset"}
+                </Button>
+              )}
             </DialogFooter>
           </form>
         </Form>
