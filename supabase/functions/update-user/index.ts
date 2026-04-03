@@ -12,41 +12,49 @@ serve(async (req) => {
   }
 
   try {
-    const supabaseAdmin = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
-      {
-        auth: {
-          autoRefreshToken: false,
-          persistSession: false
-        }
-      }
-    );
+    const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
+    const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
+    const anonKey = Deno.env.get('SUPABASE_ANON_KEY') ?? '';
 
-    const authHeader = req.headers.get('Authorization')!;
-    const token = authHeader.replace('Bearer ', '');
-    
-    const { data: { user }, error: userError } = await supabaseAdmin.auth.getUser(token);
-    
+    const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey, {
+      auth: { autoRefreshToken: false, persistSession: false }
+    });
+
+    // Verify the requesting user using an anon client with their JWT header.
+    // Using a separate anon-key client (same pattern as create-user) is more
+    // reliable than calling auth.getUser(token) on the service-role admin client.
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      throw new Error('No authorization header');
+    }
+
+    const supabaseClient = createClient(supabaseUrl, anonKey, {
+      auth: { persistSession: false },
+      global: { headers: { Authorization: authHeader } },
+    });
+
+    const { data: { user }, error: userError } = await supabaseClient.auth.getUser();
     if (userError || !user) {
       throw new Error('Unauthorized');
     }
 
+    // Check if user has admin or company_owner/admin role
     const { data: roles } = await supabaseAdmin
       .from('user_roles')
       .select('role')
       .eq('user_id', user.id);
-    
+
     const { data: companyRoles } = await supabaseAdmin
       .from('company_users')
       .select('company_role, company_id')
       .eq('user_id', user.id);
 
-    const isAdmin = roles?.some(r => r.role === 'admin');
-    const isCompanyOwnerOrAdmin = companyRoles?.some(r => 
+    const isAdmin = roles?.some((r: any) => r.role === 'admin');
+    const isCompanyOwnerOrAdmin = companyRoles?.some((r: any) =>
       r.company_role === 'company_owner' || r.company_role === 'company_admin'
     );
 
+    // Also check if user has manage_employees permission (for manager-level roles)
     let hasManageEmployeesPermission = false;
     if (companyRoles && companyRoles.length > 0) {
       const { data: permissions } = await supabaseAdmin
@@ -55,12 +63,16 @@ serve(async (req) => {
         .eq('company_id', companyRoles[0].company_id)
         .eq('company_role', companyRoles[0].company_role)
         .eq('permission', 'manage_employees');
-      
+
       hasManageEmployeesPermission = !!(permissions && permissions.length > 0);
     }
 
     if (!isAdmin && !isCompanyOwnerOrAdmin && !hasManageEmployeesPermission) {
-      console.error('Insufficient permissions for user:', user.id);
+      console.error('Insufficient permissions for user:', user.id,
+        'isAdmin:', isAdmin,
+        'isCompanyOwnerOrAdmin:', isCompanyOwnerOrAdmin,
+        'hasManageEmployeesPermission:', hasManageEmployeesPermission
+      );
       return new Response(
         JSON.stringify({ error: 'Insufficient permissions' }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 403 }
@@ -82,7 +94,7 @@ serve(async (req) => {
     if (targetUserError || !targetUserData?.user) {
       console.error('Target user not found:', userId, targetUserError?.message);
       return new Response(
-        JSON.stringify({ error: `User account not found. The employee may not have a login account yet. Please create one first.` }),
+        JSON.stringify({ error: 'User account not found. The employee may not have a login account yet. Please create one first.' }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 404 }
       );
     }
@@ -117,8 +129,8 @@ serve(async (req) => {
       }
     }
 
-    // Update profile
-    const updates: any = {};
+    // Update profile if there's anything to update
+    const updates: Record<string, string> = {};
     if (fullName !== undefined) updates.full_name = fullName;
     if (email) updates.email = email;
 

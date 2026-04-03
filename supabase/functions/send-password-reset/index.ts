@@ -1,10 +1,8 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.81.1";
 
-// Import Resend via esm.sh
-const Resend = (await import("https://esm.sh/resend@4.0.0")).Resend;
-
-const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
+// NOTE: Resend is imported INSIDE the handler (not at module init) to avoid
+// top-level await crashes on cold start when esm.sh is slow to resolve.
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -23,6 +21,11 @@ const handler = async (req: Request): Promise<Response> => {
   }
 
   try {
+    // Import Resend here (inside handler) so a slow esm.sh cold-start
+    // cannot crash the module before serve() registers the handler.
+    const { Resend } = await import("https://esm.sh/resend@4.0.0");
+    const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
+
     const { email }: PasswordResetRequest = await req.json();
 
     if (!email || !email.includes("@")) {
