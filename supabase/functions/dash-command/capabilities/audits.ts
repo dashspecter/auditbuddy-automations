@@ -608,8 +608,8 @@ export async function createStaffAuditDraft(
   sb: any, sbService: any, companyId: string, userId: string,
   args: any, structuredEvents: string[], ctx: PermissionContext
 ): Promise<CapabilityResult<any>> {
-  const permCheck = checkCapabilityPermission(ctx, "create", "location_audits");
-  if (!permCheck.allowed) return capabilityError(permCheck.reason ?? "Permission denied.");
+  const permCheck = checkCapabilityPermission({ action: "create", module: "location_audits", ctx });
+  if (!permCheck.ok) return permCheck;
 
   // Resolve employee
   let employeeId = args.employee_id || null;
