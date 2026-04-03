@@ -1,37 +1,34 @@
 
 
-# Fix Kiosk Crash: "useAuth must be used within an AuthProvider"
+# Fix: Kiosk Task List Showing Empty Despite Tasks Existing
 
 ## Root Cause
-The kiosk route (`/kiosk/:token`) runs **outside** the `AuthProvider` (it's an anonymous public route). The call chain is:
 
-```text
-KioskDashboard
-  → useLocationPerformanceScores (re-export of useEmployeePerformance)
-    → useCompany()
-      → useAuth()  ← CRASH: no AuthProvider
-```
+The KPI header correctly shows 11 pending tasks (9 overdue), but the task list below says "No tasks scheduled for today". This is because `tasksByRole` (line 592-597) **deletes role groups where no on-shift employees match the role**.
 
-The kiosk already has `locationId` and `companyId` as props — it doesn't need `useCompany` at all.
+With only 1 employee scheduled today (Iulian Constantin), all tasks assigned to other roles (e.g., Shift Manager, Barista, etc.) get their groups removed from the display — even though they're counted in the KPIs.
+
+This is a pre-existing logic flaw, not caused by recent changes.
 
 ## Fix
 
-**File: `src/components/kiosk/KioskDashboard.tsx`**
+**File: `src/components/kiosk/KioskDashboard.tsx`** — lines 592-597
 
-Replace the `useLocationPerformanceScores` hook call with a direct `useQuery` + `supabase.rpc("calculate_location_performance_scores", ...)` call. The kiosk already has `locationId` as a prop, so we can call the RPC directly without going through `useEmployeePerformance` → `useCompany` → `useAuth`.
+Remove the block that deletes role groups with no matching employees:
 
-Changes:
-1. Remove the `import { useLocationPerformanceScores }` line
-2. Add a local `useQuery` that calls `supabase.rpc("calculate_location_performance_scores", { p_location_id: locationId, p_start_date, p_end_date })` directly
-3. Map the results using the same `mapRpcRow`-style logic already present in `useEmployeePerformance`
+```typescript
+// REMOVE THIS BLOCK (lines 592-597):
+Object.keys(roleGroups).forEach(roleName => {
+  if (roleName !== "General" && roleGroups[roleName].employees.length === 0) {
+    delete roleGroups[roleName];
+  }
+});
+```
 
-This is a **kiosk-only** change. No other component, hook, or flow is modified.
-
-## Secondary Bug (parameter order)
-The current call `useLocationPerformanceScores(locationId, startDate, endDate)` passes arguments in the wrong order — the hook signature is `(startDate, endDate, locationId)`. The direct RPC call fixes this too since we'll use named parameters.
+Tasks assigned to roles with no one on shift should still be **visible** in the list — they just won't show employee names next to the role header. This matches what the KPI counts already report and ensures the task list is consistent with the header numbers.
 
 ## Impact
-- Only `KioskDashboard.tsx` is modified
-- No changes to `useEmployeePerformance`, `useCompany`, `useAuth`, or any other hook
-- No changes to routing, auth flow, or any other page
+- Only the `tasksByRole` grouping logic changes — a 5-line deletion
+- KPIs, champions, attendance, MTD scores — all untouched
+- No hook, routing, or auth changes
 
