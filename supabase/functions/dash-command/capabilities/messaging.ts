@@ -254,8 +254,8 @@ export async function createNotificationRuleDraft(
   sb: any, sbService: any, companyId: string, userId: string,
   args: any, structuredEvents: string[], ctx: PermissionContext
 ): Promise<CapabilityResult<any>> {
-  const permCheck = checkCapabilityPermission(ctx, "create", "notifications");
-  if (!permCheck.allowed) return capabilityError(permCheck.reason ?? "Permission denied.");
+  const permCheck = checkCapabilityPermission({ action: "create", module: "notifications", ctx });
+  if (!permCheck.ok) return permCheck;
 
   if (!args.event_type) return capabilityError("event_type is required.");
   if (!args.channel) return capabilityError("channel is required (e.g. whatsapp, push, email).");
