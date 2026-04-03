@@ -92,7 +92,7 @@ export const AttentionAlertBar = ({ dateFrom, dateTo }: AttentionAlertBarProps) 
               <p className="text-sm text-muted-foreground">{t("dashboard.popup.overdueMaintenanceItems", "overdue maintenance items")}</p>
             </div>
           )}
-          {activeAlert === "workforce" && <WorkforceScorePopup dateFrom={dateFrom} dateTo={dateTo} />}
+          
         </DashboardPreviewDialog>
       )}
     </>
