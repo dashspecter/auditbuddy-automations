@@ -50,7 +50,7 @@ interface WorkforceAnalyticsProps {
   showTopCards?: boolean;
 }
 
-export const WorkforceAnalytics = ({ locationId, period = "month", showDateFilter = true }: WorkforceAnalyticsProps) => {
+export const WorkforceAnalytics = ({ locationId, period = "month", showDateFilter = true, showTopCards = true }: WorkforceAnalyticsProps) => {
   // Initialize date range based on period prop
   const getInitialDateRange = () => {
     const now = new Date();
