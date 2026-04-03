@@ -47,6 +47,7 @@ interface WorkforceAnalyticsProps {
   locationId?: string;
   period?: "week" | "month" | "quarter";
   showDateFilter?: boolean;
+  showTopCards?: boolean;
 }
 
 export const WorkforceAnalytics = ({ locationId, period = "month", showDateFilter = true }: WorkforceAnalyticsProps) => {
