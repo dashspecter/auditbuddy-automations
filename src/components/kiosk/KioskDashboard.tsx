@@ -461,14 +461,57 @@ export const KioskDashboard = ({ locationId, companyId, kioskToken, departmentId
     });
   }, [unifiedCompletedCount, todaysChampions.length, unifiedGrouped.completed, scheduledEmployeeIds, userToEmployeeIdMap]);
 
-  // MTD Score - use server-side scoring function (bypasses RLS for accurate scores)
+  // MTD Score - direct RPC call (bypasses useCompany/useAuth chain for anonymous kiosk)
   const mtdStartFormatted = format(startOfMonth(today), 'yyyy-MM-dd');
   const mtdEndFormatted = format(today, 'yyyy-MM-dd');
-  const { data: weeklyAllScores = [] } = useLocationPerformanceScores(
-    locationId,
-    mtdStartFormatted,
-    mtdEndFormatted
-  );
+  const { data: weeklyAllScores = [] } = useQuery<EmployeePerformanceScore[]>({
+    queryKey: ["kiosk-performance-scores", locationId, mtdStartFormatted, mtdEndFormatted],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc(
+        "calculate_location_performance_scores" as any,
+        {
+          p_location_id: locationId,
+          p_start_date: mtdStartFormatted,
+          p_end_date: mtdEndFormatted,
+        }
+      );
+      if (error) throw error;
+      return ((data as any[]) ?? []).map((row: any): EmployeePerformanceScore => ({
+        employee_id: row.employee_id,
+        employee_name: row.employee_name,
+        role: row.role,
+        location_id: row.location_id,
+        location_name: row.location_name,
+        avatar_url: row.avatar_url,
+        attendance_score: Number(row.attendance_score),
+        punctuality_score: Number(row.punctuality_score),
+        task_score: Number(row.task_score),
+        test_score: Number(row.test_score),
+        performance_review_score: Number(row.performance_review_score),
+        base_score: Number(row.base_score),
+        warning_penalty: Number(row.warning_penalty),
+        warning_count: row.warning_count,
+        warning_contributions: [],
+        warning_monthly_caps: {},
+        overall_score: Number(row.overall_score),
+        shifts_scheduled: row.shifts_scheduled,
+        shifts_worked: row.shifts_worked,
+        shifts_missed: row.shifts_missed,
+        late_count: row.late_count,
+        total_late_minutes: row.total_late_minutes,
+        tasks_assigned: row.tasks_assigned,
+        tasks_completed: row.tasks_completed,
+        tasks_completed_on_time: row.tasks_completed_on_time,
+        tasks_overdue: row.tasks_overdue,
+        tests_taken: row.tests_taken,
+        tests_passed: row.tests_passed,
+        average_test_score: Number(row.average_test_score),
+        reviews_count: row.reviews_count,
+        average_review_score: Number(row.average_review_score),
+      }));
+    },
+    refetchInterval: 60000,
+  });
   const weeklyScoreLeaderboard = useMemo(() => {
     let scores = computeEffectiveScores(weeklyAllScores, false);
     // Filter by department roles if set
