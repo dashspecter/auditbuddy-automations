@@ -100,7 +100,7 @@ export function useAssetConflicts(
       const projectMap: Record<string, { title: string; project_number: string }> = {};
 
       if (projectIds.length > 0) {
-        const { data: projects } = await supabase
+        const { data: projects } = await (supabase as any)
           .from('gov_projects')
           .select('id, title, project_number')
           .in('id', projectIds);
