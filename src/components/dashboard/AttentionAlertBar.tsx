@@ -5,7 +5,7 @@ import { useDashboardStats } from "@/hooks/useDashboardStats";
 import { useTaskStats } from "@/hooks/useTasks";
 import { useCorrectiveActions } from "@/hooks/useCorrectiveActions";
 import { useEquipmentInterventions } from "@/hooks/useEquipmentInterventions";
-import { format, subDays } from "date-fns";
+import { subDays } from "date-fns";
 import { useTranslation } from "react-i18next";
 import { useMemo, useState } from "react";
 import { DashboardPreviewDialog } from "./DashboardPreviewDialog";
