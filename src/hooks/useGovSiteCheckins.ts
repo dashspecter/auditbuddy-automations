@@ -43,7 +43,7 @@ export function useMyGovSiteCheckins(employeeId: string | undefined) {
     queryFn: async () => {
       if (!employeeId || !company?.id) return [];
       const { data, error } = await supabase
-        .from('gov_site_checkins')
+        .from('gov_site_checkins' as any)
         .select(`
           *,
           location:locations(id, name, geofence_radius_meters, geofence_lat, geofence_lon),
@@ -55,7 +55,7 @@ export function useMyGovSiteCheckins(employeeId: string | undefined) {
         .order('check_in_at', { ascending: false })
         .limit(50);
       if (error) throw error;
-      return data as GovSiteCheckin[];
+      return data as unknown as GovSiteCheckin[];
     },
     enabled: !!employeeId && !!company?.id,
     staleTime: 60_000,
@@ -71,7 +71,7 @@ export function useGovSiteCheckinsByProject(projectId: string | undefined) {
     queryFn: async () => {
       if (!projectId || !company?.id) return [];
       const { data, error } = await supabase
-        .from('gov_site_checkins')
+        .from('gov_site_checkins' as any)
         .select(`
           *,
           location:locations(id, name),
@@ -83,7 +83,7 @@ export function useGovSiteCheckinsByProject(projectId: string | undefined) {
         .eq('project_id', projectId)
         .order('check_in_at', { ascending: false });
       if (error) throw error;
-      return data as GovSiteCheckin[];
+      return data as unknown as GovSiteCheckin[];
     },
     enabled: !!projectId && !!company?.id,
   });
@@ -157,7 +157,7 @@ export function useGovSiteCheckin() {
       }
 
       const { data, error } = await supabase
-        .from('gov_site_checkins')
+        .from('gov_site_checkins' as any)
         .insert({
           company_id: company.id,
           employee_id: payload.employee_id,
@@ -174,7 +174,7 @@ export function useGovSiteCheckin() {
         .single();
 
       if (error) throw error;
-      return { success: true, checkin: data as GovSiteCheckin };
+      return { success: true, checkin: data as unknown as GovSiteCheckin };
     },
     onSuccess: (result, variables) => {
       if (result.success) {
@@ -213,7 +213,7 @@ export function useGovSiteCheckout() {
       }
 
       const { error } = await supabase
-        .from('gov_site_checkins')
+        .from('gov_site_checkins' as any)
         .update({
           check_out_at: new Date().toISOString(),
           checkout_lat: checkoutLat,

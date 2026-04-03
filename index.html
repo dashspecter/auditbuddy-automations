@@ -41,16 +41,15 @@
         <div style="font-size:14px;opacity:.8;">Loading...</div>
         <div style="margin-top:14px;display:flex;gap:10px;justify-content:center;flex-wrap:wrap;">
           <button type="button" onclick="window.location.reload()" style="padding:10px 14px;border-radius:10px;border:1px solid rgba(0,0,0,.14);background:#fff;">Reload</button>
-          <button type="button" onclick="(function(){try{var returnTo=encodeURIComponent(window.location.pathname+window.location.search+window.location.hash);window.location.replace('/?resetApp=1&returnTo='+returnTo);}catch(e){window.location.reload();}})()" style="padding:10px 14px;border-radius:10px;border:1px solid rgba(0,0,0,.14);background:#fff;">Reset app cache</button>
+          <button type="button" onclick="(function(){try{var p=window.location.pathname||'/';if(p.indexOf('resetApp')!==-1)p='/';window.location.replace('/?resetApp=1&returnTo='+encodeURIComponent(p));}catch(e){window.location.reload();}})()" style="padding:10px 14px;border-radius:10px;border:1px solid rgba(0,0,0,.14);background:#fff;">Reset app cache</button>
         </div>
-        <div style="margin-top:10px;font-size:12px;opacity:.6;">If this screen persists, tap “Reset app cache”.</div>
+        <div style="margin-top:10px;font-size:12px;opacity:.6;">If this screen persists, tap "Reset app cache".</div>
       </div>
     </div>
     <style>
       @keyframes spin{to{transform:rotate(360deg)}}
     </style>
     <script>
-      // Only show the boot fallback if the app hasn't mounted shortly after page load.
       (function () {
         var el = document.getElementById('boot-fallback');
         var root = document.getElementById('root');
@@ -60,15 +59,14 @@
           return root.childNodes && root.childNodes.length > 0;
         }
 
-        // Show after a short delay if still not mounted.
         var t = window.setTimeout(function () {
           if (!isMounted()) el.style.display = 'flex';
         }, 1200);
 
-        // Hide as soon as the app mounts.
         var obs = new MutationObserver(function () {
           if (isMounted()) {
-            el.style.display = 'none';
+            var fallback = document.getElementById('boot-fallback');
+            if (fallback) fallback.style.display = 'none';
             window.clearTimeout(t);
             obs.disconnect();
           }

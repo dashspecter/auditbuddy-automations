@@ -112,7 +112,7 @@ export function useCmmsWorkOrders(filters?: WorkOrderFilters) {
         query = query.or(`title.ilike.%${filters.search}%,description.ilike.%${filters.search}%`);
       }
       if (filters?.project_id) {
-        query = query.eq('project_id', filters.project_id);
+        query = (query as any).eq('project_id', filters.project_id);
       }
 
       const { data, error } = await query;

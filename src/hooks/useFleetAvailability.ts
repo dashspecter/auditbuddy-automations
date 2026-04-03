@@ -83,7 +83,7 @@ export function useFleetAvailability(daysAhead = 14) {
             .order('due_at', { ascending: true }),
 
           supabase
-            .from('gov_asset_reservations')
+            .from('gov_asset_reservations' as any)
             .select('id, asset_id, project_id, start_date, end_date, status')
             .eq('company_id', company.id)
             .in('asset_id', assetIds)
@@ -103,10 +103,10 @@ export function useFleetAvailability(daysAhead = 14) {
 
       if (allProjectIds.length > 0) {
         const { data: projects } = await supabase
-          .from('gov_projects')
+          .from('gov_projects' as any)
           .select('id, title, project_number')
           .in('id', allProjectIds);
-        for (const p of projects || []) {
+        for (const p of (projects || []) as any[]) {
           projectMap[p.id] = { title: p.title, project_number: p.project_number };
         }
       }

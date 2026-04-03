@@ -39,7 +39,7 @@ export function useGovAssetReservations(filters?: ReservationFilters) {
       if (!company?.id) return [];
 
       let query = supabase
-        .from('gov_asset_reservations')
+        .from('gov_asset_reservations' as any)
         .select(`
           *,
           asset:cmms_assets(id, name, asset_code),
@@ -56,7 +56,7 @@ export function useGovAssetReservations(filters?: ReservationFilters) {
 
       const { data, error } = await query;
       if (error) throw error;
-      return data as GovAssetReservation[];
+      return data as unknown as GovAssetReservation[];
     },
     enabled: !!company?.id,
     staleTime: 2 * 60_000,
@@ -80,7 +80,7 @@ export function useCreateGovAssetReservation() {
       if (!user || !company?.id) throw new Error('Not authenticated');
 
       const { data, error } = await supabase
-        .from('gov_asset_reservations')
+        .from('gov_asset_reservations' as any)
         .insert({
           company_id: company.id,
           reserved_by: user.id,
@@ -95,7 +95,7 @@ export function useCreateGovAssetReservation() {
         .single();
 
       if (error) throw error;
-      return data as GovAssetReservation;
+      return data as unknown as GovAssetReservation;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['gov-asset-reservations'] });
@@ -112,13 +112,13 @@ export function useUpdateGovAssetReservation() {
   return useMutation({
     mutationFn: async ({ id, ...payload }: { id: string } & Partial<Pick<GovAssetReservation, 'status' | 'notes' | 'start_date' | 'end_date'>>) => {
       const { data, error } = await supabase
-        .from('gov_asset_reservations')
+        .from('gov_asset_reservations' as any)
         .update(payload)
         .eq('id', id)
         .select()
         .single();
       if (error) throw error;
-      return data as GovAssetReservation;
+      return data as unknown as GovAssetReservation;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['gov-asset-reservations'] });
@@ -133,7 +133,7 @@ export function useDeleteGovAssetReservation() {
 
   return useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from('gov_asset_reservations').delete().eq('id', id);
+      const { error } = await supabase.from('gov_asset_reservations' as any).delete().eq('id', id);
       if (error) throw error;
     },
     onSuccess: () => {

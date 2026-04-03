@@ -1,4 +1,5 @@
-import { lazy, Suspense } from "react";
+import { Suspense, lazy } from "react";
+import { lazyWithRetry } from "@/lib/lazyWithRetry";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -29,52 +30,52 @@ import ScoutPortalApp from "./pages/scout-portal/ScoutPortalApp";
 // === Lazy-loaded pages ===
 
 // Public / Auth
-const Index = lazy(() => import("./pages/Index"));
-const Landing = lazy(() => import("./pages/Landing"));
-const LandingNFX = lazy(() => import("./pages/LandingNFX"));
-const FullPresentation = lazy(() => import("./pages/FullPresentation"));
-const SalesOffer = lazy(() => import("./pages/SalesOffer"));
-const Auth = lazy(() => import("./pages/Auth"));
-const ForgotPassword = lazy(() => import("./pages/ForgotPassword"));
-const ResetPassword = lazy(() => import("./pages/ResetPassword"));
-const NotFound = lazy(() => import("./pages/NotFound"));
-const StaffLogin = lazy(() => import("./pages/StaffLogin"));
-const PendingApproval = lazy(() => import("./pages/PendingApproval"));
-const InstallApp = lazy(() => import("./pages/InstallApp"));
-const MobileCommand = lazy(() => import("./pages/MobileCommand"));
+const Index = lazyWithRetry(() => import("./pages/Index"));
+const Landing = lazyWithRetry(() => import("./pages/Landing"));
+const LandingNFX = lazyWithRetry(() => import("./pages/LandingNFX"));
+const FullPresentation = lazyWithRetry(() => import("./pages/FullPresentation"));
+const SalesOffer = lazyWithRetry(() => import("./pages/SalesOffer"));
+const Auth = lazyWithRetry(() => import("./pages/Auth"));
+const ForgotPassword = lazyWithRetry(() => import("./pages/ForgotPassword"));
+const ResetPassword = lazyWithRetry(() => import("./pages/ResetPassword"));
+const NotFound = lazyWithRetry(() => import("./pages/NotFound"));
+const StaffLogin = lazyWithRetry(() => import("./pages/StaffLogin"));
+const PendingApproval = lazyWithRetry(() => import("./pages/PendingApproval"));
+const InstallApp = lazyWithRetry(() => import("./pages/InstallApp"));
+const MobileCommand = lazyWithRetry(() => import("./pages/MobileCommand"));
 
 // Core app pages
-const Dashboard = lazy(() => import("./pages/Dashboard"));
-const Settings = lazy(() => import("./pages/Settings"));
-const Reports = lazy(() => import("./pages/Reports"));
-const Notifications = lazy(() => import("./pages/Notifications"));
-const NotificationTemplates = lazy(() => import("./pages/NotificationTemplates"));
-const NotificationAuditLogs = lazy(() => import("./pages/NotificationAuditLogs"));
-const NotificationAnalytics = lazy(() => import("./pages/NotificationAnalytics"));
-const RecurringNotifications = lazy(() => import("./pages/RecurringNotifications"));
-const PhotoGalleryPage = lazy(() => import("./pages/PhotoGalleryPage"));
-const DocumentManagement = lazy(() => import("./pages/DocumentManagement"));
-const Inventory = lazy(() => import("./pages/Inventory"));
-const Insights = lazy(() => import("./pages/Insights"));
-const AIFeed = lazy(() => import("./pages/AIFeed"));
-const Integrations = lazy(() => import("./pages/Integrations"));
-const IntegrationDetail = lazy(() => import("./pages/IntegrationDetail"));
-const SystemHealth = lazy(() => import("./pages/SystemHealth"));
-const ActivityLog = lazy(() => import("./pages/ActivityLog"));
-const RoleTemplates = lazy(() => import("./pages/RoleTemplates"));
-const PolicyRules = lazy(() => import("./pages/PolicyRules"));
-const EvidenceReview = lazy(() => import("./pages/EvidenceReview"));
-const ComplianceDossier = lazy(() => import("./pages/ComplianceDossier"));
-const EmployeeDossier = lazy(() => import("./pages/EmployeeDossier"));
+const Dashboard = lazyWithRetry(() => import("./pages/Dashboard"));
+const Settings = lazyWithRetry(() => import("./pages/Settings"));
+const Reports = lazyWithRetry(() => import("./pages/Reports"));
+const Notifications = lazyWithRetry(() => import("./pages/Notifications"));
+const NotificationTemplates = lazyWithRetry(() => import("./pages/NotificationTemplates"));
+const NotificationAuditLogs = lazyWithRetry(() => import("./pages/NotificationAuditLogs"));
+const NotificationAnalytics = lazyWithRetry(() => import("./pages/NotificationAnalytics"));
+const RecurringNotifications = lazyWithRetry(() => import("./pages/RecurringNotifications"));
+const PhotoGalleryPage = lazyWithRetry(() => import("./pages/PhotoGalleryPage"));
+const DocumentManagement = lazyWithRetry(() => import("./pages/DocumentManagement"));
+const Inventory = lazyWithRetry(() => import("./pages/Inventory"));
+const Insights = lazyWithRetry(() => import("./pages/Insights"));
+const AIFeed = lazyWithRetry(() => import("./pages/AIFeed"));
+const Integrations = lazyWithRetry(() => import("./pages/Integrations"));
+const IntegrationDetail = lazyWithRetry(() => import("./pages/IntegrationDetail"));
+const SystemHealth = lazyWithRetry(() => import("./pages/SystemHealth"));
+const ActivityLog = lazyWithRetry(() => import("./pages/ActivityLog"));
+const RoleTemplates = lazyWithRetry(() => import("./pages/RoleTemplates"));
+const PolicyRules = lazyWithRetry(() => import("./pages/PolicyRules"));
+const EvidenceReview = lazyWithRetry(() => import("./pages/EvidenceReview"));
+const ComplianceDossier = lazyWithRetry(() => import("./pages/ComplianceDossier"));
+const EmployeeDossier = lazyWithRetry(() => import("./pages/EmployeeDossier"));
 
 // Onboarding / Company settings
-const CompanyOnboarding = lazy(() => import("./pages/CompanyOnboarding"));
-const CompanySettings = lazy(() => import("./pages/CompanySettings"));
-const ModuleSelection = lazy(() => import("./pages/ModuleSelection"));
-const PricingPlans = lazy(() => import("./pages/PricingPlans"));
-const TerminologySettings = lazy(() => import("./pages/settings/TerminologySettings"));
-const ApprovalQueue = lazy(() => import("./pages/ApprovalQueue"));
-const ApprovalWorkflowsPage = lazy(() => import("./pages/settings/ApprovalWorkflows"));
+const CompanyOnboarding = lazyWithRetry(() => import("./pages/CompanyOnboarding"));
+const CompanySettings = lazyWithRetry(() => import("./pages/CompanySettings"));
+const ModuleSelection = lazyWithRetry(() => import("./pages/ModuleSelection"));
+const PricingPlans = lazyWithRetry(() => import("./pages/PricingPlans"));
+const TerminologySettings = lazyWithRetry(() => import("./pages/settings/TerminologySettings"));
+const ApprovalQueue = lazyWithRetry(() => import("./pages/ApprovalQueue"));
+const ApprovalWorkflowsPage = lazyWithRetry(() => import("./pages/settings/ApprovalWorkflows"));
 
 // Government Ops (Phase 1 + 3) — government accounts only, gated by gov_projects module
 const GovDashboard = lazy(() => import("./pages/gov/GovDashboard"));
@@ -91,198 +92,198 @@ const StaffGovCheckin = lazy(() => import("./pages/staff/gov/StaffGovCheckin"));
 const StaffGovWorkOrderDetail = lazy(() => import("./pages/staff/gov/StaffGovWorkOrderDetail"));
 
 // Audits
-const Audits = lazy(() => import("./pages/Audits"));
-const AuditDetail = lazy(() => import("./pages/AuditDetail"));
-const AuditSummary = lazy(() => import("./pages/AuditSummary"));
-const AuditsCalendar = lazy(() => import("./pages/AuditsCalendar"));
-const LocationAudit = lazy(() => import("./pages/LocationAudit"));
-const RecurringAuditSchedules = lazy(() => import("./pages/RecurringAuditSchedules"));
-const RecurringMaintenanceSchedules = lazy(() => import("./pages/RecurringMaintenanceSchedules"));
-const AdminTemplates = lazy(() => import("./pages/AdminTemplates"));
-const TemplateEditor = lazy(() => import("./pages/TemplateEditor"));
-const TemplateLibrary = lazy(() => import("./pages/TemplateLibrary"));
-const Templates = lazy(() => import("./pages/audits/Templates"));
-const TemplateBuilder = lazy(() => import("./pages/audits/TemplateBuilder"));
-const ScheduleAudit = lazy(() => import("./pages/audits/ScheduleAudit"));
-const PerformAudit = lazy(() => import("./pages/audits/PerformAudit"));
-const AuditReport = lazy(() => import("./pages/audits/AuditReport"));
-const AuditsList = lazy(() => import("./pages/audits/AuditsList"));
+const Audits = lazyWithRetry(() => import("./pages/Audits"));
+const AuditDetail = lazyWithRetry(() => import("./pages/AuditDetail"));
+const AuditSummary = lazyWithRetry(() => import("./pages/AuditSummary"));
+const AuditsCalendar = lazyWithRetry(() => import("./pages/AuditsCalendar"));
+const LocationAudit = lazyWithRetry(() => import("./pages/LocationAudit"));
+const RecurringAuditSchedules = lazyWithRetry(() => import("./pages/RecurringAuditSchedules"));
+const RecurringMaintenanceSchedules = lazyWithRetry(() => import("./pages/RecurringMaintenanceSchedules"));
+const AdminTemplates = lazyWithRetry(() => import("./pages/AdminTemplates"));
+const TemplateEditor = lazyWithRetry(() => import("./pages/TemplateEditor"));
+const TemplateLibrary = lazyWithRetry(() => import("./pages/TemplateLibrary"));
+const Templates = lazyWithRetry(() => import("./pages/audits/Templates"));
+const TemplateBuilder = lazyWithRetry(() => import("./pages/audits/TemplateBuilder"));
+const ScheduleAudit = lazyWithRetry(() => import("./pages/audits/ScheduleAudit"));
+const PerformAudit = lazyWithRetry(() => import("./pages/audits/PerformAudit"));
+const AuditReport = lazyWithRetry(() => import("./pages/audits/AuditReport"));
+const AuditsList = lazyWithRetry(() => import("./pages/audits/AuditsList"));
 
 // Staff Audits
-const StaffAudits = lazy(() => import("./pages/StaffAudits"));
-const StaffAuditsViewAll = lazy(() => import("./pages/StaffAuditsViewAll"));
-const StaffAuditDetail = lazy(() => import("./pages/StaffAuditDetail"));
-const StaffAuditNew = lazy(() => import("./pages/StaffAuditNew"));
-const ManualMetrics = lazy(() => import("./pages/ManualMetrics"));
+const StaffAudits = lazyWithRetry(() => import("./pages/StaffAudits"));
+const StaffAuditsViewAll = lazyWithRetry(() => import("./pages/StaffAuditsViewAll"));
+const StaffAuditDetail = lazyWithRetry(() => import("./pages/StaffAuditDetail"));
+const StaffAuditNew = lazyWithRetry(() => import("./pages/StaffAuditNew"));
+const ManualMetrics = lazyWithRetry(() => import("./pages/ManualMetrics"));
 
 // Equipment / CMMS
-const EquipmentList = lazy(() => import("./pages/EquipmentList"));
-const EquipmentForm = lazy(() => import("./pages/EquipmentForm"));
-const EquipmentDetail = lazy(() => import("./pages/EquipmentDetail"));
-const BulkEquipmentQR = lazy(() => import("./pages/BulkEquipmentQR"));
-const InterventionDetail = lazy(() => import("./pages/InterventionDetail"));
-const MaintenanceCalendar = lazy(() => import("./pages/MaintenanceCalendar"));
-const CmmsWorkOrders = lazy(() => import("./pages/cmms/WorkOrders"));
-const CmmsAssets = lazy(() => import("./pages/cmms/Assets"));
-const CmmsAssetDetail = lazy(() => import("./pages/cmms/AssetDetail"));
-const CmmsProcedures = lazy(() => import("./pages/cmms/Procedures"));
-const CmmsProcedureDetail = lazy(() => import("./pages/cmms/ProcedureDetail"));
-const CmmsPmSchedules = lazy(() => import("./pages/cmms/PmSchedules"));
-const CmmsPartsInventory = lazy(() => import("./pages/cmms/PartsInventory"));
-const CmmsPurchaseOrders = lazy(() => import("./pages/cmms/PurchaseOrders"));
-const CmmsVendors = lazy(() => import("./pages/cmms/Vendors"));
-const CmmsTeams = lazy(() => import("./pages/cmms/Teams"));
-const CmmsDashboard = lazy(() => import("./pages/cmms/CmmsDashboard"));
-const CmmsReporting = lazy(() => import("./pages/cmms/CmmsReporting"));
-const CmmsOverview = lazy(() => import("./pages/cmms/CmmsOverview"));
+const EquipmentList = lazyWithRetry(() => import("./pages/EquipmentList"));
+const EquipmentForm = lazyWithRetry(() => import("./pages/EquipmentForm"));
+const EquipmentDetail = lazyWithRetry(() => import("./pages/EquipmentDetail"));
+const BulkEquipmentQR = lazyWithRetry(() => import("./pages/BulkEquipmentQR"));
+const InterventionDetail = lazyWithRetry(() => import("./pages/InterventionDetail"));
+const MaintenanceCalendar = lazyWithRetry(() => import("./pages/MaintenanceCalendar"));
+const CmmsWorkOrders = lazyWithRetry(() => import("./pages/cmms/WorkOrders"));
+const CmmsAssets = lazyWithRetry(() => import("./pages/cmms/Assets"));
+const CmmsAssetDetail = lazyWithRetry(() => import("./pages/cmms/AssetDetail"));
+const CmmsProcedures = lazyWithRetry(() => import("./pages/cmms/Procedures"));
+const CmmsProcedureDetail = lazyWithRetry(() => import("./pages/cmms/ProcedureDetail"));
+const CmmsPmSchedules = lazyWithRetry(() => import("./pages/cmms/PmSchedules"));
+const CmmsPartsInventory = lazyWithRetry(() => import("./pages/cmms/PartsInventory"));
+const CmmsPurchaseOrders = lazyWithRetry(() => import("./pages/cmms/PurchaseOrders"));
+const CmmsVendors = lazyWithRetry(() => import("./pages/cmms/Vendors"));
+const CmmsTeams = lazyWithRetry(() => import("./pages/cmms/Teams"));
+const CmmsDashboard = lazyWithRetry(() => import("./pages/cmms/CmmsDashboard"));
+const CmmsReporting = lazyWithRetry(() => import("./pages/cmms/CmmsReporting"));
+const CmmsOverview = lazyWithRetry(() => import("./pages/cmms/CmmsOverview"));
 
 // Workforce
-const Workforce = lazy(() => import("./pages/Workforce"));
-const Staff = lazy(() => import("./pages/workforce/Staff"));
-const WorkforceStaffProfile = lazy(() => import("./pages/workforce/StaffProfile"));
-const Shifts = lazy(() => import("./pages/workforce/Shifts"));
-const Attendance = lazy(() => import("./pages/workforce/Attendance"));
-const TimeOffApprovals = lazy(() => import("./pages/workforce/TimeOffApprovals"));
-const Payroll = lazy(() => import("./pages/workforce/Payroll"));
-const PayrollBatches = lazy(() => import("./pages/workforce/PayrollBatches"));
-const EmployeePerformance = lazy(() => import("./pages/workforce/EmployeePerformance"));
-const BadgeSettings = lazy(() => import("./pages/workforce/BadgeSettings"));
-const SalesManagement = lazy(() => import("./pages/workforce/SalesManagement"));
-const Training = lazy(() => import("./pages/workforce/Training"));
-const TrainingModuleDetail = lazy(() => import("./pages/workforce/TrainingModuleDetail"));
-const TrainingAssignmentNew = lazy(() => import("./pages/workforce/TrainingAssignmentNew"));
-const TrainingAssignmentDetail = lazy(() => import("./pages/workforce/TrainingAssignmentDetail"));
-const AttendanceAlerts = lazy(() => import("./pages/workforce/AttendanceAlerts"));
-const SchedulingInsights = lazy(() => import("./pages/workforce/SchedulingInsights"));
-const Warnings = lazy(() => import("./pages/workforce/Warnings"));
-const EmployeeManagement = lazy(() => import("./pages/EmployeeManagement"));
-const LocationsManagement = lazy(() => import("./pages/LocationsManagement"));
-const UserManagement = lazy(() => import("./pages/UserManagement"));
+const Workforce = lazyWithRetry(() => import("./pages/Workforce"));
+const Staff = lazyWithRetry(() => import("./pages/workforce/Staff"));
+const WorkforceStaffProfile = lazyWithRetry(() => import("./pages/workforce/StaffProfile"));
+const Shifts = lazyWithRetry(() => import("./pages/workforce/Shifts"));
+const Attendance = lazyWithRetry(() => import("./pages/workforce/Attendance"));
+const TimeOffApprovals = lazyWithRetry(() => import("./pages/workforce/TimeOffApprovals"));
+const Payroll = lazyWithRetry(() => import("./pages/workforce/Payroll"));
+const PayrollBatches = lazyWithRetry(() => import("./pages/workforce/PayrollBatches"));
+const EmployeePerformance = lazyWithRetry(() => import("./pages/workforce/EmployeePerformance"));
+const BadgeSettings = lazyWithRetry(() => import("./pages/workforce/BadgeSettings"));
+const SalesManagement = lazyWithRetry(() => import("./pages/workforce/SalesManagement"));
+const Training = lazyWithRetry(() => import("./pages/workforce/Training"));
+const TrainingModuleDetail = lazyWithRetry(() => import("./pages/workforce/TrainingModuleDetail"));
+const TrainingAssignmentNew = lazyWithRetry(() => import("./pages/workforce/TrainingAssignmentNew"));
+const TrainingAssignmentDetail = lazyWithRetry(() => import("./pages/workforce/TrainingAssignmentDetail"));
+const AttendanceAlerts = lazyWithRetry(() => import("./pages/workforce/AttendanceAlerts"));
+const SchedulingInsights = lazyWithRetry(() => import("./pages/workforce/SchedulingInsights"));
+const Warnings = lazyWithRetry(() => import("./pages/workforce/Warnings"));
+const EmployeeManagement = lazyWithRetry(() => import("./pages/EmployeeManagement"));
+const LocationsManagement = lazyWithRetry(() => import("./pages/LocationsManagement"));
+const UserManagement = lazyWithRetry(() => import("./pages/UserManagement"));
 
 // Staff portal
-const StaffHome = lazy(() => import("./pages/staff/StaffHome"));
-const StaffSchedule = lazy(() => import("./pages/staff/StaffSchedule"));
-const StaffShifts = lazy(() => import("./pages/staff/StaffShifts"));
-const StaffShiftPool = lazy(() => import("./pages/staff/StaffShiftPool"));
-const StaffSwapRequests = lazy(() => import("./pages/staff/StaffSwapRequests"));
-const StaffTimeOff = lazy(() => import("./pages/staff/StaffTimeOff"));
-const StaffProfile = lazy(() => import("./pages/staff/StaffProfile"));
-const StaffMessages = lazy(() => import("./pages/staff/StaffMessages"));
-const StaffEarnings = lazy(() => import("./pages/staff/StaffEarnings"));
-const StaffTasks = lazy(() => import("./pages/staff/StaffTasks"));
-const ManagerSchedule = lazy(() => import("./pages/staff/ManagerSchedule"));
-const StaffLocationAudit = lazy(() => import("./pages/staff/StaffLocationAudit"));
-const StaffLocationAudits = lazy(() => import("./pages/staff/StaffLocationAudits"));
-const StaffLocationAuditDetail = lazy(() => import("./pages/staff/StaffLocationAuditDetail"));
-const StaffEmployeeAudit = lazy(() => import("./pages/staff/StaffEmployeeAudit"));
-const StaffStaffAudit = lazy(() => import("./pages/staff/StaffStaffAudit"));
-const StaffPerformanceReview = lazy(() => import("./pages/staff/StaffPerformanceReview"));
-const StaffWarnings = lazy(() => import("./pages/staff/StaffWarnings"));
-const TeamView = lazy(() => import("./pages/staff/TeamView"));
-const StaffCheckpoints = lazy(() => import("./pages/staff/StaffCheckpoints"));
-const StaffScoreBreakdown = lazy(() => import("./pages/staff/StaffScoreBreakdown"));
-const StaffDocuments = lazy(() => import("./pages/staff/StaffDocuments"));
-const StaffScanAttendance = lazy(() => import("./pages/staff/StaffScanAttendance"));
-const StaffScanVoucher = lazy(() => import("./pages/staff/StaffScanVoucher"));
-const AddWasteEntry = lazy(() => import("./pages/staff/AddWasteEntry"));
-const MyWasteEntries = lazy(() => import("./pages/staff/MyWasteEntries"));
+const StaffHome = lazyWithRetry(() => import("./pages/staff/StaffHome"));
+const StaffSchedule = lazyWithRetry(() => import("./pages/staff/StaffSchedule"));
+const StaffShifts = lazyWithRetry(() => import("./pages/staff/StaffShifts"));
+const StaffShiftPool = lazyWithRetry(() => import("./pages/staff/StaffShiftPool"));
+const StaffSwapRequests = lazyWithRetry(() => import("./pages/staff/StaffSwapRequests"));
+const StaffTimeOff = lazyWithRetry(() => import("./pages/staff/StaffTimeOff"));
+const StaffProfile = lazyWithRetry(() => import("./pages/staff/StaffProfile"));
+const StaffMessages = lazyWithRetry(() => import("./pages/staff/StaffMessages"));
+const StaffEarnings = lazyWithRetry(() => import("./pages/staff/StaffEarnings"));
+const StaffTasks = lazyWithRetry(() => import("./pages/staff/StaffTasks"));
+const ManagerSchedule = lazyWithRetry(() => import("./pages/staff/ManagerSchedule"));
+const StaffLocationAudit = lazyWithRetry(() => import("./pages/staff/StaffLocationAudit"));
+const StaffLocationAudits = lazyWithRetry(() => import("./pages/staff/StaffLocationAudits"));
+const StaffLocationAuditDetail = lazyWithRetry(() => import("./pages/staff/StaffLocationAuditDetail"));
+const StaffEmployeeAudit = lazyWithRetry(() => import("./pages/staff/StaffEmployeeAudit"));
+const StaffStaffAudit = lazyWithRetry(() => import("./pages/staff/StaffStaffAudit"));
+const StaffPerformanceReview = lazyWithRetry(() => import("./pages/staff/StaffPerformanceReview"));
+const StaffWarnings = lazyWithRetry(() => import("./pages/staff/StaffWarnings"));
+const TeamView = lazyWithRetry(() => import("./pages/staff/TeamView"));
+const StaffCheckpoints = lazyWithRetry(() => import("./pages/staff/StaffCheckpoints"));
+const StaffScoreBreakdown = lazyWithRetry(() => import("./pages/staff/StaffScoreBreakdown"));
+const StaffDocuments = lazyWithRetry(() => import("./pages/staff/StaffDocuments"));
+const StaffScanAttendance = lazyWithRetry(() => import("./pages/staff/StaffScanAttendance"));
+const StaffScanVoucher = lazyWithRetry(() => import("./pages/staff/StaffScanVoucher"));
+const AddWasteEntry = lazyWithRetry(() => import("./pages/staff/AddWasteEntry"));
+const MyWasteEntries = lazyWithRetry(() => import("./pages/staff/MyWasteEntries"));
 
 // Tasks
-const Tasks = lazy(() => import("./pages/Tasks"));
-const TaskNew = lazy(() => import("./pages/TaskNew"));
-const TaskEdit = lazy(() => import("./pages/TaskEdit"));
-const TasksCalendar = lazy(() => import("./pages/TasksCalendar"));
+const Tasks = lazyWithRetry(() => import("./pages/Tasks"));
+const TaskNew = lazyWithRetry(() => import("./pages/TaskNew"));
+const TaskEdit = lazyWithRetry(() => import("./pages/TaskEdit"));
+const TasksCalendar = lazyWithRetry(() => import("./pages/TasksCalendar"));
 
 // Tests
-const TestCreation = lazy(() => import("./pages/TestCreation"));
-const TestManagement = lazy(() => import("./pages/TestManagement"));
-const TestEdit = lazy(() => import("./pages/TestEdit"));
-const TakeTest = lazy(() => import("./pages/TakeTest"));
-const TestResult = lazy(() => import("./pages/TestResult"));
+const TestCreation = lazyWithRetry(() => import("./pages/TestCreation"));
+const TestManagement = lazyWithRetry(() => import("./pages/TestManagement"));
+const TestEdit = lazyWithRetry(() => import("./pages/TestEdit"));
+const TakeTest = lazyWithRetry(() => import("./pages/TakeTest"));
+const TestResult = lazyWithRetry(() => import("./pages/TestResult"));
 
 // Documents & Training
-const DocumentDetail = lazy(() => import("./pages/documents/DocumentDetail"));
-const TrainingPrograms = lazy(() => import("./pages/training/TrainingPrograms"));
-const TrainingProgramDetail = lazy(() => import("./pages/training/TrainingProgramDetail"));
+const DocumentDetail = lazyWithRetry(() => import("./pages/documents/DocumentDetail"));
+const TrainingPrograms = lazyWithRetry(() => import("./pages/training/TrainingPrograms"));
+const TrainingProgramDetail = lazyWithRetry(() => import("./pages/training/TrainingProgramDetail"));
 
 // Marketplace
-const MarketplaceBrowse = lazy(() => import("./pages/marketplace/MarketplaceBrowse"));
-const MarketplaceTemplateDetail = lazy(() => import("./pages/marketplace/MarketplaceTemplateDetail"));
-const MarketplacePublish = lazy(() => import("./pages/marketplace/MarketplacePublish"));
-const MyMarketplaceTemplates = lazy(() => import("./pages/marketplace/MyMarketplaceTemplates"));
-const MarketplaceShare = lazy(() => import("./pages/marketplace/MarketplaceShare"));
+const MarketplaceBrowse = lazyWithRetry(() => import("./pages/marketplace/MarketplaceBrowse"));
+const MarketplaceTemplateDetail = lazyWithRetry(() => import("./pages/marketplace/MarketplaceTemplateDetail"));
+const MarketplacePublish = lazyWithRetry(() => import("./pages/marketplace/MarketplacePublish"));
+const MyMarketplaceTemplates = lazyWithRetry(() => import("./pages/marketplace/MyMarketplaceTemplates"));
+const MarketplaceShare = lazyWithRetry(() => import("./pages/marketplace/MarketplaceShare"));
 
 // Mystery Shopper
-const MysteryShopperForm = lazy(() => import("./pages/mystery-shopper/MysteryShopperForm"));
-const VoucherPage = lazy(() => import("./pages/mystery-shopper/VoucherPage"));
-const MysteryShopperTemplates = lazy(() => import("./pages/audits/MysteryShopperTemplates"));
-const MysteryShopperTemplateEditor = lazy(() => import("./pages/audits/MysteryShopperTemplateEditor"));
-const MysteryShopperResults = lazy(() => import("./pages/audits/MysteryShopperResults"));
-const VouchersManagement = lazy(() => import("./pages/audits/VouchersManagement"));
+const MysteryShopperForm = lazyWithRetry(() => import("./pages/mystery-shopper/MysteryShopperForm"));
+const VoucherPage = lazyWithRetry(() => import("./pages/mystery-shopper/VoucherPage"));
+const MysteryShopperTemplates = lazyWithRetry(() => import("./pages/audits/MysteryShopperTemplates"));
+const MysteryShopperTemplateEditor = lazyWithRetry(() => import("./pages/audits/MysteryShopperTemplateEditor"));
+const MysteryShopperResults = lazyWithRetry(() => import("./pages/audits/MysteryShopperResults"));
+const VouchersManagement = lazyWithRetry(() => import("./pages/audits/VouchersManagement"));
 
 // QR Forms
-const QrFormTemplates = lazy(() => import("./pages/qr-forms/QrFormTemplates"));
-const QrFormTemplateEditor = lazy(() => import("./pages/qr-forms/QrFormTemplateEditor"));
-const QrFormAssignments = lazy(() => import("./pages/qr-forms/QrFormAssignments"));
-const QrFormRecords = lazy(() => import("./pages/qr-forms/QrFormRecords"));
-const QrFormEntry = lazy(() => import("./pages/qr-forms/QrFormEntry"));
-const QrFormInspectorView = lazy(() => import("./pages/qr-forms/QrFormInspectorView"));
+const QrFormTemplates = lazyWithRetry(() => import("./pages/qr-forms/QrFormTemplates"));
+const QrFormTemplateEditor = lazyWithRetry(() => import("./pages/qr-forms/QrFormTemplateEditor"));
+const QrFormAssignments = lazyWithRetry(() => import("./pages/qr-forms/QrFormAssignments"));
+const QrFormRecords = lazyWithRetry(() => import("./pages/qr-forms/QrFormRecords"));
+const QrFormEntry = lazyWithRetry(() => import("./pages/qr-forms/QrFormEntry"));
+const QrFormInspectorView = lazyWithRetry(() => import("./pages/qr-forms/QrFormInspectorView"));
 
 // Operations
-const DailyOps = lazy(() => import("./pages/operations/DailyOps"));
-const DailyOpsDetail = lazy(() => import("./pages/operations/DailyOpsDetail"));
-const MaintenanceTasks = lazy(() => import("./pages/operations/MaintenanceTasks"));
-const SLAManagement = lazy(() => import("./pages/operations/SLAManagement"));
+const DailyOps = lazyWithRetry(() => import("./pages/operations/DailyOps"));
+const DailyOpsDetail = lazyWithRetry(() => import("./pages/operations/DailyOpsDetail"));
+const MaintenanceTasks = lazyWithRetry(() => import("./pages/operations/MaintenanceTasks"));
+const SLAManagement = lazyWithRetry(() => import("./pages/operations/SLAManagement"));
 
 // Corrective Actions
-const CorrectiveActionsList = lazy(() => import("./pages/correctiveActions/CorrectiveActionsList"));
-const CorrectiveActionDetail = lazy(() => import("./pages/correctiveActions/CorrectiveActionDetail"));
-const CorrectiveActionRules = lazy(() => import("./pages/correctiveActions/CorrectiveActionRules"));
+const CorrectiveActionsList = lazyWithRetry(() => import("./pages/correctiveActions/CorrectiveActionsList"));
+const CorrectiveActionDetail = lazyWithRetry(() => import("./pages/correctiveActions/CorrectiveActionDetail"));
+const CorrectiveActionRules = lazyWithRetry(() => import("./pages/correctiveActions/CorrectiveActionRules"));
 
 // WhatsApp
-const WhatsAppTemplates = lazy(() => import("./pages/WhatsAppTemplates"));
-const WhatsAppRules = lazy(() => import("./pages/WhatsAppRules"));
-const WhatsAppBroadcast = lazy(() => import("./pages/WhatsAppBroadcast"));
-const WhatsAppLogs = lazy(() => import("./pages/WhatsAppLogs"));
+const WhatsAppTemplates = lazyWithRetry(() => import("./pages/WhatsAppTemplates"));
+const WhatsAppRules = lazyWithRetry(() => import("./pages/WhatsAppRules"));
+const WhatsAppBroadcast = lazyWithRetry(() => import("./pages/WhatsAppBroadcast"));
+const WhatsAppLogs = lazyWithRetry(() => import("./pages/WhatsAppLogs"));
 
 // Scouts (admin)
-const ScoutsOverview = lazy(() => import("./pages/scouts/ScoutsOverview"));
-const ScoutsJobs = lazy(() => import("./pages/scouts/ScoutsJobs"));
-const ScoutsJobNew = lazy(() => import("./pages/scouts/ScoutsJobNew"));
-const ScoutsReview = lazy(() => import("./pages/scouts/ScoutsReview"));
-const ScoutsTemplates = lazy(() => import("./pages/scouts/ScoutsTemplates"));
-const ScoutsJobDetail = lazy(() => import("./pages/scouts/ScoutsJobDetail"));
-const ScoutsPayouts = lazy(() => import("./pages/scouts/ScoutsPayouts"));
-const ScoutsRoster = lazy(() => import("./pages/scouts/ScoutsRoster"));
-const ScoutsAnalytics = lazy(() => import("./pages/scouts/ScoutsAnalytics"));
+const ScoutsOverview = lazyWithRetry(() => import("./pages/scouts/ScoutsOverview"));
+const ScoutsJobs = lazyWithRetry(() => import("./pages/scouts/ScoutsJobs"));
+const ScoutsJobNew = lazyWithRetry(() => import("./pages/scouts/ScoutsJobNew"));
+const ScoutsReview = lazyWithRetry(() => import("./pages/scouts/ScoutsReview"));
+const ScoutsTemplates = lazyWithRetry(() => import("./pages/scouts/ScoutsTemplates"));
+const ScoutsJobDetail = lazyWithRetry(() => import("./pages/scouts/ScoutsJobDetail"));
+const ScoutsPayouts = lazyWithRetry(() => import("./pages/scouts/ScoutsPayouts"));
+const ScoutsRoster = lazyWithRetry(() => import("./pages/scouts/ScoutsRoster"));
+const ScoutsAnalytics = lazyWithRetry(() => import("./pages/scouts/ScoutsAnalytics"));
 
 // Waste admin
-const WasteProducts = lazy(() => import("./pages/admin/waste/WasteProducts"));
-const WasteReasons = lazy(() => import("./pages/admin/waste/WasteReasons"));
-const WasteSettings = lazy(() => import("./pages/admin/waste/WasteSettings"));
-const AdminAddWasteEntry = lazy(() => import("./pages/admin/waste/AdminAddWasteEntry"));
-const AdminWasteEntries = lazy(() => import("./pages/admin/waste/AdminWasteEntries"));
-const WasteReports = lazy(() => import("./pages/reports/WasteReports"));
+const WasteProducts = lazyWithRetry(() => import("./pages/admin/waste/WasteProducts"));
+const WasteReasons = lazyWithRetry(() => import("./pages/admin/waste/WasteReasons"));
+const WasteSettings = lazyWithRetry(() => import("./pages/admin/waste/WasteSettings"));
+const AdminAddWasteEntry = lazyWithRetry(() => import("./pages/admin/waste/AdminAddWasteEntry"));
+const AdminWasteEntries = lazyWithRetry(() => import("./pages/admin/waste/AdminWasteEntries"));
+const WasteReports = lazyWithRetry(() => import("./pages/reports/WasteReports"));
 
 // Agent admin
-const AgentsDashboard = lazy(() => import("./pages/admin/AgentsDashboard"));
-const AgentPolicies = lazy(() => import("./pages/admin/AgentPolicies"));
-const AgentLogs = lazy(() => import("./pages/admin/AgentLogs"));
-const AgentWorkflows = lazy(() => import("./pages/admin/AgentWorkflows"));
-const RunAgent = lazy(() => import("./pages/admin/RunAgent"));
+const AgentsDashboard = lazyWithRetry(() => import("./pages/admin/AgentsDashboard"));
+const AgentPolicies = lazyWithRetry(() => import("./pages/admin/AgentPolicies"));
+const AgentLogs = lazyWithRetry(() => import("./pages/admin/AgentLogs"));
+const AgentWorkflows = lazyWithRetry(() => import("./pages/admin/AgentWorkflows"));
+const RunAgent = lazyWithRetry(() => import("./pages/admin/RunAgent"));
 
 // Platform admin
-const PlatformAdmin = lazy(() => import("./pages/PlatformAdmin"));
-const CompanyDetail = lazy(() => import("./pages/admin/CompanyDetail"));
-const DebugInfo = lazy(() => import("./pages/DebugInfo"));
-const SystemHealthData = lazy(() => import("./pages/debug/SystemHealthData"));
+const PlatformAdmin = lazyWithRetry(() => import("./pages/PlatformAdmin"));
+const CompanyDetail = lazyWithRetry(() => import("./pages/admin/CompanyDetail"));
+const DebugInfo = lazyWithRetry(() => import("./pages/DebugInfo"));
+const SystemHealthData = lazyWithRetry(() => import("./pages/debug/SystemHealthData"));
 
 // Dash
-const DashWorkspace = lazy(() => import("./pages/DashWorkspace"));
-const DashAnalytics = lazy(() => import("./pages/DashAnalytics"));
+const DashWorkspace = lazyWithRetry(() => import("./pages/DashWorkspace"));
+const DashAnalytics = lazyWithRetry(() => import("./pages/DashAnalytics"));
 
 // Kiosk
-const AttendanceKiosk = lazy(() => import("./pages/AttendanceKiosk"));
+const AttendanceKiosk = lazyWithRetry(() => import("./pages/AttendanceKiosk"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -337,7 +338,16 @@ const App = () => {
                 </AuthProvider>
               } />
               
-              {/* All other routes */}
+              {/* Public routes that need auth context for nav (Sign In vs Avatar) */}
+              <Route path="/go" element={<AuthProvider><RouteErrorBoundary><LandingNFX /></RouteErrorBoundary></AuthProvider>} />
+              <Route path="/landing" element={<AuthProvider><RouteErrorBoundary><LandingNFX /></RouteErrorBoundary></AuthProvider>} />
+              <Route path="/full-presentation" element={<AuthProvider><RouteErrorBoundary><FullPresentation /></RouteErrorBoundary></AuthProvider>} />
+              <Route path="/full" element={<AuthProvider><RouteErrorBoundary><FullPresentation /></RouteErrorBoundary></AuthProvider>} />
+              <Route path="/sales-offer" element={<AuthProvider><RouteErrorBoundary><SalesOffer /></RouteErrorBoundary></AuthProvider>} />
+              <Route path="/forgot-password" element={<RouteErrorBoundary><ForgotPassword /></RouteErrorBoundary>} />
+              <Route path="/reset-password" element={<RouteErrorBoundary><ResetPassword /></RouteErrorBoundary>} />
+
+              {/* Auth-aware routes */}
               <Route path="/*" element={
                 <AuthProvider>
                   <AppVisibilityManager />
@@ -346,14 +356,7 @@ const App = () => {
                       <PWAInstallPrompt />
                       <Routes>
                         <Route path="/" element={<RouteErrorBoundary><Index /></RouteErrorBoundary>} />
-                        <Route path="/go" element={<RouteErrorBoundary><LandingNFX /></RouteErrorBoundary>} />
-                        <Route path="/landing" element={<RouteErrorBoundary><LandingNFX /></RouteErrorBoundary>} />
-                        <Route path="/full-presentation" element={<RouteErrorBoundary><FullPresentation /></RouteErrorBoundary>} />
-                        <Route path="/full" element={<RouteErrorBoundary><FullPresentation /></RouteErrorBoundary>} />
-                        <Route path="/sales-offer" element={<RouteErrorBoundary><SalesOffer /></RouteErrorBoundary>} />
                         <Route path="/auth" element={<RouteErrorBoundary><Auth /></RouteErrorBoundary>} />
-                        <Route path="/forgot-password" element={<RouteErrorBoundary><ForgotPassword /></RouteErrorBoundary>} />
-                        <Route path="/reset-password" element={<RouteErrorBoundary><ResetPassword /></RouteErrorBoundary>} />
                         <Route path="/staff-login" element={<RouteErrorBoundary><StaffLogin /></RouteErrorBoundary>} />
                         
                         {/* Staff portal */}

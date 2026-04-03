@@ -10,23 +10,38 @@ interface Props {
 interface State {
   hasError: boolean;
   error?: Error;
+  showErrorUI: boolean;
 }
 
 export class ErrorBoundary extends Component<Props, State> {
+  private delayTimer: ReturnType<typeof setTimeout> | null = null;
+
   public state: State = {
-    hasError: false
+    hasError: false,
+    showErrorUI: false,
   };
 
-  public static getDerivedStateFromError(error: Error): State {
+  public static getDerivedStateFromError(error: Error): Partial<State> {
     return { hasError: true, error };
   }
 
   public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     console.error('Error boundary caught an error:', error, errorInfo);
+
+    // Delay showing the error UI — transient chunk/DOM errors often resolve on reload
+    this.delayTimer = setTimeout(() => {
+      if (this.state.hasError) {
+        this.setState({ showErrorUI: true });
+      }
+    }, 2000);
+  }
+
+  public componentWillUnmount() {
+    if (this.delayTimer) clearTimeout(this.delayTimer);
   }
 
   private handleReset = () => {
-    this.setState({ hasError: false, error: undefined });
+    this.setState({ hasError: false, error: undefined, showErrorUI: false });
     window.location.href = '/dashboard';
   };
 
@@ -36,6 +51,11 @@ export class ErrorBoundary extends Component<Props, State> {
 
   public render() {
     if (this.state.hasError) {
+      if (!this.state.showErrorUI) {
+        // Show nothing for 2s while we wait to see if the error is transient
+        return null;
+      }
+
       return (
         <div className="min-h-screen flex items-center justify-center bg-background p-4">
           <div className="max-w-md w-full">

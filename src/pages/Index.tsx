@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import LandingNFX from "./LandingNFX";
 import { useCompanyContext } from "@/contexts/CompanyContext";
+import LandingNFX from "./LandingNFX";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertTriangle, RefreshCw } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
@@ -19,7 +19,10 @@ const Index = () => {
   const navigate = useNavigate();
   const [loadingTooLong, setLoadingTooLong] = useState(false);
 
-  const isLoading = loading || companyLoading || !staffCheckComplete;
+  // For anonymous visitors, only wait for auth loading
+  const isLoading = user
+    ? loading || companyLoading || !staffCheckComplete
+    : loading;
 
   const redirectTarget = useMemo(() => {
     if (!user || isAccountPaused) return null;
@@ -66,7 +69,7 @@ const Index = () => {
                   if ('serviceWorker' in navigator) {
                     navigator.serviceWorker.getRegistrations().then(regs => regs.forEach(r => r.unregister()));
                   }
-                  window.location.href = window.location.pathname + '?resetApp=1';
+                  window.location.href = '/?resetApp=1';
                 }}
               >
                 <RefreshCw className="mr-2 h-4 w-4" />
@@ -79,7 +82,7 @@ const Index = () => {
     );
   }
 
-  // Show account paused state
+  // Show account paused state (only when user exists and company data loaded)
   if (user && isAccountPaused) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background p-4">

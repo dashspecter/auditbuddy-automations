@@ -2832,7 +2832,6 @@ export type Database = {
           parts_cost: number | null
           priority: string
           procedure_id: string | null
-          project_id: string | null
           started_at: string | null
           status: string
           title: string
@@ -2862,7 +2861,6 @@ export type Database = {
           parts_cost?: number | null
           priority?: string
           procedure_id?: string | null
-          project_id?: string | null
           started_at?: string | null
           status?: string
           title: string
@@ -2892,7 +2890,6 @@ export type Database = {
           parts_cost?: number | null
           priority?: string
           procedure_id?: string | null
-          project_id?: string | null
           started_at?: string | null
           status?: string
           title?: string
@@ -6337,9 +6334,6 @@ export type Database = {
           company_id: string
           created_at: string
           created_by: string
-          geofence_lat: number | null
-          geofence_lon: number | null
-          geofence_radius_meters: number | null
           id: string
           latitude: number | null
           longitude: number | null
@@ -6349,7 +6343,6 @@ export type Database = {
           status: string
           type: string | null
           updated_at: string
-          zone_id: string | null
         }
         Insert: {
           address?: string | null
@@ -6357,9 +6350,6 @@ export type Database = {
           company_id: string
           created_at?: string
           created_by: string
-          geofence_lat?: number | null
-          geofence_lon?: number | null
-          geofence_radius_meters?: number | null
           id?: string
           latitude?: number | null
           longitude?: number | null
@@ -6369,7 +6359,6 @@ export type Database = {
           status?: string
           type?: string | null
           updated_at?: string
-          zone_id?: string | null
         }
         Update: {
           address?: string | null
@@ -6377,9 +6366,6 @@ export type Database = {
           company_id?: string
           created_at?: string
           created_by?: string
-          geofence_lat?: number | null
-          geofence_lon?: number | null
-          geofence_radius_meters?: number | null
           id?: string
           latitude?: number | null
           longitude?: number | null
@@ -6389,7 +6375,6 @@ export type Database = {
           status?: string
           type?: string | null
           updated_at?: string
-          zone_id?: string | null
         }
         Relationships: [
           {
@@ -6397,13 +6382,6 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "locations_zone_id_fkey"
-            columns: ["zone_id"]
-            isOneToOne: false
-            referencedRelation: "gov_zones"
             referencedColumns: ["id"]
           },
         ]
