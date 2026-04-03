@@ -172,7 +172,7 @@ export function useGovSiteCheckin() {
         .single();
 
       if (error) throw error;
-      return { success: true, checkin: data as GovSiteCheckin };
+      return { success: true, checkin: data as unknown as GovSiteCheckin };
     },
     onSuccess: (result, variables) => {
       if (result.success) {
