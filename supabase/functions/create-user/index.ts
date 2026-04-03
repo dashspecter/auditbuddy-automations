@@ -80,9 +80,19 @@ serve(async (req) => {
         throw new Error('Insufficient permissions');
       }
 
-      // Check if user already exists
-      const { data: listData } = await supabaseAdmin.auth.admin.listUsers({ perPage: 1, page: 1 });
-      const existingUser = listData?.users?.find((u: any) => u.email === email) ?? null;
+      // Check if user already exists — query profiles table (public schema, no pagination issues)
+      // then fetch the auth user by id to confirm
+      const { data: existingProfile } = await supabaseAdmin
+        .from('profiles')
+        .select('id')
+        .eq('email', email)
+        .maybeSingle();
+
+      let existingUser: any = null;
+      if (existingProfile) {
+        const { data: userData } = await supabaseAdmin.auth.admin.getUserById(existingProfile.id);
+        existingUser = userData?.user ?? null;
+      }
 
       let targetUserId: string;
 
@@ -179,9 +189,18 @@ serve(async (req) => {
 
       // User invites are no longer limited by employee count — that limit applies to workforce employees only
 
-      // Check if user already exists
-      const { data: listData2 } = await supabaseAdmin.auth.admin.listUsers({ perPage: 1, page: 1 });
-      const existingUser = listData2?.users?.find((u: any) => u.email === email) ?? null;
+      // Check if user already exists — same reliable profiles-table approach
+      const { data: existingProfileInvite } = await supabaseAdmin
+        .from('profiles')
+        .select('id')
+        .eq('email', email)
+        .maybeSingle();
+
+      let existingUser: any = null;
+      if (existingProfileInvite) {
+        const { data: userData } = await supabaseAdmin.auth.admin.getUserById(existingProfileInvite.id);
+        existingUser = userData?.user ?? null;
+      }
 
       let targetUserId: string;
 
