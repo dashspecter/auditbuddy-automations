@@ -317,7 +317,7 @@ export const WorkforceAnalytics = ({ locationId, period = "month", showDateFilte
             Top Performers
           </CardTitle>
           <CardDescription>
-            Highest performing employees this period
+            {format(dateFrom, "MMM d")} – {format(dateTo, "MMM d, yyyy")}
           </CardDescription>
         </CardHeader>
         <CardContent>
