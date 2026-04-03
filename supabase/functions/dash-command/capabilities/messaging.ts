@@ -110,8 +110,8 @@ export async function sendWhatsappMessageDraft(
   sb: any, sbService: any, companyId: string, userId: string,
   args: any, structuredEvents: string[], ctx: PermissionContext
 ): Promise<CapabilityResult<any>> {
-  const permCheck = checkCapabilityPermission(ctx, "create", "whatsapp_messaging");
-  if (!permCheck.allowed) return capabilityError(permCheck.reason ?? "Permission denied.");
+  const permCheck = checkCapabilityPermission({ action: "create", module: "whatsapp_messaging", ctx });
+  if (!permCheck.ok) return permCheck;
 
   if (!args.template_name && !args.template_id) return capabilityError("Provide template_name or template_id.");
 
