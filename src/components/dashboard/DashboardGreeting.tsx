@@ -40,27 +40,21 @@ export const DashboardGreeting = () => {
   const lastLogin = profile?.last_login;
 
   return (
-    <Card className="p-6 bg-gradient-to-r from-primary/5 via-primary/10 to-primary/5 border-primary/20">
-      <div className="flex items-center justify-between">
-        <div className="flex-1">
-          <div className="flex items-center gap-3 mb-2">
-            <div className="bg-primary/10 p-2 rounded-full">
-              <User className="h-5 w-5 text-primary" />
-            </div>
-            <h3 className="text-2xl font-bold text-foreground">
-              {getGreeting()}, {displayName}!
-            </h3>
-          </div>
-          {lastLogin && (
-            <div className="flex items-center gap-2 text-sm text-muted-foreground ml-11">
-              <Calendar className="h-4 w-4" />
-              <span>
-                {t("dashboard.greeting.lastLogin")} {" "}
-                {formatDistanceToNow(new Date(lastLogin), { addSuffix: true })}
-              </span>
-            </div>
-          )}
+    <Card className="p-3 bg-gradient-to-r from-primary/5 via-primary/10 to-primary/5 border-primary/20">
+      <div className="flex items-center gap-2">
+        <div className="bg-primary/10 p-1.5 rounded-full">
+          <User className="h-4 w-4 text-primary" />
         </div>
+        <span className="text-base font-medium text-foreground">
+          {getGreeting()}, {displayName}!
+        </span>
+        {lastLogin && (
+          <span className="text-xs text-muted-foreground ml-auto flex items-center gap-1">
+            <Calendar className="h-3 w-3" />
+            {t("dashboard.greeting.lastLogin")}{" "}
+            {formatDistanceToNow(new Date(lastLogin), { addSuffix: true })}
+          </span>
+        )}
       </div>
     </Card>
   );
