@@ -76,7 +76,7 @@ export function useUpdateMilestone() {
         .select()
         .single();
       if (error) throw error;
-      return { ...data, project_id } as unknown as ProjectMilestone;
+      return { ...(data as any), project_id } as unknown as ProjectMilestone;
     },
     onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ['project-milestones', result.project_id] });

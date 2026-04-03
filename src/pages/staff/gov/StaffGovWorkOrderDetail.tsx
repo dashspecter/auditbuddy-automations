@@ -163,7 +163,7 @@ export default function StaffGovWorkOrderDetail() {
               </div>
               {checklist.map((step) => {
                 const resp = getStepResponse(step.key);
-                const isCompleted = resp?.response_json?.completed ?? false;
+                const isCompleted = (resp?.response_json as any)?.completed ?? false;
                 return (
                   <div key={step.key} className="flex items-start gap-3">
                     <Checkbox
