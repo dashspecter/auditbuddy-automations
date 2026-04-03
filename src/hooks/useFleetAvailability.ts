@@ -106,7 +106,7 @@ export function useFleetAvailability(daysAhead = 14) {
           .from('gov_projects' as any)
           .select('id, title, project_number')
           .in('id', allProjectIds);
-        for (const p of projects || []) {
+        for (const p of (projects || []) as any[]) {
           projectMap[p.id] = { title: p.title, project_number: p.project_number };
         }
       }
