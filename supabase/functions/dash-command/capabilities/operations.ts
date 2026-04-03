@@ -2248,8 +2248,8 @@ export async function createPmPlanDraft(
   sb: any, sbService: any, companyId: string, userId: string,
   args: any, structuredEvents: string[], ctx: PermissionContext
 ): Promise<CapabilityResult<any>> {
-  const permCheck = checkCapabilityPermission(ctx, "create", "cmms");
-  if (!permCheck.allowed) return capabilityError(permCheck.reason ?? "Permission denied.");
+  const permCheck = checkCapabilityPermission({ action: "create", module: "cmms", ctx });
+  if (!permCheck.ok) return permCheck;
 
   if (!args.name) return capabilityError("name is required.");
   if (!args.frequency_type) return capabilityError("frequency_type is required (daily/weekly/monthly/quarterly/yearly/cycles).");
