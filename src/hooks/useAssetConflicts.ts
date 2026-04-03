@@ -45,7 +45,7 @@ export function useAssetConflicts(
 
       // ── 1. Overlapping reservations ──────────────────────────────────────
       // Overlap condition: existing.start_date <= new.end_date AND existing.end_date >= new.start_date
-      let resQuery = supabase
+      let resQuery = (supabase as any)
         .from('gov_asset_reservations')
         .select(`
           id, start_date, end_date, status, notes,
