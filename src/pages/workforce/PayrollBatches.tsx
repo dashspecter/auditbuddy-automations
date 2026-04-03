@@ -352,10 +352,10 @@ export default function PayrollBatches() {
 
               {/* Legend */}
               <div className="flex flex-wrap gap-3 text-xs text-muted-foreground border rounded-md p-2.5 bg-muted/30">
-                <span className="flex items-center gap-1"><span className="inline-block w-2 h-2 rounded-full bg-green-500" />OK — pay agreed salary</span>
-                <span className="flex items-center gap-1"><span className="inline-block w-2 h-2 rounded-full bg-blue-500" />Extra — additional payment</span>
-                <span className="flex items-center gap-1"><span className="inline-block w-2 h-2 rounded-full bg-amber-500" />Review — late/partial/early flags</span>
-                <span className="flex items-center gap-1"><span className="inline-block w-2 h-2 rounded-full bg-red-500" />Adjust — missing or absent shifts</span>
+                <span className="flex items-center gap-1"><span className="inline-block w-2 h-2 rounded-full bg-green-500" />OK — pay agreed salary as-is</span>
+                <span className="flex items-center gap-1"><span className="inline-block w-2 h-2 rounded-full bg-blue-500" />Extra — worked unscheduled extra days (additional payment)</span>
+                <span className="flex items-center gap-1"><span className="inline-block w-2 h-2 rounded-full bg-amber-500" />Review — late / partial / early dep / OT / cross-loc (review before finalising)</span>
+                <span className="flex items-center gap-1"><span className="inline-block w-2 h-2 rounded-full bg-red-500" />Adjust — missing or absent shifts (pay needs adjustment)</span>
               </div>
 
               <h4 className="font-medium">{`${employeesLabel} Breakdown`}</h4>
@@ -379,7 +379,10 @@ export default function PayrollBatches() {
                               <TooltipTrigger className="flex items-center gap-1 mx-auto">
                                 <Calendar className="h-3 w-3" /><span>Days</span>
                               </TooltipTrigger>
-                              <TooltipContent>Total days worked</TooltipContent>
+                              <TooltipContent className="max-w-[220px]">
+                                <p className="font-medium mb-1">Days Worked</p>
+                                <p className="text-xs">Scheduled shifts the employee showed up for — includes partial shifts (came in but left early or arrived late). Does NOT include vacation or leave days (tracked separately).</p>
+                              </TooltipContent>
                             </Tooltip>
                           </TableHead>
                           <TableHead className="text-center">
@@ -468,10 +471,20 @@ export default function PayrollBatches() {
                       </TableHeader>
                       <TableBody>
                         {enhancedDetails.map((emp) => {
-                          // Compute pay status
+                          // Pay Status logic:
+                          // Adjust (red)  = missing or absent shifts — pay needs manual intervention
+                          // Extra (blue)  = worked unscheduled extra days → additional payment needed
+                          // Review (amber) = late / partial / early dep / OT / cross-loc — review before finalising
+                          // OK (green)    = nothing to flag, pay agreed salary
                           const hasAdjust = emp.missing_no_reason > 0 || emp.absent_days > 0;
-                          const hasExtra = !hasAdjust && (emp.extra_schedule_days > 0 || emp.overtime_hours > 0);
-                          const hasReview = !hasAdjust && !hasExtra && (emp.partial_count > 0 || emp.late_count > 0 || emp.early_departure_days > 0);
+                          const hasExtra = !hasAdjust && emp.extra_schedule_days > 0;
+                          const hasReview = !hasAdjust && !hasExtra && (
+                            emp.partial_count > 0 ||
+                            emp.late_count > 0 ||
+                            emp.early_departure_days > 0 ||
+                            emp.overtime_hours > 0 ||
+                            emp.extra_location_days > 0
+                          );
                           const statusBadge = hasAdjust
                             ? <Badge variant="destructive" className="text-[10px] px-1.5 py-0">Adjust</Badge>
                             : hasExtra
