@@ -82,7 +82,7 @@ export function useAssetConflicts(
       // We treat a WO as conflicting if:
       //   - it's not Done/Cancelled
       //   - its due_at is within [startDate, endDate], OR it's InProgress (no end known)
-      const { data: workOrders } = await supabase
+      const { data: workOrders } = await (supabase as any)
         .from('cmms_work_orders')
         .select(`
           id, wo_number, title, status, due_at, started_at,
