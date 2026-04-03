@@ -1,34 +1,36 @@
 
 
-# Fix: Kiosk Task List Showing Empty Despite Tasks Existing
+# Fix Password Reset + Build Errors
+
+## Problem
+The "Reset Password" action fails with "Edge Function returned a non-2xx status code" because the edge functions **cannot deploy** — there are TypeScript build errors in 4 dash-command capability files that block deployment of ALL edge functions (they share a build context).
 
 ## Root Cause
+Four files still use the **old 3-argument** `checkCapabilityPermission(ctx, action, module)` signature with `.allowed`/`.reason` properties, but the function was refactored to use an **object-based** signature `checkCapabilityPermission({ action, module, ctx })` with `.ok` property.
 
-The KPI header correctly shows 11 pending tasks (9 overdue), but the task list below says "No tasks scheduled for today". This is because `tasksByRole` (line 592-597) **deletes role groups where no on-shift employees match the role**.
+## Fix — Update 4 Files
 
-With only 1 employee scheduled today (Iulian Constantin), all tasks assigned to other roles (e.g., Shift Manager, Barista, etc.) get their groups removed from the display — even though they're counted in the KPIs.
-
-This is a pre-existing logic flaw, not caused by recent changes.
-
-## Fix
-
-**File: `src/components/kiosk/KioskDashboard.tsx`** — lines 592-597
-
-Remove the block that deletes role groups with no matching employees:
-
+All changes follow the same pattern — convert every call site from:
 ```typescript
-// REMOVE THIS BLOCK (lines 592-597):
-Object.keys(roleGroups).forEach(roleName => {
-  if (roleName !== "General" && roleGroups[roleName].employees.length === 0) {
-    delete roleGroups[roleName];
-  }
-});
+// OLD (broken)
+const permCheck = checkCapabilityPermission(ctx, "create", "module_name");
+if (!permCheck.allowed) return capabilityError(permCheck.reason ?? "Permission denied.");
+```
+to:
+```typescript
+// NEW (correct)
+const permCheck = checkCapabilityPermission({ action: "create", module: "module_name", ctx });
+if (!permCheck.ok) return permCheck;
 ```
 
-Tasks assigned to roles with no one on shift should still be **visible** in the list — they just won't show employee names next to the role header. This matches what the KPI counts already report and ensures the task list is consistent with the header numbers.
+### Files and call counts:
+1. **`supabase/functions/dash-command/capabilities/marketplace.ts`** — 2 calls (lines 56-57, 114-115)
+2. **`supabase/functions/dash-command/capabilities/messaging.ts`** — 4 calls (lines 113-114, 205-206, 257-258, 306-307)
+3. **`supabase/functions/dash-command/capabilities/operations.ts`** — 6 calls (lines 2251-2252, 2321-2322, 2487-2488, 2552-2553, 2674-2675, 2724-2725)
+4. **`supabase/functions/dash-command/capabilities/scouts.ts`** — 2 calls (lines 339-340, 404-405)
 
-## Impact
-- Only the `tasksByRole` grouping logic changes — a 5-line deletion
-- KPIs, champions, attendance, MTD scores — all untouched
-- No hook, routing, or auth changes
+## Result
+- Build errors resolved → edge functions deploy successfully
+- Password reset via `update-user` function works again
+- No changes to permissions logic, auth flow, kiosk, dashboard, or any UI components
 
