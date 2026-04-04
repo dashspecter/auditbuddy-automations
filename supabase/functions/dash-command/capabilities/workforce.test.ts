@@ -23,7 +23,7 @@ function makeMockSb(overrides: Record<string, any> = {}) {
     gte: (..._args: any[]) => chainable(result),
     lte: (..._args: any[]) => chainable(result),
     maybeSingle: async () => result,
-    then: undefined,
+    then: (resolve: any) => Promise.resolve({ data: result, error: null }).then(resolve),
     [Symbol.asyncIterator]: undefined,
     // Terminal: resolve
     async [Symbol.toPrimitive]() { return result; },
