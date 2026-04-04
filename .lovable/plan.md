@@ -1,41 +1,83 @@
 
 
-# Fix: Key Icon Not Showing After Login Account Creation
+# Fix: Password Not Sent During New Employee Account Creation
 
 ## Root Cause
-The login account **is being created successfully** — the database confirms `user_id` is set for Grecea Alexandru, and the toast says "Login account created successfully!". The problem is a **stale UI**: after the `create-user` edge function succeeds, the code never invalidates the employees query cache, so the StaffTable keeps showing old data (no key icon). A hard page refresh would show the icon.
+
+When creating a **new employee** with the "Create login account" checkbox checked, the `create-user` call on line 335-340 sends only `{ email, full_name, employeeId }` — **the password is never included**.
+
+The password input field + "Create Login Account" button only exist in the **edit dialog** path (lines 813-866), not in the new employee creation flow. So when the checkbox is checked during new creation:
+1. No password input is shown to the user
+2. The backend receives no password and generates `crypto.randomUUID()` as a random one
+3. The user has no way to know this password, so login fails with "Invalid credentials"
 
 ## Fix — `src/components/EmployeeDialog.tsx`
 
-Add `queryClient` (from `useQueryClient`) and invalidate the employee queries after successful login account creation in **both** code paths:
+Two changes needed:
 
-1. **Import**: Add `useQueryClient` from `@tanstack/react-query` (already imported in the file for other hooks — verify and add if missing)
+### 1. Show password input when "Create login account" is checked (new employee)
 
-2. **Hook**: Add `const queryClient = useQueryClient();` near the other hooks at the top of the component
+After the checkbox section (~line 785), add a password input that appears when `createUserAccount` is true and `!employee`:
 
-3. **New employee path** (around line 348, after `toast.success`):
-   ```typescript
-   queryClient.invalidateQueries({ queryKey: ["employees"] });
-   queryClient.invalidateQueries({ queryKey: ["employees-paginated"] });
-   queryClient.invalidateQueries({ queryKey: ["employees-cursor"] });
-   ```
+```tsx
+{!employee && createUserAccount && (
+  <div className="pl-4">
+    <Label htmlFor="newEmployeePassword" className="text-sm font-medium">
+      Password for Login Account
+    </Label>
+    <Input
+      id="newEmployeePassword"
+      type="password"
+      placeholder="Enter password (min 6 characters)"
+      value={formData.newUserPassword || ''}
+      onChange={(e) => setFormData(prev => ({ ...prev, newUserPassword: e.target.value }))}
+      className="mt-1"
+    />
+    <p className="text-xs text-muted-foreground mt-1">
+      Minimum 6 characters
+    </p>
+  </div>
+)}
+```
 
-4. **Edit dialog "Create Login Account" button** (around line 848, after `toast.success`):
-   ```typescript
-   queryClient.invalidateQueries({ queryKey: ["employees"] });
-   queryClient.invalidateQueries({ queryKey: ["employees-paginated"] });
-   queryClient.invalidateQueries({ queryKey: ["employees-cursor"] });
-   ```
+### 2. Include password in the create-user call (line 335-340)
 
-This matches the exact same invalidation pattern already used by `useCreateEmployee`, `useUpdateEmployee`, and `useDeleteEmployee` in `src/hooks/useEmployees.ts`.
+Change the body from:
+```typescript
+body: {
+  email: formData.email,
+  full_name: formData.full_name,
+  employeeId: newEmployee.id
+}
+```
+to:
+```typescript
+body: {
+  email: formData.email,
+  full_name: formData.full_name,
+  password: formData.newUserPassword || undefined,
+  employeeId: newEmployee.id
+}
+```
+
+### 3. Add validation — require password when creating login account
+
+In `handleSubmit`, right before the `create-user` call (~line 333), add:
+```typescript
+if (createUserAccount && (!formData.newUserPassword || formData.newUserPassword.length < 6)) {
+  toast.error("Password must be at least 6 characters to create a login account");
+  return;
+}
+```
 
 ## What does NOT change
-- No edge function changes
+- No edge function changes (backend already accepts optional `password`)
 - No database changes
-- No auth flow changes
-- No StaffTable changes
-- No other component changes
+- No edit dialog changes (that path already works correctly)
+- No auth flow or routing changes
 
 ## Result
-After creating a login account (either during new employee creation or via the edit dialog), the employee list immediately refreshes and the key icon appears without needing a page reload.
+- New employee creation shows a password field when "Create login account" is checked
+- The password is sent to the backend and used for the auth account
+- The employee can immediately log in with the email + password they were given
 
