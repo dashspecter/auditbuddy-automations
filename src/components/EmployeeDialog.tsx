@@ -44,6 +44,7 @@ export const EmployeeDialog = ({
   locations,
 }: EmployeeDialogProps) => {
   const term = useTerminology();
+  const queryClient = useQueryClient();
   const [formData, setFormData] = useState({
     full_name: "",
     location_id: "", // Primary location
