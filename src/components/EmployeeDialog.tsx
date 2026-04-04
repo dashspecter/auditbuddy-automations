@@ -790,6 +790,26 @@ export const EmployeeDialog = ({
             </div>
           )}
 
+          {/* Password input for new employee login account */}
+          {!employee && createUserAccount && (
+            <div className="pl-4">
+              <Label htmlFor="newEmployeePassword" className="text-sm font-medium">
+                Password for Login Account
+              </Label>
+              <Input
+                id="newEmployeePassword"
+                type="password"
+                placeholder="Enter password (min 6 characters)"
+                value={formData.newUserPassword || ''}
+                onChange={(e) => setFormData(prev => ({ ...prev, newUserPassword: e.target.value }))}
+                className="mt-1"
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                Minimum 6 characters
+              </p>
+            </div>
+          )}
+
           {/* Show user account status for existing employees */}
           {employee && (
             <div className="p-4 bg-muted/50 rounded-lg space-y-3">
