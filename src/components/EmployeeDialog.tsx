@@ -883,7 +883,15 @@ export const EmployeeDialog = ({
                           console.error("Failed to create user account:", data.error);
                           toast.error(`Failed to create login account: ${data.error}`);
                         } else {
-                          toast.success("Login account created successfully!");
+                          const action = data?.action || 'created_new';
+                          const loginEmail = data?.loginEmail || formData.email;
+                          if (action === 'already_linked') {
+                            toast.success(`Already has a login account (${loginEmail}).`);
+                          } else if (action === 'linked_existing') {
+                            toast.success(`Linked to existing account (${loginEmail}).`);
+                          } else {
+                            toast.success("Login account created successfully!");
+                          }
                           queryClient.invalidateQueries({ queryKey: ["employees"] });
                           queryClient.invalidateQueries({ queryKey: ["employees-paginated"] });
                           queryClient.invalidateQueries({ queryKey: ["employees-cursor"] });
