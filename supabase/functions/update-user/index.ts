@@ -80,7 +80,7 @@ serve(async (req) => {
     }
 
     const body = await req.json();
-    const { userId, email, fullName, password } = body;
+    const { userId, email, fullName, password, employeeId } = body;
 
     if (!userId || typeof userId !== 'string') {
       return new Response(
@@ -97,6 +97,41 @@ serve(async (req) => {
         JSON.stringify({ error: 'User account not found. The employee may not have a login account yet. Please create one first.' }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 404 }
       );
+    }
+
+    // Cross-verify employee linkage when employeeId is provided
+    if (employeeId) {
+      const { data: empRecord, error: empError } = await supabaseAdmin
+        .from('employees')
+        .select('id, user_id, email')
+        .eq('id', employeeId)
+        .single();
+
+      if (empError || !empRecord) {
+        console.error('Employee not found for cross-check:', employeeId);
+        return new Response(
+          JSON.stringify({ error: 'Employee record not found for verification.' }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 404 }
+        );
+      }
+
+      if (empRecord.user_id !== userId) {
+        console.error('Employee/user mismatch:', { employeeId, employeeUserId: empRecord.user_id, requestedUserId: userId });
+        return new Response(
+          JSON.stringify({ error: 'Employee is not linked to this login account. Please re-link the account first.' }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+        );
+      }
+
+      // Verify auth email matches employee email
+      if (empRecord.email && targetUserData.user.email &&
+          empRecord.email.toLowerCase() !== targetUserData.user.email.toLowerCase()) {
+        console.error('Email mismatch:', { employeeEmail: empRecord.email, authEmail: targetUserData.user.email });
+        return new Response(
+          JSON.stringify({ error: `Email mismatch: employee email (${empRecord.email}) does not match login email (${targetUserData.user.email}). Please fix the linkage first.` }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+        );
+      }
     }
 
     // Update password if provided

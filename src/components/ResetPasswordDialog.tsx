@@ -73,7 +73,8 @@ export function ResetPasswordDialog({ open, onOpenChange, employee }: ResetPassw
       const { data, error } = await supabase.functions.invoke('update-user', {
         body: {
           userId: employee.user_id,
-          password: password
+          password: password,
+          employeeId: employee.id
         }
       });
 
