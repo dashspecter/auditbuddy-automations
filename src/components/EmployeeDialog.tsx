@@ -331,11 +331,16 @@ export const EmployeeDialog = ({
       
       // If create user account is checked and email is provided, create auth user
       if (createUserAccount && formData.email && newEmployee) {
+        if (!formData.newUserPassword || formData.newUserPassword.length < 6) {
+          toast.error("Password must be at least 6 characters to create a login account");
+          return;
+        }
         try {
           const { data, error } = await supabase.functions.invoke('create-user', {
             body: {
               email: formData.email,
               full_name: formData.full_name,
+              password: formData.newUserPassword,
               employeeId: newEmployee.id
             }
           });
