@@ -151,7 +151,7 @@ serve(async (req) => {
 
         // Update password if provided so the entered password actually works
         if (password) {
-          await supabaseAdmin.auth.admin.updateUser(targetUserId, { password });
+          await supabaseAdmin.auth.admin.updateUserById(targetUserId, { password });
           console.log('Password updated for existing account');
         }
       } else {
