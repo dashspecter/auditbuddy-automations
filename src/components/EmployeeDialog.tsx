@@ -232,6 +232,11 @@ export const EmployeeDialog = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (!formData.full_name || !formData.location_id || !formData.role) {
+      toast.error("Full name, location, and role are required");
+      return;
+    }
     
     // Destructure to exclude non-database fields from submission
     const { newUserPassword, ...formDataWithoutPassword } = formData;
