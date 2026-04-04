@@ -1,31 +1,41 @@
 
 
-# Fix Employee Creation Error + Build Error
+# Fix: Key Icon Not Showing After Login Account Creation
 
-## Problem 1: Employee creation fails with "invalid input syntax for type uuid"
+## Root Cause
+The login account **is being created successfully** — the database confirms `user_id` is set for Grecea Alexandru, and the toast says "Login account created successfully!". The problem is a **stale UI**: after the `create-user` edge function succeeds, the code never invalidates the employees query cache, so the StaffTable keeps showing old data (no key icon). A hard page refresh would show the icon.
 
-**Root cause**: The `employees` table has `location_id uuid NOT NULL` and `role text NOT NULL`. When the user doesn't select a location or role, the form sends `location_id: ""` and `role: ""` to the database. An empty string `""` is not a valid UUID, causing the Postgres error.
+## Fix — `src/components/EmployeeDialog.tsx`
 
-**Fix in `src/components/EmployeeDialog.tsx`** (~line 233-240 in `handleSubmit`):
-- Add validation at the top of `handleSubmit`: if `formData.full_name` is empty, or `formData.location_id` is empty, or `formData.role` is empty, show a toast error ("Full name, location, and role are required") and return early
-- This prevents the invalid empty-string UUID from ever reaching the database
+Add `queryClient` (from `useQueryClient`) and invalidate the employee queries after successful login account creation in **both** code paths:
 
-## Problem 2: Build errors in `workforce.test.ts`
+1. **Import**: Add `useQueryClient` from `@tanstack/react-query` (already imported in the file for other hooks — verify and add if missing)
 
-**Root cause**: The mock `chainable()` function doesn't have a `data` property, but the tests destructure `{ data: empData }` from the result. The mock needs to make the chain thenable and resolve to `{ data: result }`.
+2. **Hook**: Add `const queryClient = useQueryClient();` near the other hooks at the top of the component
 
-**Fix in `supabase/functions/dash-command/capabilities/workforce.test.ts`** (~line 16-30):
-- Add a proper `.then` method to `chainable` so that when awaited, it resolves to `{ data: result, error: null }` instead of the raw chainable object
-- Change `then: undefined` to a real `.then` implementation: `then: (resolve: any) => Promise.resolve({ data: result, error: null }).then(resolve)`
+3. **New employee path** (around line 348, after `toast.success`):
+   ```typescript
+   queryClient.invalidateQueries({ queryKey: ["employees"] });
+   queryClient.invalidateQueries({ queryKey: ["employees-paginated"] });
+   queryClient.invalidateQueries({ queryKey: ["employees-cursor"] });
+   ```
+
+4. **Edit dialog "Create Login Account" button** (around line 848, after `toast.success`):
+   ```typescript
+   queryClient.invalidateQueries({ queryKey: ["employees"] });
+   queryClient.invalidateQueries({ queryKey: ["employees-paginated"] });
+   queryClient.invalidateQueries({ queryKey: ["employees-cursor"] });
+   ```
+
+This matches the exact same invalidation pattern already used by `useCreateEmployee`, `useUpdateEmployee`, and `useDeleteEmployee` in `src/hooks/useEmployees.ts`.
 
 ## What does NOT change
-- No database schema changes
-- No hook changes
-- No auth/routing/permission changes
-- No other components modified
+- No edge function changes
+- No database changes
+- No auth flow changes
+- No StaffTable changes
+- No other component changes
 
 ## Result
-- Employee creation shows a clear validation message when location/role are missing
-- Build errors in workforce.test.ts resolved
-- Everything else untouched
+After creating a login account (either during new employee creation or via the edit dialog), the employee list immediately refreshes and the key icon appears without needing a page reload.
 
