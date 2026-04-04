@@ -7,25 +7,17 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
-  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    // Create Supabase admin client with service role
     const supabaseAdmin = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
-      {
-        auth: {
-          autoRefreshToken: false,
-          persistSession: false
-        }
-      }
+      { auth: { autoRefreshToken: false, persistSession: false } }
     );
 
-    // Verify the requesting user is authenticated
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
       throw new Error('No authorization header');
@@ -35,14 +27,8 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_ANON_KEY') ?? '',
       {
-        auth: {
-          persistSession: false
-        },
-        global: {
-          headers: {
-            Authorization: authHeader
-          }
-        }
+        auth: { persistSession: false },
+        global: { headers: { Authorization: authHeader } }
       }
     );
 
@@ -51,18 +37,17 @@ serve(async (req) => {
       throw new Error('Unauthorized');
     }
 
-    // Get request body
     const { email, password, role, full_name, companyId, companyRole, employeeId } = await req.json();
 
     console.log('Received request:', { email, role, companyRole, companyId, employeeId, hasPassword: !!password });
 
-    // For employee account creation
+    // ─── EMPLOYEE ACCOUNT CREATION ───
     if (employeeId) {
       if (!email || !full_name) {
         throw new Error('Missing required fields: email, full_name');
       }
 
-      // Check if requesting user is a manager, admin, or company admin/owner
+      // Permission check
       const { data: roles } = await supabaseAdmin
         .from('user_roles')
         .select('role')
@@ -75,53 +60,109 @@ serve(async (req) => {
 
       const hasPlatformPermission = roles?.some(r => r.role === 'admin' || r.role === 'manager');
       const hasCompanyPermission = companyRoles?.some(r => r.company_role === 'company_owner' || r.company_role === 'company_admin');
-      
+
       if (!hasPlatformPermission && !hasCompanyPermission) {
         throw new Error('Insufficient permissions');
       }
 
-      // Check if user already exists — query profiles table (public schema, no pagination issues)
-      // then fetch the auth user by id to confirm
+      // Fetch the employee record first to check current state
+      const { data: employeeRecord, error: empError } = await supabaseAdmin
+        .from('employees')
+        .select('id, full_name, email, user_id')
+        .eq('id', employeeId)
+        .single();
+
+      if (empError || !employeeRecord) {
+        throw new Error('Employee not found');
+      }
+
+      // If employee already has a linked user_id, verify the email matches
+      if (employeeRecord.user_id) {
+        const { data: linkedAuth } = await supabaseAdmin.auth.admin.getUserById(employeeRecord.user_id);
+        if (linkedAuth?.user) {
+          if (linkedAuth.user.email?.toLowerCase() === email.toLowerCase()) {
+            // Already correctly linked — optionally update password
+            if (password) {
+              await supabaseAdmin.auth.admin.updateUser(employeeRecord.user_id, { password });
+              console.log('Password updated for already-linked account');
+            }
+            return new Response(
+              JSON.stringify({
+                success: true,
+                userId: employeeRecord.user_id,
+                action: 'already_linked',
+                loginEmail: linkedAuth.user.email,
+                message: 'Employee already has a matching login account.'
+              }),
+              { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
+            );
+          } else {
+            // MISMATCH: linked auth email ≠ requested email → detach and proceed
+            console.warn(`Email mismatch: employee wants ${email}, linked auth is ${linkedAuth.user.email}. Detaching.`);
+            await supabaseAdmin
+              .from('employees')
+              .update({ user_id: null })
+              .eq('id', employeeId);
+          }
+        } else {
+          // Linked user_id points to a deleted/invalid auth account → detach
+          console.warn('Linked user_id points to invalid auth account. Detaching.');
+          await supabaseAdmin
+            .from('employees')
+            .update({ user_id: null })
+            .eq('id', employeeId);
+        }
+      }
+
+      // Now find or create the auth account for the requested email
       const { data: existingProfile } = await supabaseAdmin
         .from('profiles')
         .select('id')
-        .eq('email', email)
+        .eq('email', email.toLowerCase())
         .maybeSingle();
 
       let existingUser: any = null;
       if (existingProfile) {
         const { data: userData } = await supabaseAdmin.auth.admin.getUserById(existingProfile.id);
-        existingUser = userData?.user ?? null;
+        if (userData?.user && userData.user.email?.toLowerCase() === email.toLowerCase()) {
+          existingUser = userData.user;
+        }
       }
 
       let targetUserId: string;
+      let action: string;
 
       if (existingUser) {
-        console.log('User already exists, linking to employee:', existingUser.id);
+        console.log('Found existing auth account with matching email:', existingUser.id);
         targetUserId = existingUser.id;
+        action = 'linked_existing';
 
-        // Check if this user is already linked to another employee
-        const { data: existingEmployee } = await supabaseAdmin
+        // Check if this user is already linked to a DIFFERENT employee
+        const { data: otherEmployee } = await supabaseAdmin
           .from('employees')
           .select('id, full_name')
           .eq('user_id', existingUser.id)
-          .single();
+          .neq('id', employeeId)
+          .maybeSingle();
 
-        if (existingEmployee && existingEmployee.id !== employeeId) {
-          throw new Error(`This email is already linked to employee: ${existingEmployee.full_name}`);
+        if (otherEmployee) {
+          throw new Error(`This email is already linked to employee: ${otherEmployee.full_name}`);
+        }
+
+        // Update password if provided so the entered password actually works
+        if (password) {
+          await supabaseAdmin.auth.admin.updateUser(targetUserId, { password });
+          console.log('Password updated for existing account');
         }
       } else {
-        // Use provided password or generate a temporary one
+        // Create a brand new auth account
         const userPassword = password || crypto.randomUUID();
 
-        // Create the user using admin client
         const { data: newUser, error: createError } = await supabaseAdmin.auth.admin.createUser({
           email,
           password: userPassword,
           email_confirm: true,
-          user_metadata: {
-            full_name: full_name
-          }
+          user_metadata: { full_name }
         });
 
         if (createError) {
@@ -131,8 +172,8 @@ serve(async (req) => {
 
         console.log('Employee user created:', newUser.user.id);
         targetUserId = newUser.user.id;
+        action = 'created_new';
 
-        // Create profile for the new user
         await supabaseAdmin.from('profiles').upsert({
           id: targetUserId,
           email: email,
@@ -151,31 +192,29 @@ serve(async (req) => {
         throw employeeUpdateError;
       }
 
-      console.log('User linked to employee:', employeeId);
+      console.log('User linked to employee:', employeeId, 'action:', action);
 
       return new Response(
-        JSON.stringify({ 
-          success: true, 
+        JSON.stringify({
+          success: true,
           userId: targetUserId,
-          wasExisting: !!existingUser,
-          message: existingUser 
-            ? 'Existing user account linked to employee.' 
-            : 'Employee login account created. Use password reset to set their password.'
+          action,
+          loginEmail: email,
+          wasExisting: action === 'linked_existing',
+          message: action === 'created_new'
+            ? 'New login account created successfully.'
+            : 'Existing account linked to employee.'
         }),
-        { 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 200 
-        }
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
       );
     }
 
-    // For company invitations, we need email, companyId, and companyRole
+    // ─── COMPANY INVITATION ───
     if (companyId && companyRole) {
       if (!email) {
         throw new Error('Missing required field: email');
       }
 
-      // Check if requesting user is a company owner or admin
       const { data: companyUser } = await supabaseAdmin
         .from('company_users')
         .select('company_role')
@@ -187,9 +226,6 @@ serve(async (req) => {
         throw new Error('Insufficient permissions to invite users to this company');
       }
 
-      // User invites are no longer limited by employee count — that limit applies to workforce employees only
-
-      // Check if user already exists — same reliable profiles-table approach
       const { data: existingProfileInvite } = await supabaseAdmin
         .from('profiles')
         .select('id')
@@ -208,7 +244,6 @@ serve(async (req) => {
         console.log('User already exists:', existingUser.id);
         targetUserId = existingUser.id;
 
-        // Check if user is already in this company
         const { data: existingCompanyUser } = await supabaseAdmin
           .from('company_users')
           .select('id')
@@ -220,25 +255,19 @@ serve(async (req) => {
           throw new Error('User is already a member of this company');
         }
 
-        // Ensure profile exists and is updated for existing users
         await supabaseAdmin.from('profiles').upsert({
           id: targetUserId,
           email: email,
           full_name: full_name || existingUser.user_metadata?.full_name || null,
         }, { onConflict: 'id' });
-        console.log('Ensured profile for existing user');
       } else {
-        // Generate a temporary password
         const tempPassword = crypto.randomUUID();
 
-        // Create the user using admin client
         const { data: newUser, error: createError } = await supabaseAdmin.auth.admin.createUser({
           email,
           password: tempPassword,
-          email_confirm: true, // Auto-confirm email
-          user_metadata: {
-            full_name: full_name || null
-          }
+          email_confirm: true,
+          user_metadata: { full_name: full_name || null }
         });
 
         if (createError) {
@@ -249,7 +278,6 @@ serve(async (req) => {
         console.log('User created:', newUser.user.id);
         targetUserId = newUser.user.id;
 
-        // Create profile for the new user
         await supabaseAdmin.from('profiles').upsert({
           id: targetUserId,
           email: email,
@@ -257,7 +285,6 @@ serve(async (req) => {
         }, { onConflict: 'id' });
       }
 
-      // Add user to company
       const { error: companyUserError } = await supabaseAdmin
         .from('company_users')
         .insert({
@@ -273,10 +300,8 @@ serve(async (req) => {
 
       console.log('User added to company with role:', companyRole);
 
-      // Send invitation email with password setup link (only for new users)
       if (!existingUser) {
         try {
-          // Generate password reset link
           const { data: resetData, error: resetError } = await supabaseAdmin.auth.admin.generateLink({
             type: 'recovery',
             email: email,
@@ -285,7 +310,6 @@ serve(async (req) => {
           if (resetError) {
             console.error('Error generating reset link:', resetError);
           } else if (resetData.properties?.action_link) {
-            // Get company name
             const { data: companyData } = await supabaseAdmin
               .from('companies')
               .select('name')
@@ -294,7 +318,6 @@ serve(async (req) => {
 
             const companyName = companyData?.name || 'the company';
 
-            // Send invitation email using Resend
             const resendApiKey = Deno.env.get('RESEND_API_KEY');
             if (resendApiKey) {
               const emailResponse = await fetch('https://api.resend.com/emails', {
@@ -337,29 +360,24 @@ serve(async (req) => {
           }
         } catch (emailError) {
           console.error('Error in email sending process:', emailError);
-          // Don't fail the entire operation if email fails
         }
       }
 
       return new Response(
-        JSON.stringify({ 
-          success: true, 
+        JSON.stringify({
+          success: true,
           userId: targetUserId,
           wasExisting: !!existingUser
         }),
-        { 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 200 
-        }
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
       );
 
     } else {
-      // Original flow for platform role creation
+      // ─── PLATFORM ROLE CREATION ───
       if (!email || !password || !role) {
         throw new Error('Missing required fields: email, password, role');
       }
 
-      // Check if user has admin or manager role
       const { data: roles } = await supabaseAdmin
         .from('user_roles')
         .select('role')
@@ -370,32 +388,26 @@ serve(async (req) => {
         throw new Error('Insufficient permissions');
       }
 
-      // Create the user using admin client
       const { data: newUser, error: createError } = await supabaseAdmin.auth.admin.createUser({
         email,
         password,
-        email_confirm: true, // Auto-confirm email
-        user_metadata: {
-          full_name: full_name || null
-        }
+        email_confirm: true,
+        user_metadata: { full_name: full_name || null }
       });
 
       if (createError) throw createError;
 
-      // Create profile for the new user
       await supabaseAdmin.from('profiles').upsert({
         id: newUser.user.id,
         email: email,
         full_name: full_name || null,
       }, { onConflict: 'id' });
 
-      // Remove the default 'checker' role added by the trigger
       await supabaseAdmin
         .from('user_roles')
         .delete()
         .eq('user_id', newUser.user.id);
 
-      // Add the specified role to user_roles table
       const { error: roleError } = await supabaseAdmin
         .from('user_roles')
         .insert({
@@ -406,14 +418,8 @@ serve(async (req) => {
       if (roleError) throw roleError;
 
       return new Response(
-        JSON.stringify({ 
-          success: true, 
-          user: newUser.user 
-        }),
-        { 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 200 
-        }
+        JSON.stringify({ success: true, user: newUser.user }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
       );
     }
 
@@ -421,13 +427,8 @@ serve(async (req) => {
     console.error('Error creating user:', error);
     const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
     return new Response(
-      JSON.stringify({ 
-        error: errorMessage 
-      }),
-      { 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 400 
-      }
+      JSON.stringify({ error: errorMessage }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
     );
   }
 });
