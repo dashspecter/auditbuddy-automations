@@ -348,6 +348,9 @@ export const EmployeeDialog = ({
             toast.error(`${term.employee()} created but failed to create login account: ${data.error}`);
           } else {
             toast.success(`${term.employee()} created with login credentials!`);
+            queryClient.invalidateQueries({ queryKey: ["employees"] });
+            queryClient.invalidateQueries({ queryKey: ["employees-paginated"] });
+            queryClient.invalidateQueries({ queryKey: ["employees-cursor"] });
           }
         } catch (err) {
           console.error("Error creating user:", err);
