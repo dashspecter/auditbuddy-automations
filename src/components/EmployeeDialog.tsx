@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   Dialog,
   DialogContent,
@@ -43,6 +44,7 @@ export const EmployeeDialog = ({
   locations,
 }: EmployeeDialogProps) => {
   const term = useTerminology();
+  const queryClient = useQueryClient();
   const [formData, setFormData] = useState({
     full_name: "",
     location_id: "", // Primary location
@@ -346,6 +348,9 @@ export const EmployeeDialog = ({
             toast.error(`${term.employee()} created but failed to create login account: ${data.error}`);
           } else {
             toast.success(`${term.employee()} created with login credentials!`);
+            queryClient.invalidateQueries({ queryKey: ["employees"] });
+            queryClient.invalidateQueries({ queryKey: ["employees-paginated"] });
+            queryClient.invalidateQueries({ queryKey: ["employees-cursor"] });
           }
         } catch (err) {
           console.error("Error creating user:", err);
@@ -846,6 +851,9 @@ export const EmployeeDialog = ({
                           toast.error(`Failed to create login account: ${data.error}`);
                         } else {
                           toast.success("Login account created successfully!");
+                          queryClient.invalidateQueries({ queryKey: ["employees"] });
+                          queryClient.invalidateQueries({ queryKey: ["employees-paginated"] });
+                          queryClient.invalidateQueries({ queryKey: ["employees-cursor"] });
                           onOpenChange(false);
                         }
                       } catch (err) {
