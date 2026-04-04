@@ -83,7 +83,7 @@ serve(async (req) => {
           if (linkedAuth.user.email?.toLowerCase() === email.toLowerCase()) {
             // Already correctly linked — optionally update password
             if (password) {
-              await supabaseAdmin.auth.admin.updateUser(employeeRecord.user_id, { password });
+              await supabaseAdmin.auth.admin.updateUserById(employeeRecord.user_id, { password });
               console.log('Password updated for already-linked account');
             }
             return new Response(
