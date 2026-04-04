@@ -331,11 +331,16 @@ export const EmployeeDialog = ({
       
       // If create user account is checked and email is provided, create auth user
       if (createUserAccount && formData.email && newEmployee) {
+        if (!formData.newUserPassword || formData.newUserPassword.length < 6) {
+          toast.error("Password must be at least 6 characters to create a login account");
+          return;
+        }
         try {
           const { data, error } = await supabase.functions.invoke('create-user', {
             body: {
               email: formData.email,
               full_name: formData.full_name,
+              password: formData.newUserPassword,
               employeeId: newEmployee.id
             }
           });
@@ -782,6 +787,26 @@ export const EmployeeDialog = ({
                   {`Allow this ${term.employee().toLowerCase()} to log in and view their shifts`}
                 </p>
               </div>
+            </div>
+          )}
+
+          {/* Password input for new employee login account */}
+          {!employee && createUserAccount && (
+            <div className="pl-4">
+              <Label htmlFor="newEmployeePassword" className="text-sm font-medium">
+                Password for Login Account
+              </Label>
+              <Input
+                id="newEmployeePassword"
+                type="password"
+                placeholder="Enter password (min 6 characters)"
+                value={formData.newUserPassword || ''}
+                onChange={(e) => setFormData(prev => ({ ...prev, newUserPassword: e.target.value }))}
+                className="mt-1"
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                Minimum 6 characters
+              </p>
             </div>
           )}
 
