@@ -356,6 +356,8 @@ export const EmployeeDialog = ({
             const loginEmail = data?.loginEmail || formData.email;
             if (action === 'already_linked') {
               toast.success(`${term.employee()} already has a login account (${loginEmail}).`);
+            } else if (action === 'linked_existing_password_unchanged') {
+              toast.info(`${term.employee()} linked to existing account (${loginEmail}). Use "Reset Password" to set a new password.`);
             } else if (action === 'linked_existing') {
               toast.success(`${term.employee()} linked to existing account (${loginEmail}).`);
             } else {
