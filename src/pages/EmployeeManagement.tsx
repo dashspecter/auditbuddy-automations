@@ -120,7 +120,7 @@ export default function EmployeeManagement() {
         return;
       }
 
-      const { error } = await supabase.functions.invoke('create-user', {
+      const { data, error } = await supabase.functions.invoke('create-user', {
         body: {
           email: employee.email,
           full_name: employee.full_name,
@@ -129,8 +129,14 @@ export default function EmployeeManagement() {
       });
 
       if (error) throw error;
+      if (data?.error) throw new Error(data.error);
 
-      toast.success(t('workforce.employees.accountCreated', { name: employee.full_name }));
+      const action = data?.action || 'created_new';
+      if (action === 'linked_existing_password_unchanged') {
+        toast.info(`Account linked for ${employee.full_name}. Use "Reset Password" to set login credentials.`);
+      } else {
+        toast.success(t('workforce.employees.accountCreated', { name: employee.full_name }));
+      }
       
       // Refresh the employees list
       window.location.reload();

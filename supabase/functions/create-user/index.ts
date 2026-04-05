@@ -135,7 +135,6 @@ serve(async (req) => {
       if (existingUser) {
         console.log('Found existing auth account with matching email:', existingUser.id);
         targetUserId = existingUser.id;
-        action = 'linked_existing';
 
         // Check if this user is already linked to a DIFFERENT employee
         const { data: otherEmployee } = await supabaseAdmin
@@ -149,11 +148,10 @@ serve(async (req) => {
           throw new Error(`This email is already linked to employee: ${otherEmployee.full_name}`);
         }
 
-        // Update password if provided so the entered password actually works
-        if (password) {
-          await supabaseAdmin.auth.admin.updateUserById(targetUserId, { password });
-          console.log('Password updated for existing account');
-        }
+        // HARDENED: Do NOT update password of existing accounts during employee linking.
+        // The password reset flow (update-user) is the only safe way to change passwords.
+        action = 'linked_existing_password_unchanged';
+        console.log('Linked to existing account WITHOUT changing password');
       } else {
         // Create a brand new auth account
         const userPassword = password || crypto.randomUUID();
