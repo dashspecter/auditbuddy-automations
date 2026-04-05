@@ -2,53 +2,67 @@
 Do I know what the issue is? Yes.
 
 What I verified
-- The main platform account still exists correctly: `alex@grecea.work` is present in the auth system, in `profiles`, and still has the expected `admin` + `company_owner` access.
-- The login is failing before the app even boots into the protected area: auth logs show `/token` returning `400 Invalid login credentials`.
-- So this is not a nav problem, not a route problem, and not an `AuthContext` bootstrap problem.
-- The employee record for `Grecea Alexandru / alex@email.com` is currently detached again (`employees.user_id = null`), which means the bad employee link was removed, but the main account password was not restored and the employee login was not fully rebuilt.
+- The login screen is not the problem. `src/pages/Auth.tsx` uses direct email/password sign-in, so “Invalid email or password” is happening at the authentication layer before the app bootstrap, nav, routes, or permissions run.
+- The master identity still exists correctly:
+  - profile: `alex@grecea.work`
+  - platform role: `admin`
+  - company role: `company_owner`
+- There is no employee row currently linked to that master account, so the account was not deleted or converted into staff.
+- The Proper Pizza employee `Grecea Alexandru / alex@email.com` is currently detached (`employees.user_id = null`), which confirms the earlier bad link was removed but the master account password itself was not restored.
+- I also found other historical employee/profile email mismatches, so this is a real flow-hardening issue, not just one bad record.
 
-What is actually broken
-- The authoritative admin identity was not deleted.
-- Its password is now out of sync with the password being used to sign in.
-- The most likely cause is the earlier employee/auth mismatch path: the employee flow could point at the wrong auth user, and password/account actions could then mutate that wrong auth identity.
+Actual root cause
+- The master account still exists, but its password is out of sync.
+- The risky path is still in `supabase/functions/create-user/index.ts`: when the employee-login flow finds an existing auth account, it can still call `auth.admin.updateUserById(..., { password })`.
+- That means an employee “create login account” action can overwrite the password of an already-existing real account.
+- There is also a legacy employee account creation path in `src/pages/EmployeeManagement.tsx` that still invokes `create-user` without a proper password flow, which keeps this area inconsistent.
 
 Safest fix
-1. Recover the main platform account first
+1. Recover the master account first
 - Do a targeted backend password reset only for `alex@grecea.work`.
-- Do not touch roles, company memberships, routes, or any app bootstrap logic.
-- Verify that login works again immediately after the reset.
+- Do not touch roles, company memberships, nav, routes, or auth bootstrap.
+- Verify login immediately after the reset.
 
-2. Finish the Grecea employee cleanup
-- Keep `Grecea Alexandru / alex@email.com` separate from the admin account.
-- Recreate/relink a dedicated login account for `alex@email.com` with its own password.
-- Make sure it remains a normal employee login only.
+2. Stop employee account creation from mutating existing real accounts
+- File: `supabase/functions/create-user/index.ts`
+- Keep using the entered password only when creating a brand-new auth account.
+- If an exact existing auth account is found, do not automatically change its password inside the employee-create flow.
+- Return explicit backend outcomes instead, such as:
+  - `created_new`
+  - `already_linked`
+  - `linked_existing_password_unchanged`
+  - `email_conflict`
 
-3. Permanently block cross-account password resets
-- `src/components/ResetPasswordDialog.tsx`: send `employeeId` together with `userId`.
-- `supabase/functions/update-user/index.ts`: when `employeeId` is present, validate before changing password:
-  - employee exists
-  - `employees.user_id === userId`
-  - linked auth email matches `employees.email`
-- If any check fails, stop and return a precise mismatch error instead of updating anything.
+3. Make the UI truthful
+- File: `src/components/EmployeeDialog.tsx`
+- Update toast/success handling so the UI no longer claims “login credentials created” when an existing account was only linked and its existing password was preserved.
+- Keep the current employee query invalidation behavior.
 
-4. Harden employee account creation/linking
-- `supabase/functions/create-user/index.ts`
-  - never silently reuse a mismatched auth account
-  - only create/link against the exact requested email
-  - replace the current password-update calls with the correct admin method on the exact user id
-  - return explicit result states so the UI cannot claim success when the wrong identity was involved
+4. Align the legacy employee-create path
+- File: `src/pages/EmployeeManagement.tsx`
+- Remove or align the old “create account” path that still calls `create-user` without a safe password flow.
+- Reuse the same hardened behavior as the main employee dialog.
 
-5. Keep UI behavior stable
-- `src/components/EmployeeDialog.tsx`: keep the current create flow and cache invalidation, only improve the backend outcome handling/messages.
-- No changes to login page, auth bootstrap, routing, nav, permissions, or schema.
+5. Keep password resets strict
+- Keep `src/components/ResetPasswordDialog.tsx` and `supabase/functions/update-user/index.ts` as the dedicated password-change flow for employee-linked accounts, using the existing `employeeId` cross-check.
+- No auth-page rewrite, no schema changes, no broad data cleanup.
+
+What I will not change
+- no login page rewrite
+- no `AuthContext` changes
+- no routing/nav changes
+- no role changes
+- no company membership changes
+- no broad database migration or bulk relinking
 
 Files involved
-- `supabase/functions/update-user/index.ts`
 - `supabase/functions/create-user/index.ts`
-- `src/components/ResetPasswordDialog.tsx`
 - `src/components/EmployeeDialog.tsx`
+- `src/pages/EmployeeManagement.tsx`
+- one targeted backend password recovery for `alex@grecea.work`
 
 Expected result
-- The main platform account works again.
-- `alex@email.com` becomes its own employee login.
-- Future employee create/reset actions cannot accidentally change the owner/admin account password.
+- `alex@grecea.work` works again
+- future employee login creation cannot silently overwrite an existing real account password
+- employee account creation messages become accurate
+- the rest of the platform stays untouched
